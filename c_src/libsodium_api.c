@@ -3,6 +3,7 @@
 
 #include "libsodium_api.h"
 #include "libsodium_api_crypto_aead_aes256gcm.h"
+#include "libsodium_api_crypto_aead_chacha20poly1305.h"
 #include "libsodium_api_crypto_auth.h"
 #include "libsodium_api_crypto_auth_hmacsha256.h"
 #include "libsodium_api_crypto_auth_hmacsha512.h"
@@ -34,6 +35,7 @@
 
 static libsodium_namespace_t	libsodium_namespaces[] = {
 	LS_NS(crypto_aead_aes256gcm),
+	LS_NS(crypto_aead_chacha20poly1305),
 	LS_NS(crypto_auth),
 	LS_NS(crypto_auth_hmacsha256),
 	LS_NS(crypto_auth_hmacsha512),

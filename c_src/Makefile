@@ -17,7 +17,6 @@ LIBSODIUM_VSN ?= 1.0.8
 LIBSODIUM_DIR ?= $(BASEDIR)/.libsodium
 LIBSODIUM_GIT ?= git://github.com/jedisct1/libsodium.git
 LIBSODIUM_OUT ?= $(LIBSODIUM_DIR)/src/libsodium/.libs/libsodium.a
-LIBSODIUM_OBJ ?= $(LIBSODIUM_OUT) $(LIBSODIUM_DIR)/src/libsodium/.libs/libaesni.a
 
 # System type and C compiler/flags.
 
