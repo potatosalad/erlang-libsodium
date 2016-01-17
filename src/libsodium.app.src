@@ -2,7 +2,7 @@
 %% vim: ts=4 sw=4 ft=erlang noet
 {application, libsodium, [
 	{description, "libsodium port driver"},
-	{vsn, "0.0.1"},
+	{vsn, "0.0.2"},
 	{id, "git"},
 	{mod, {'libsodium_app', []}},
 	{registered, []},
@@ -14,7 +14,7 @@
 		public_key
 	]},
 	{modules, []},
-	{contributors, ["Andrew Bennett"]},
+	{maintainers, ["Andrew Bennett"]},
 	{licenses, ["Mozilla Public License Version 2.0"]},
 	{links, [{"Github", "https://github.com/potatosalad/erlang-libsodium"}]}
 ]}.

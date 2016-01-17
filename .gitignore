@@ -24,6 +24,7 @@ doc
 logs
 test/ct.cover.spec
 /_build
+/c_src/env.mk
 /cover
 /priv/*.dll
 /priv/*.dylib

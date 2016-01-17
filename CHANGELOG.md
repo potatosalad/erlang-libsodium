@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.2 (2016-01-16)
+
+* Publish to [hex.pm](https://hex.pm/packages/libsodium) without binary files.
+
 ## 0.0.1 (2016-01-16)
 
 * Initial Release
