@@ -37,93 +37,23 @@ libsodium_function_t	libsodium_functions_crypto_sign[] = {
 
 /* crypto_sign_bytes/0 */
 
-static void
-LS_API_EXEC(crypto_sign, bytes)
-{
-	size_t bytes;
-
-	bytes = crypto_sign_bytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(bytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_sign, bytes);
 
 /* crypto_sign_seedbytes/0 */
 
-static void
-LS_API_EXEC(crypto_sign, seedbytes)
-{
-	size_t seedbytes;
-
-	seedbytes = crypto_sign_seedbytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(seedbytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_sign, seedbytes);
 
 /* crypto_sign_publickeybytes/0 */
 
-static void
-LS_API_EXEC(crypto_sign, publickeybytes)
-{
-	size_t publickeybytes;
-
-	publickeybytes = crypto_sign_publickeybytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(publickeybytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_sign, publickeybytes);
 
 /* crypto_sign_secretkeybytes/0 */
 
-static void
-LS_API_EXEC(crypto_sign, secretkeybytes)
-{
-	size_t secretkeybytes;
-
-	secretkeybytes = crypto_sign_secretkeybytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(secretkeybytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_sign, secretkeybytes);
 
 /* crypto_sign_primitive/0 */
 
-static void
-LS_API_EXEC(crypto_sign, primitive)
-{
-	const char *primitive;
-
-	primitive = crypto_sign_primitive();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_ATOM, driver_mk_atom((char *)(primitive)),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_ATOM(crypto_sign, primitive);
 
 /* crypto_sign_seed_keypair/1 */
 
@@ -175,77 +105,46 @@ LS_API_EXEC(crypto_sign, seed_keypair)
 {
 	LS_API_F_ARGV_T(crypto_sign, seed_keypair) *argv;
 	LS_API_READ_ARGV(crypto_sign, seed_keypair);
-	size_t publickeybytes;
-	size_t secretkeybytes;
-	void *p;
-	unsigned char *pk;
-	unsigned char *sk;
 
-	publickeybytes = crypto_sign_publickeybytes();
-	secretkeybytes = crypto_sign_secretkeybytes();
+	size_t publickeybytes = crypto_sign_publickeybytes();
+	size_t secretkeybytes = crypto_sign_secretkeybytes();
 
-	p = (void *)(driver_alloc((ErlDrvSizeT)(publickeybytes + secretkeybytes)));
+	unsigned char pk[publickeybytes];
+	unsigned char sk[secretkeybytes];
 
-	if (p == NULL) {
-		LS_FAIL_OOM(request->port->drv_port);
-		return;
-	}
-
-	pk = (unsigned char *)(p);
-	sk = (unsigned char *)(p + publickeybytes);
-
-	(void) crypto_sign_seed_keypair(pk, sk, argv->seed);
-
-	ErlDrvTermData spec[] = {
+	LS_SAFE_REPLY(crypto_sign_seed_keypair(pk, sk, argv->seed), LS_PROTECT({
 		LS_RES_TAG(request),
 		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(pk), publickeybytes,
 		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(sk), secretkeybytes,
 		ERL_DRV_TUPLE, 2,
 		ERL_DRV_TUPLE, 2
-	};
+	}), __FILE__, __LINE__);
 
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-
-	(void) driver_free(p);
+	(void) sodium_memzero(pk, publickeybytes);
+	(void) sodium_memzero(sk, secretkeybytes);
 }
 
-/* crypto_sign_keypair/1 */
+/* crypto_sign_keypair/0 */
 
 static void
 LS_API_EXEC(crypto_sign, keypair)
 {
-	size_t publickeybytes;
-	size_t secretkeybytes;
-	void *p;
-	unsigned char *pk;
-	unsigned char *sk;
+	size_t publickeybytes = crypto_sign_publickeybytes();
+	size_t secretkeybytes = crypto_sign_secretkeybytes();
 
-	publickeybytes = crypto_sign_publickeybytes();
-	secretkeybytes = crypto_sign_secretkeybytes();
+	unsigned char pk[publickeybytes];
+	unsigned char sk[secretkeybytes];
 
-	p = (void *)(driver_alloc((ErlDrvSizeT)(publickeybytes + secretkeybytes)));
-
-	if (p == NULL) {
-		LS_FAIL_OOM(request->port->drv_port);
-		return;
-	}
-
-	pk = (unsigned char *)(p);
-	sk = (unsigned char *)(p + publickeybytes);
-
-	(void) crypto_sign_keypair(pk, sk);
-
-	ErlDrvTermData spec[] = {
+	LS_SAFE_REPLY(crypto_sign_keypair(pk, sk), LS_PROTECT({
 		LS_RES_TAG(request),
 		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(pk), publickeybytes,
 		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(sk), secretkeybytes,
 		ERL_DRV_TUPLE, 2,
 		ERL_DRV_TUPLE, 2
-	};
+	}), __FILE__, __LINE__);
 
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-
-	(void) driver_free(p);
+	(void) sodium_memzero(pk, publickeybytes);
+	(void) sodium_memzero(sk, secretkeybytes);
 }
 
 /* crypto_sign_crypto_sign/2 */
@@ -322,29 +221,18 @@ LS_API_EXEC(crypto_sign, crypto_sign)
 {
 	LS_API_F_ARGV_T(crypto_sign, crypto_sign) *argv;
 	LS_API_READ_ARGV(crypto_sign, crypto_sign);
-	size_t bytes;
-	unsigned char *sm;
+
+	size_t bytes = crypto_sign_bytes();
+	unsigned char sm[bytes + argv->mlen];
 	unsigned long long smlen;
 
-	bytes = crypto_sign_bytes();
-	sm = (unsigned char *)(driver_alloc((ErlDrvSizeT)(bytes + argv->mlen)));
-
-	if (sm == NULL) {
-		LS_FAIL_OOM(request->port->drv_port);
-		return;
-	}
-
-	(void) crypto_sign(sm, &smlen, argv->m, argv->mlen, argv->sk);
-
-	ErlDrvTermData spec[] = {
+	LS_SAFE_REPLY(crypto_sign(sm, &smlen, argv->m, argv->mlen, argv->sk), LS_PROTECT({
 		LS_RES_TAG(request),
 		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(sm), smlen,
 		ERL_DRV_TUPLE, 2
-	};
+	}), __FILE__, __LINE__);
 
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-
-	(void) driver_free(sm);
+	(void) sodium_memzero(sm, bytes + argv->mlen);
 }
 
 /* crypto_sign_open/2 */
@@ -421,38 +309,19 @@ LS_API_EXEC(crypto_sign, open)
 {
 	LS_API_F_ARGV_T(crypto_sign, open) *argv;
 	LS_API_READ_ARGV(crypto_sign, open);
-	size_t bytes;
-	unsigned char *m;
+
+	size_t bytes = crypto_sign_bytes();
+	size_t mbytes = (bytes > argv->smlen) ? argv->smlen : argv->smlen - bytes;
+	unsigned char m[mbytes];
 	unsigned long long mlen;
-	int r;
 
-	bytes = crypto_sign_bytes();
-	m = (unsigned char *)(driver_alloc((ErlDrvSizeT)(argv->smlen - bytes)));
+	LS_SAFE_REPLY(crypto_sign_open(m, &mlen, argv->sm, argv->smlen, argv->pk), LS_PROTECT({
+		LS_RES_TAG(request),
+		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(m), mlen,
+		ERL_DRV_TUPLE, 2
+	}), __FILE__, __LINE__);
 
-	if (m == NULL) {
-		LS_FAIL_OOM(request->port->drv_port);
-		return;
-	}
-
-	r = crypto_sign_open(m, &mlen, argv->sm, argv->smlen, argv->pk);
-
-	if (r == 0) {
-		ErlDrvTermData spec[] = {
-			LS_RES_TAG(request),
-			ERL_DRV_BUF2BINARY, (ErlDrvTermData)(m), mlen,
-			ERL_DRV_TUPLE, 2
-		};
-		LS_RESPOND(request, spec, __FILE__, __LINE__);
-	} else {
-		ErlDrvTermData spec[] = {
-			LS_RES_TAG(request),
-			ERL_DRV_INT, (ErlDrvSInt)(r),
-			ERL_DRV_TUPLE, 2
-		};
-		LS_RESPOND(request, spec, __FILE__, __LINE__);
-	}
-
-	(void) driver_free(m);
+	(void) sodium_memzero(m, mbytes);
 }
 
 /* crypto_sign_detached/2 */
@@ -529,38 +398,18 @@ LS_API_EXEC(crypto_sign, detached)
 {
 	LS_API_F_ARGV_T(crypto_sign, detached) *argv;
 	LS_API_READ_ARGV(crypto_sign, detached);
-	size_t bytes;
-	unsigned char *sig;
+
+	size_t bytes = crypto_sign_bytes();
+	unsigned char sig[bytes];
 	unsigned long long siglen;
-	int r;
 
-	bytes = crypto_sign_bytes();
-	sig = (unsigned char *)(driver_alloc((ErlDrvSizeT)(bytes)));
+	LS_SAFE_REPLY(crypto_sign_detached(sig, &siglen, argv->m, argv->mlen, argv->sk), LS_PROTECT({
+		LS_RES_TAG(request),
+		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(sig), siglen,
+		ERL_DRV_TUPLE, 2
+	}), __FILE__, __LINE__);
 
-	if (sig == NULL) {
-		LS_FAIL_OOM(request->port->drv_port);
-		return;
-	}
-
-	r = crypto_sign_detached(sig, &siglen, argv->m, argv->mlen, argv->sk);
-
-	if (r == 0) {
-		ErlDrvTermData spec[] = {
-			LS_RES_TAG(request),
-			ERL_DRV_BUF2BINARY, (ErlDrvTermData)(sig), siglen,
-			ERL_DRV_TUPLE, 2
-		};
-		LS_RESPOND(request, spec, __FILE__, __LINE__);
-	} else {
-		ErlDrvTermData spec[] = {
-			LS_RES_TAG(request),
-			ERL_DRV_INT, (ErlDrvSInt)(r),
-			ERL_DRV_TUPLE, 2
-		};
-		LS_RESPOND(request, spec, __FILE__, __LINE__);
-	}
-
-	(void) driver_free(sig);
+	(void) sodium_memzero(sig, bytes);
 }
 
 /* crypto_sign_verify_detached/3 */
@@ -658,14 +507,14 @@ LS_API_EXEC(crypto_sign, verify_detached)
 {
 	LS_API_F_ARGV_T(crypto_sign, verify_detached) *argv;
 	LS_API_READ_ARGV(crypto_sign, verify_detached);
-	int r;
 
-	r = crypto_sign_verify_detached(argv->sig, argv->m, argv->mlen, argv->pk);
+	int r = crypto_sign_verify_detached(argv->sig, argv->m, argv->mlen, argv->pk);
 
 	ErlDrvTermData spec[] = {
 		LS_RES_TAG(request),
 		ERL_DRV_INT, (ErlDrvSInt)(r),
 		ERL_DRV_TUPLE, 2
 	};
+
 	LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

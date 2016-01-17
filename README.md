@@ -1,8 +1,30 @@
-# libsodium port driver
+# libsodium asynchronous port driver
 
-[libsodium](https://libsodium.org) port driver for Erlang and Elixir.
+[![Build Status](https://travis-ci.org/potatosalad/erlang-libsodium.png?branch=master)](https://travis-ci.org/potatosalad/erlang-libsodium) [![Hex.pm](https://img.shields.io/hexpm/v/libsodium.svg)](https://hex.pm/packages/libsodium)
+
+[libsodium](https://libsodium.org) asynchronous port driver for Erlang and Elixir.
 
 *Work In Progress* - not yet ready for production.
+
+## Installation
+
+Add `libsodium` to your project's dependencies in `mix.exs`
+
+```elixir
+defp deps do
+  [
+    {:libsodium, "~> 0.0.1"}
+  ]
+end
+```
+
+Add `libsodium` to your project's dependencies in your `Makefile` for [`erlang.mk`](https://github.com/ninenines/erlang.mk) or the following to your `rebar.config`
+
+```erlang
+{deps, [
+  {libsodium, ".*", {git, "git://github.com/potatosalad/erlang-libsodium.git", {branch, "master"}}}
+]}.
+```
 
 ## Usage
 

@@ -13,6 +13,8 @@ static int	LS_API_INIT(utils, add);
 static void	LS_API_EXEC(utils, add);
 static int	LS_API_INIT(utils, bin2hex);
 static void	LS_API_EXEC(utils, bin2hex);
+static int	LS_API_INIT(utils, hex2bin);
+static void	LS_API_EXEC(utils, hex2bin);
 
 libsodium_function_t	libsodium_functions_utils[] = {
 	LS_API_R_ARGV(utils, compare, 2),
@@ -20,6 +22,7 @@ libsodium_function_t	libsodium_functions_utils[] = {
 	LS_API_R_ARGV(utils, increment, 1),
 	LS_API_R_ARGV(utils, add, 2),
 	LS_API_R_ARGV(utils, bin2hex, 1),
+	LS_API_R_ARGV(utils, hex2bin, 2),
 	{NULL}
 };
 
@@ -358,20 +361,14 @@ LS_API_EXEC(utils, bin2hex)
 {
 	LS_API_F_ARGV_T(utils, bin2hex) *argv;
 	LS_API_READ_ARGV(utils, bin2hex);
-	size_t hex_maxlen;
-	char *hex;
 
-	hex_maxlen = (argv->bin_len * 2) + 1;
-	hex = (char *)(driver_alloc((ErlDrvSizeT)(hex_maxlen)));
+	size_t hex_maxlen = (argv->bin_len * 2) + 1;
+	char hex[hex_maxlen];
+	char *hexp;
 
-	if (hex == NULL) {
-		LS_FAIL_OOM(request->port->drv_port);
-		return;
-	}
+	hexp = sodium_bin2hex(hex, hex_maxlen, argv->bin, argv->bin_len);
 
-	hex = sodium_bin2hex(hex, hex_maxlen, argv->bin, argv->bin_len);
-
-	if (hex == NULL) {
+	if (hexp == NULL) {
 		LS_FAIL_OOM(request->port->drv_port);
 		return;
 	}
@@ -384,5 +381,106 @@ LS_API_EXEC(utils, bin2hex)
 
 	LS_RESPOND(request, spec, __FILE__, __LINE__);
 
-	(void) driver_free(hex);
+	(void) sodium_memzero(hex, strlen(hex));
+}
+
+/* utils_hex2bin/2 */
+
+typedef struct LS_API_F_ARGV(utils, hex2bin) {
+	const char	*hex;
+	const size_t	hex_len;
+	const char	*ignore;
+} LS_API_F_ARGV_T(utils, hex2bin);
+
+static int
+LS_API_INIT(utils, hex2bin)
+{
+	LS_API_F_ARGV_T(utils, hex2bin) *argv;
+	int skip;
+	int type;
+	int type_length;
+	size_t hex_len;
+	size_t ignore_len;
+	ErlDrvSizeT x;
+	void *p;
+
+	if (ei_get_type(buffer, index, &type, &type_length) < 0
+			|| type != ERL_BINARY_EXT) {
+		return -1;
+	}
+
+	hex_len = (size_t)(type_length);
+
+	skip = *index;
+
+	if (ei_skip_term(buffer, &skip) < 0) {
+		return -1;
+	}
+
+	if (ei_get_type(buffer, &skip, &type, &type_length) < 0
+			|| type != ERL_BINARY_EXT) {
+		return -1;
+	}
+
+	ignore_len = (size_t)(type_length);
+
+	if (ignore_len > 0) {
+		ignore_len += 1;
+	}
+
+	x = (ErlDrvSizeT)(hex_len + ignore_len + (sizeof (LS_API_F_ARGV_T(utils, hex2bin))));
+	p = (void *)(driver_alloc(x));
+
+	if (p == NULL) {
+		return -1;
+	}
+
+	argv = (LS_API_F_ARGV_T(utils, hex2bin) *)(p);
+	p += (sizeof (LS_API_F_ARGV_T(utils, hex2bin)));
+	argv->hex = (const char *)(p);
+	p += hex_len;
+	if (ignore_len == 0) {
+		argv->ignore = NULL;
+	} else {
+		argv->ignore = (const char *)(p);
+	}
+
+	if (ei_decode_binary(buffer, index, (void *)(argv->hex), (long *)&(argv->hex_len)) < 0) {
+		(void) driver_free(argv);
+		return -1;
+	}
+
+	if (ignore_len > 0) {
+		if (ei_decode_binary(buffer, index, (void *)(argv->ignore), (long *)&(ignore_len)) < 0) {
+			(void) driver_free(argv);
+			return -1;
+		}
+		char *c = (char *)(p + ignore_len);
+		*c = '\0';
+	}
+
+	request->argv = (void *)(argv);
+
+	return 0;
+}
+
+static void
+LS_API_EXEC(utils, hex2bin)
+{
+	LS_API_F_ARGV_T(utils, hex2bin) *argv;
+	LS_API_READ_ARGV(utils, hex2bin);
+
+	size_t bin_maxlen = argv->hex_len;
+	unsigned char bin[bin_maxlen];
+	size_t bin_len = 0;
+
+	LS_SAFE_REPLY(sodium_hex2bin(bin, bin_maxlen, argv->hex, argv->hex_len, argv->ignore, &bin_len, NULL), LS_PROTECT({
+		LS_RES_TAG(request),
+		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(bin), bin_len,
+		ERL_DRV_TUPLE, 2
+	}), __FILE__, __LINE__);
+
+	if (bin_len > 0) {
+		(void) sodium_memzero(bin, bin_len);
+	}
 }

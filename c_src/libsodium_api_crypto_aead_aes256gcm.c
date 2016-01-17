@@ -37,111 +37,27 @@ libsodium_function_t	libsodium_functions_crypto_aead_aes256gcm[] = {
 
 /* crypto_aead_aes256gcm_is_available/0 */
 
-static void
-LS_API_EXEC(crypto_aead_aes256gcm, is_available)
-{
-	int is_available;
-
-	is_available = crypto_aead_aes256gcm_is_available();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_INT, (ErlDrvSInt)(is_available),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SINT(crypto_aead_aes256gcm, is_available);
 
 /* crypto_aead_aes256gcm_keybytes/0 */
 
-static void
-LS_API_EXEC(crypto_aead_aes256gcm, keybytes)
-{
-	size_t keybytes;
-
-	keybytes = crypto_aead_aes256gcm_keybytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(keybytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_aead_aes256gcm, keybytes);
 
 /* crypto_aead_aes256gcm_nsecbytes/0 */
 
-static void
-LS_API_EXEC(crypto_aead_aes256gcm, nsecbytes)
-{
-	size_t nsecbytes;
-
-	nsecbytes = crypto_aead_aes256gcm_nsecbytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(nsecbytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_aead_aes256gcm, nsecbytes);
 
 /* crypto_aead_aes256gcm_npubbytes/0 */
 
-static void
-LS_API_EXEC(crypto_aead_aes256gcm, npubbytes)
-{
-	size_t npubbytes;
-
-	npubbytes = crypto_aead_aes256gcm_npubbytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(npubbytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_aead_aes256gcm, npubbytes);
 
 /* crypto_aead_aes256gcm_abytes/0 */
 
-static void
-LS_API_EXEC(crypto_aead_aes256gcm, abytes)
-{
-	size_t abytes;
-
-	abytes = crypto_aead_aes256gcm_abytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(abytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_aead_aes256gcm, abytes);
 
 /* crypto_aead_aes256gcm_statebytes/0 */
 
-static void
-LS_API_EXEC(crypto_aead_aes256gcm, statebytes)
-{
-	size_t statebytes;
-
-	statebytes = crypto_aead_aes256gcm_statebytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(statebytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_aead_aes256gcm, statebytes);
 
 /* crypto_aead_aes256gcm_encrypt/5 */
 
@@ -303,29 +219,19 @@ LS_API_EXEC(crypto_aead_aes256gcm, encrypt)
 {
 	LS_API_F_ARGV_T(crypto_aead_aes256gcm, encrypt) *argv;
 	LS_API_READ_ARGV(crypto_aead_aes256gcm, encrypt);
-	size_t abytes;
-	unsigned char *c;
+
+	size_t abytes = crypto_aead_aes256gcm_abytes();
+	size_t cbytes = argv->mlen + abytes;
+	unsigned char c[cbytes];
 	unsigned long long clen;
 
-	abytes = crypto_aead_aes256gcm_abytes();
-	c = (unsigned char *)(driver_alloc((ErlDrvSizeT)(argv->mlen + abytes)));
-
-	if (c == NULL) {
-		LS_FAIL_OOM(request->port->drv_port);
-		return;
-	}
-
-	(void) crypto_aead_aes256gcm_encrypt(c, &clen, argv->m, argv->mlen, argv->ad, argv->adlen, argv->nsec, argv->npub, argv->k);
-
-	ErlDrvTermData spec[] = {
+	LS_SAFE_REPLY(crypto_aead_aes256gcm_encrypt(c, &clen, argv->m, argv->mlen, argv->ad, argv->adlen, argv->nsec, argv->npub, argv->k), LS_PROTECT({
 		LS_RES_TAG(request),
 		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(c), clen,
 		ERL_DRV_TUPLE, 2
-	};
+	}), __FILE__, __LINE__);
 
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-
-	(void) driver_free(c);
+	(void) sodium_memzero(c, cbytes);
 }
 
 /* crypto_aead_aes256gcm_decrypt/5 */
@@ -488,36 +394,17 @@ LS_API_EXEC(crypto_aead_aes256gcm, decrypt)
 {
 	LS_API_F_ARGV_T(crypto_aead_aes256gcm, decrypt) *argv;
 	LS_API_READ_ARGV(crypto_aead_aes256gcm, decrypt);
-	size_t abytes;
-	unsigned char *m;
+
+	size_t abytes = crypto_aead_aes256gcm_abytes();
+	size_t mbytes = (abytes > argv->clen) ? argv->clen : argv->clen - abytes;
+	unsigned char m[mbytes];
 	unsigned long long mlen;
-	int r;
 
-	abytes = crypto_aead_aes256gcm_abytes();
-	m = (unsigned char *)(driver_alloc((ErlDrvSizeT)(argv->clen - abytes)));
+	LS_SAFE_REPLY(crypto_aead_aes256gcm_decrypt(m, &mlen, argv->nsec, argv->c, argv->clen, argv->ad, argv->adlen, argv->npub, argv->k), LS_PROTECT({
+		LS_RES_TAG(request),
+		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(m), mlen,
+		ERL_DRV_TUPLE, 2
+	}), __FILE__, __LINE__);
 
-	if (m == NULL) {
-		LS_FAIL_OOM(request->port->drv_port);
-		return;
-	}
-
-	r = crypto_aead_aes256gcm_decrypt(m, &mlen, argv->nsec, argv->c, argv->clen, argv->ad, argv->adlen, argv->npub, argv->k);
-
-	if (r == 0) {
-		ErlDrvTermData spec[] = {
-			LS_RES_TAG(request),
-			ERL_DRV_BUF2BINARY, (ErlDrvTermData)(m), mlen,
-			ERL_DRV_TUPLE, 2
-		};
-		LS_RESPOND(request, spec, __FILE__, __LINE__);
-	} else {
-		ErlDrvTermData spec[] = {
-			LS_RES_TAG(request),
-			ERL_DRV_INT, (ErlDrvSInt)(r),
-			ERL_DRV_TUPLE, 2
-		};
-		LS_RESPOND(request, spec, __FILE__, __LINE__);
-	}
-
-	(void) driver_free(m);
+	(void) sodium_memzero(m, mbytes);
 }

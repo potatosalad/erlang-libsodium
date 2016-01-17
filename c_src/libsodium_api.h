@@ -51,6 +51,9 @@ extern libsodium_function_t	*get_libsodium_api(const char *namespace, const char
 
 #define LS_API_READ_ARGV(NAMESPACE, FUNCTION)	\
 	do {	\
+		if (request->argv == NULL) {	\
+			return;	\
+		}	\
 		argv = (LS_API_F_ARGV_T(NAMESPACE, FUNCTION) *)(request->argv);	\
 	} while (0)
 
@@ -60,6 +63,66 @@ extern libsodium_function_t	*get_libsodium_api(const char *namespace, const char
 	do {	\
 		if (erl_drv_send_term(REQUEST->port->term_port, REQUEST->caller, SPEC, sizeof(SPEC) / sizeof(SPEC[0])) < 0) {	\
 			TRACE_F("error sending term\n", FILE, LINE);	\
+		}	\
+	} while (0)
+
+#define LS_API_GET_ATOM(NAMESPACE, FUNCTION)	\
+	static void	\
+	LS_API_EXEC(NAMESPACE, FUNCTION)	\
+	{	\
+		const char *retval;	\
+		retval = NAMESPACE ## _ ## FUNCTION ();	\
+		ErlDrvTermData spec[] = {	\
+			LS_RES_TAG(request),	\
+			ERL_DRV_ATOM, driver_mk_atom((char *)(retval)),	\
+			ERL_DRV_TUPLE, 2	\
+		};	\
+		LS_RESPOND(request, spec, __FILE__, __LINE__);	\
+	}
+
+#define LS_API_GET_SINT(NAMESPACE, FUNCTION)	\
+	static void	\
+	LS_API_EXEC(NAMESPACE, FUNCTION)	\
+	{	\
+		int retval;	\
+		retval = NAMESPACE ## _ ## FUNCTION ();	\
+		ErlDrvTermData spec[] = {	\
+			LS_RES_TAG(request),	\
+			ERL_DRV_INT, (ErlDrvSInt)(retval),	\
+			ERL_DRV_TUPLE, 2	\
+		};	\
+		LS_RESPOND(request, spec, __FILE__, __LINE__);	\
+	}
+
+#define LS_API_GET_SIZE(NAMESPACE, FUNCTION)	\
+	static void	\
+	LS_API_EXEC(NAMESPACE, FUNCTION)	\
+	{	\
+		size_t retval;	\
+		retval = NAMESPACE ## _ ## FUNCTION ();	\
+		ErlDrvTermData spec[] = {	\
+			LS_RES_TAG(request),	\
+			ERL_DRV_UINT, (ErlDrvUInt)(retval),	\
+			ERL_DRV_TUPLE, 2	\
+		};	\
+		LS_RESPOND(request, spec, __FILE__, __LINE__);	\
+	}
+
+#define LS_PROTECT(...)	__VA_ARGS__
+
+#define LS_SAFE_REPLY(FUNCTION, SPECDATA, FILE, LINE)	\
+	do {	\
+		int r = FUNCTION;	\
+		if (r == 0) {	\
+			ErlDrvTermData spec[] = SPECDATA;	\
+			LS_RESPOND(request, spec, FILE, LINE);	\
+		} else {	\
+			ErlDrvTermData spec[] = {	\
+				LS_RES_TAG(request),	\
+				ERL_DRV_INT, (ErlDrvSInt)(r),	\
+				ERL_DRV_TUPLE, 2	\
+			};	\
+			LS_RESPOND(request, spec, FILE, LINE);	\
 		}	\
 	} while (0)
 

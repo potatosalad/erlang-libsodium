@@ -20,6 +20,14 @@
 -export([open/0]).
 -export([close/1]).
 
+-define(MAYBE_START_LIBSODIUM(F), try
+	F
+catch
+	_:_ ->
+		_ = libsodium:start(),
+		F
+end).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -30,13 +38,13 @@ start() ->
 call(Namespace, Function)
 		when is_atom(Namespace)
 		andalso is_atom(Function) ->
-	call(Namespace, Function, {}).
+	?MAYBE_START_LIBSODIUM(call(Namespace, Function, {})).
 
 call(Namespace, Function, Arguments)
 		when is_atom(Namespace)
 		andalso is_atom(Function)
 		andalso is_tuple(Arguments) ->
-	call(erlang:whereis(?LIBSODIUM_DRIVER_ATOM), Namespace, Function, Arguments).
+	?MAYBE_START_LIBSODIUM(call(erlang:whereis(?LIBSODIUM_DRIVER_ATOM), Namespace, Function, Arguments)).
 
 call(Port, Namespace, Function, Arguments)
 		when is_port(Port)

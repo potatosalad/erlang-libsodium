@@ -22,57 +22,15 @@ libsodium_function_t	libsodium_functions_crypto_scalarmult[] = {
 
 /* crypto_scalarmult_bytes/0 */
 
-static void
-LS_API_EXEC(crypto_scalarmult, bytes)
-{
-	size_t bytes;
-
-	bytes = crypto_scalarmult_bytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(bytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_scalarmult, bytes);
 
 /* crypto_scalarmult_scalarbytes/0 */
 
-static void
-LS_API_EXEC(crypto_scalarmult, scalarbytes)
-{
-	size_t scalarbytes;
-
-	scalarbytes = crypto_scalarmult_scalarbytes();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_UINT, (ErlDrvUInt)(scalarbytes),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_SIZE(crypto_scalarmult, scalarbytes);
 
 /* crypto_scalarmult_primitive/0 */
 
-static void
-LS_API_EXEC(crypto_scalarmult, primitive)
-{
-	const char *primitive;
-
-	primitive = crypto_scalarmult_primitive();
-
-	ErlDrvTermData spec[] = {
-		LS_RES_TAG(request),
-		ERL_DRV_ATOM, driver_mk_atom((char *)(primitive)),
-		ERL_DRV_TUPLE, 2
-	};
-
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-}
+LS_API_GET_ATOM(crypto_scalarmult, primitive);
 
 /* crypto_scalarmult_base/1 */
 
@@ -124,28 +82,17 @@ LS_API_EXEC(crypto_scalarmult, base)
 {
 	LS_API_F_ARGV_T(crypto_scalarmult, base) *argv;
 	LS_API_READ_ARGV(crypto_scalarmult, base);
-	size_t bytes;
-	unsigned char *q;
 
-	bytes = crypto_scalarmult_bytes();
-	q = (unsigned char *)(driver_alloc((ErlDrvSizeT)(bytes)));
+	size_t bytes = crypto_scalarmult_bytes();
+	unsigned char q[bytes];
 
-	if (q == NULL) {
-		LS_FAIL_OOM(request->port->drv_port);
-		return;
-	}
-
-	(void) crypto_scalarmult_base(q, argv->n);
-
-	ErlDrvTermData spec[] = {
+	LS_SAFE_REPLY(crypto_scalarmult_base(q, argv->n), LS_PROTECT({
 		LS_RES_TAG(request),
 		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(q), bytes,
 		ERL_DRV_TUPLE, 2
-	};
+	}), __FILE__, __LINE__);
 
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-
-	(void) driver_free(q);
+	(void) sodium_memzero(q, bytes);
 }
 
 /* crypto_scalarmult_crypto_scalarmult/2 */
@@ -219,26 +166,15 @@ LS_API_EXEC(crypto_scalarmult, crypto_scalarmult)
 {
 	LS_API_F_ARGV_T(crypto_scalarmult, crypto_scalarmult) *argv;
 	LS_API_READ_ARGV(crypto_scalarmult, crypto_scalarmult);
-	size_t bytes;
-	unsigned char *q;
 
-	bytes = crypto_scalarmult_bytes();
-	q = (unsigned char *)(driver_alloc((ErlDrvSizeT)(bytes)));
+	size_t bytes = crypto_scalarmult_bytes();
+	unsigned char q[bytes];
 
-	if (q == NULL) {
-		LS_FAIL_OOM(request->port->drv_port);
-		return;
-	}
-
-	(void) crypto_scalarmult(q, argv->n, argv->p);
-
-	ErlDrvTermData spec[] = {
+	LS_SAFE_REPLY(crypto_scalarmult(q, argv->n, argv->p), LS_PROTECT({
 		LS_RES_TAG(request),
 		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(q), bytes,
 		ERL_DRV_TUPLE, 2
-	};
+	}), __FILE__, __LINE__);
 
-	LS_RESPOND(request, spec, __FILE__, __LINE__);
-
-	(void) driver_free(q);
+	(void) sodium_memzero(q, bytes);
 }

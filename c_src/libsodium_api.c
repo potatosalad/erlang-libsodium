@@ -8,6 +8,8 @@
 #include "libsodium_api_crypto_auth_hmacsha256.h"
 #include "libsodium_api_crypto_auth_hmacsha512.h"
 #include "libsodium_api_crypto_auth_hmacsha512256.h"
+#include "libsodium_api_crypto_box.h"
+#include "libsodium_api_crypto_box_curve25519xsalsa20poly1305.h"
 #include "libsodium_api_crypto_core_hsalsa20.h"
 #include "libsodium_api_crypto_core_salsa20.h"
 #include "libsodium_api_crypto_core_salsa2012.h"
@@ -46,6 +48,8 @@ static libsodium_namespace_t	libsodium_namespaces[] = {
 	LS_NS(crypto_auth_hmacsha256),
 	LS_NS(crypto_auth_hmacsha512),
 	LS_NS(crypto_auth_hmacsha512256),
+	LS_NS(crypto_box),
+	LS_NS(crypto_box_curve25519xsalsa20poly1305),
 	LS_NS(crypto_core_hsalsa20),
 	LS_NS(crypto_core_salsa20),
 	LS_NS(crypto_core_salsa2012),

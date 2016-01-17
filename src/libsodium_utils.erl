@@ -18,7 +18,8 @@
 -export([increment/1]).
 -export([add/2]).
 -export([bin2hex/1]).
-% -export([hex2bin/1]).
+-export([hex2bin/1]).
+-export([hex2bin/2]).
 
 %% Internal API
 -export([call/1]).
@@ -49,6 +50,15 @@ add(A, B)
 bin2hex(Bin)
 		when is_binary(Bin) ->
 	call(bin2hex, {Bin}).
+
+hex2bin(Hex)
+		when is_binary(Hex) ->
+	hex2bin(Hex, <<>>).
+
+hex2bin(Hex, Ignore)
+		when is_binary(Hex)
+		andalso is_binary(Ignore) ->
+	call(hex2bin, {Hex, Ignore}).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions
