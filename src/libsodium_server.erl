@@ -105,8 +105,6 @@ code_change(_OldVsn, State, _Extra) ->
 %% @end
 %%--------------------------------------------------------------------
 load() ->
-	io:format(user, "priv_dir() = ~p~n", [priv_dir()]),
-	io:format(user, "file:list_dir_all(priv_dir()) = ~p~n", [file:list_dir_all(priv_dir())]),
 	{ok, Drivers} = erl_ddll:loaded_drivers(),
 	case lists:member(?LIBSODIUM_DRIVER_NAME, Drivers) of
 		true ->
