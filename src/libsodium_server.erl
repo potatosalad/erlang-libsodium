@@ -148,7 +148,7 @@ unload() ->
 
 %% @private
 priv_dir() ->
-	case code:priv_dir(hierdis) of
+	case code:priv_dir(libsodium) of
 		{error, bad_name} ->
 			case code:which(?MODULE) of
 				Filename when is_list(Filename) ->
