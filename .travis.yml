@@ -3,8 +3,6 @@ language: erlang
 sudo: false
 
 otp_release:
-  - 17.5
-  - 18.0
   - 18.2
 
 notifications:
