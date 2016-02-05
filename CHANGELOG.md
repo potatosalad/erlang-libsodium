@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.3 (2016-02-05)
+
+* Fixes
+  * Minor fixes to build flags and port driver lookup.
+
 ## 0.0.2 (2016-01-16)
 
 * Publish to [hex.pm](https://hex.pm/packages/libsodium) without binary files.
