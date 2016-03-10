@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.4 (2016-03-10)
+
+* Library Support
+  * `libsodium_crypto_pwhash_scryptsalsa208sha256` (See #1)
+
 ## 0.0.3 (2016-02-05)
 
 * Fixes

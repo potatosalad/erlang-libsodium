@@ -21,6 +21,7 @@
 #include "libsodium_api_crypto_hash_sha512.h"
 #include "libsodium_api_crypto_onetimeauth.h"
 #include "libsodium_api_crypto_onetimeauth_poly1305.h"
+#include "libsodium_api_crypto_pwhash_scryptsalsa208sha256.h"
 #include "libsodium_api_crypto_scalarmult.h"
 #include "libsodium_api_crypto_scalarmult_curve25519.h"
 #include "libsodium_api_crypto_shorthash.h"
@@ -61,6 +62,7 @@ static libsodium_namespace_t	libsodium_namespaces[] = {
 	LS_NS(crypto_hash_sha512),
 	LS_NS(crypto_onetimeauth),
 	LS_NS(crypto_onetimeauth_poly1305),
+	LS_NS(crypto_pwhash_scryptsalsa208sha256),
 	LS_NS(crypto_scalarmult),
 	LS_NS(crypto_scalarmult_curve25519),
 	LS_NS(crypto_shorthash),

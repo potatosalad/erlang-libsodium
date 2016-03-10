@@ -108,6 +108,20 @@ extern libsodium_function_t	*get_libsodium_api(const char *namespace, const char
 		LS_RESPOND(request, spec, __FILE__, __LINE__);	\
 	}
 
+#define LS_API_GET_STR(NAMESPACE, FUNCTION)	\
+	static void	\
+	LS_API_EXEC(NAMESPACE, FUNCTION)	\
+	{	\
+		const char *retval;	\
+		retval = NAMESPACE ## _ ## FUNCTION ();	\
+		ErlDrvTermData spec[] = {	\
+			LS_RES_TAG(request),	\
+			ERL_DRV_BUF2BINARY, (ErlDrvTermData)(retval), strlen(retval),	\
+			ERL_DRV_TUPLE, 2	\
+		};	\
+		LS_RESPOND(request, spec, __FILE__, __LINE__);	\
+	}
+
 #define LS_PROTECT(...)	__VA_ARGS__
 
 #define LS_SAFE_REPLY(FUNCTION, SPECDATA, FILE, LINE)	\
