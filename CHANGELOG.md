@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.6 (2016-05-24)
+
+* Enhancements
+  * Tests for the `crypto_pwhash` group.
+
+* Fixes
+  * Minor fixes to the following libraries:
+    * `libsodium_crypto_pwhash`
+    * `libsodium_crypto_pwhash_argon2i`
+    * `libsodium_crypto_pwhash_scryptsalsa208sha256`
+
 ## 0.0.5 (2016-05-24)
 
 * Library Support

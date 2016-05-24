@@ -200,7 +200,7 @@ $(C_SRC_OUTPUT_FILE): $(OBJECTS)
 clean:: clean-c_src
 
 clean-c_src:
-	$(gen_verbose) rm -f $(C_SRC_OUTPUT_FILE) $(OBJECTS)
+	$(gen_verbose) rm -f $(C_SRC_OUTPUT_FILE) $(OBJECTS) $(C_SRC_ENV)
 
 ifneq ($(wildcard $(C_SRC_ENV)),)
 -include $(C_SRC_ENV)
