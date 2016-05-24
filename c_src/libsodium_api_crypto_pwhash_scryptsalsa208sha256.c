@@ -267,7 +267,7 @@ LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, str)
 
 	LS_SAFE_REPLY(crypto_pwhash_scryptsalsa208sha256_str(out, argv->passwd, argv->passwdlen, argv->opslimit, argv->memlimit), LS_PROTECT({
 		LS_RES_TAG(request),
-		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(out), sizeof(out),
+		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(out), strlen(out),
 		ERL_DRV_TUPLE, 2
 	}), __FILE__, __LINE__);
 
@@ -295,7 +295,7 @@ LS_API_INIT(crypto_pwhash_scryptsalsa208sha256, str_verify)
 
 	if (ei_get_type(buffer, index, &type, &type_length) < 0
 			|| type != ERL_BINARY_EXT
-			|| type_length != crypto_pwhash_scryptsalsa208sha256_STRBYTES) {
+			|| type_length > crypto_pwhash_scryptsalsa208sha256_STRBYTES) {
 		return -1;
 	}
 
@@ -310,10 +310,11 @@ LS_API_INIT(crypto_pwhash_scryptsalsa208sha256, str_verify)
 		return -1;
 	}
 
-	passwdlen = (unsigned long long)(type_length);
+	passwdlen = (unsigned long long)(type_length + 1);
 
 	x = (ErlDrvSizeT)(passwdlen + (sizeof (LS_API_F_ARGV_T(crypto_pwhash_scryptsalsa208sha256, str_verify))));
 	p = (void *)(driver_alloc(x));
+	(void) sodium_memzero(p, x);
 
 	if (p == NULL) {
 		return -1;

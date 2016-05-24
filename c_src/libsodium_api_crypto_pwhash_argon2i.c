@@ -83,7 +83,8 @@ typedef struct LS_API_F_ARGV(crypto_pwhash_argon2i, crypto_pwhash_argon2i) {
 	unsigned long long	outlen;
 	const char *		passwd;
 	unsigned long long	passwdlen;
-	const unsigned char	salt[crypto_pwhash_argon2i_SALTBYTES];
+	const unsigned char *	salt;
+	size_t			saltlen;
 	unsigned long long	opslimit;
 	size_t			memlimit;
 	int			alg;
@@ -99,6 +100,7 @@ LS_API_INIT(crypto_pwhash_argon2i, crypto_pwhash_argon2i)
 	unsigned long long outlen;
 	unsigned long long passwdlen;
 	size_t saltbytes;
+	size_t saltlen;
 	unsigned long long opslimit;
 	size_t memlimit;
 	long alg;
@@ -126,9 +128,11 @@ LS_API_INIT(crypto_pwhash_argon2i, crypto_pwhash_argon2i)
 
 	if (ei_get_type(buffer, &skip, &type, &type_length) < 0
 			|| type != ERL_BINARY_EXT
-			|| type_length != saltbytes) {
+			|| type_length < saltbytes) {
 		return -1;
 	}
+
+	saltlen = (size_t)(type_length);
 
 	if (ei_skip_term(buffer, &skip) < 0) {
 		return -1;
@@ -146,7 +150,7 @@ LS_API_INIT(crypto_pwhash_argon2i, crypto_pwhash_argon2i)
 		return -1;
 	}
 
-	x = (ErlDrvSizeT)(passwdlen + (sizeof (LS_API_F_ARGV_T(crypto_pwhash_argon2i, crypto_pwhash_argon2i))));
+	x = (ErlDrvSizeT)(passwdlen + saltlen + (sizeof (LS_API_F_ARGV_T(crypto_pwhash_argon2i, crypto_pwhash_argon2i))));
 	p = (void *)(driver_alloc(x));
 
 	if (p == NULL) {
@@ -160,13 +164,16 @@ LS_API_INIT(crypto_pwhash_argon2i, crypto_pwhash_argon2i)
 	argv->alg = (int)alg;
 	p += (sizeof (LS_API_F_ARGV_T(crypto_pwhash_argon2i, crypto_pwhash_argon2i)));
 	argv->passwd = (const char *)(p);
+	p += passwdlen;
+	argv->salt = (const unsigned char *)(p);
+	argv->saltlen = saltlen;
 
 	if (ei_decode_binary(buffer, index, (void *)(argv->passwd), (long *)&(argv->passwdlen)) < 0) {
 		(void) driver_free(argv);
 		return -1;
 	}
 
-	if (ei_decode_binary(buffer, index, (void *)(argv->salt), NULL) < 0) {
+	if (ei_decode_binary(buffer, index, (void *)(argv->salt), (long *)&(argv->saltlen)) < 0) {
 		(void) driver_free(argv);
 		return -1;
 	}
@@ -294,7 +301,7 @@ LS_API_EXEC(crypto_pwhash_argon2i, str)
 
 	LS_SAFE_REPLY(crypto_pwhash_argon2i_str(out, argv->passwd, argv->passwdlen, argv->opslimit, argv->memlimit), LS_PROTECT({
 		LS_RES_TAG(request),
-		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(out), sizeof(out),
+		ERL_DRV_BUF2BINARY, (ErlDrvTermData)(out), strlen(out),
 		ERL_DRV_TUPLE, 2
 	}), __FILE__, __LINE__);
 
@@ -322,7 +329,7 @@ LS_API_INIT(crypto_pwhash_argon2i, str_verify)
 
 	if (ei_get_type(buffer, index, &type, &type_length) < 0
 			|| type != ERL_BINARY_EXT
-			|| type_length != crypto_pwhash_argon2i_STRBYTES) {
+			|| type_length > crypto_pwhash_argon2i_STRBYTES) {
 		return -1;
 	}
 
@@ -341,6 +348,7 @@ LS_API_INIT(crypto_pwhash_argon2i, str_verify)
 
 	x = (ErlDrvSizeT)(passwdlen + (sizeof (LS_API_F_ARGV_T(crypto_pwhash_argon2i, str_verify))));
 	p = (void *)(driver_alloc(x));
+	(void) sodium_memzero(p, x);
 
 	if (p == NULL) {
 		return -1;

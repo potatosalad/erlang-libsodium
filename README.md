@@ -1,6 +1,6 @@
 # libsodium asynchronous port driver
 
-[![Build Status](https://travis-ci.org/potatosalad/erlang-libsodium.png?branch=master)](https://travis-ci.org/potatosalad/erlang-libsodium) [![Hex.pm](https://img.shields.io/hexpm/v/libsodium.svg)](https://hex.pm/packages/libsodium)
+[![Build Status](https://travis-ci.org/potatosalad/erlang-libsodium.svg?branch=master)](https://travis-ci.org/potatosalad/erlang-libsodium) [![Hex.pm](https://img.shields.io/hexpm/v/libsodium.svg)](https://hex.pm/packages/libsodium)
 
 [libsodium](https://libsodium.org) asynchronous port driver for Erlang and Elixir.
 
