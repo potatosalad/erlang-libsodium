@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.5 (2016-05-24)
+
+* Library Support
+  * Update to [libsodium 1.0.10](https://github.com/jedisct1/libsodium/releases/tag/1.0.10).
+  * `libsodium_crypto_pwhash` (See #2)
+  * `libsodium_crypto_pwhash_argon2i` (See #2)
+
 ## 0.0.4 (2016-03-10)
 
 * Library Support

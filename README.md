@@ -4,7 +4,7 @@
 
 [libsodium](https://libsodium.org) asynchronous port driver for Erlang and Elixir.
 
-*Work In Progress* - not yet ready for production.
+*Work In Progress* - use at your own risk.
 
 ## Installation
 
@@ -13,7 +13,7 @@ Add `libsodium` to your project's dependencies in `mix.exs`
 ```elixir
 defp deps do
   [
-    {:libsodium, "~> 0.0.4"}
+    {:libsodium, "~> 0.0.5"}
   ]
 end
 ```

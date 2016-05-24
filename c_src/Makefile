@@ -92,7 +92,7 @@ CXXFLAGS += -I"$(ERTS_INCLUDE_DIR)" -I"$(ERL_INTERFACE_INCLUDE_DIR)" -I"$(LIBSOD
 
 LDLIBS += -L"$(ERL_INTERFACE_LIB_DIR)" -lerl_interface -lei "$(LIBSODIUM_OUTPUT_FILE)"
 
-LIBSODIUM_VSN ?= 1.0.8
+LIBSODIUM_VSN ?= 1.0.10
 LIBSODIUM_DIR ?= $(BASEDIR)/.libsodium
 LIBSODIUM_GIT ?= git://github.com/jedisct1/libsodium.git
 LIBSODIUM_OUTPUT_FILE ?= $(LIBSODIUM_DIR)/src/libsodium/.libs/libsodium.a
