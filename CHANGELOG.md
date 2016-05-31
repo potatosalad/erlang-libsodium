@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.7 (2016-05-31)
+
+* Library Support
+  * `libsodium_crypto_aead_chacha20poly1305` detached mode and IETF compliance.
+
 ## 0.0.6 (2016-05-24)
 
 * Enhancements

@@ -13,7 +13,7 @@ Add `libsodium` to your project's dependencies in `mix.exs`
 ```elixir
 defp deps do
   [
-    {:libsodium, "~> 0.0.6"}
+    {:libsodium, "~> 0.0.7"}
   ]
 end
 ```
