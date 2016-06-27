@@ -31,7 +31,7 @@ before_install:
       fi;
       llvm-$LLVM_VERSION/bin/llvm-config --version;
       export LLVM_CONFIG="llvm-$LLVM_VERSION/bin/llvm-config";
-      export PATH="$HOME/clang+llvm/bin:$PATH"
+      export PATH="$HOME/llvm-$LLVM_VERSION/bin:$PATH"
     fi
 
 script:
