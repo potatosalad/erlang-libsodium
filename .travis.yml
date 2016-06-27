@@ -15,11 +15,7 @@ cache:
     - llvm-3.7.1
 
 env:
-  global:
-    - LLVM_VERSION=3.7.1
-    - CC=clang
-    - CXX=clang++
-    - ARCHFLAGS=-Wgcc-compat
+  - LLVM_VERSION=3.7.1 CC=clang CXX=clang++ ARCHFLAGS=-Wgcc-compat
 
 before_install:
   -
@@ -29,6 +25,7 @@ before_install:
         mkdir llvm-$LLVM_VERSION;
         xzcat llvm-$LLVM_VERSION.tar.xz | tar -xvf - --strip 1 -C llvm-$LLVM_VERSION;
       fi;
+      ls -Al llvm-$LLVM_VERSION/bin
       llvm-$LLVM_VERSION/bin/llvm-config --version;
       export LLVM_CONFIG="llvm-$LLVM_VERSION/bin/llvm-config";
       export PATH="$HOME/llvm-$LLVM_VERSION/bin:$PATH"
