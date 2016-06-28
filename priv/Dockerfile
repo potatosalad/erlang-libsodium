@@ -8,7 +8,7 @@ RUN apt-get update && \
     curl -O https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && \
     dpkg -i erlang-solutions_1.0_all.deb && \
     apt-get update && \
-    apt-get -y install esl-erlang=1:${OTP_VERSION} git make clang-3.8
+    apt-get -y install esl-erlang=1:${OTP_VERSION} git make clang-3.8 autoconf automake libtool
  
 RUN mkdir /build
 WORKDIR /build
