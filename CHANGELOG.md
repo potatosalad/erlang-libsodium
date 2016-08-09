@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.8 (2016-08-08)
+
+* Library Support
+  * Update to [libsodium 1.0.11](https://github.com/jedisct1/libsodium/releases/tag/1.0.11).
+
 ## 0.0.7 (2016-05-31)
 
 * Library Support
