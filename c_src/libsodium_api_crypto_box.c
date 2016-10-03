@@ -1402,6 +1402,7 @@ LS_API_INIT(crypto_box, seal_open)
 	int type;
 	int type_length;
 	unsigned long long clen;
+	size_t sealbytes;
 	size_t publickeybytes;
 	size_t secretkeybytes;
 	ErlDrvSizeT x;
@@ -1413,6 +1414,12 @@ LS_API_INIT(crypto_box, seal_open)
 	}
 
 	clen = (unsigned long long)(type_length);
+
+	sealbytes = crypto_box_sealbytes();
+
+	if (clen < sealbytes) {
+		return -1;
+	}
 
 	skip = *index;
 
