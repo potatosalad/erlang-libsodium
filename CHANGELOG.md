@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.9 (2016-10-04)
+
+* Fixes
+  * Segfault when using `libsodium_crypto_box:seal_open/3` where ciphertext length is less than sealbytes. (See [#5](https://github.com/potatosalad/erlang-libsodium/pull/5), thanks to [@mtaylor91](https://github.com/mtaylor91))
+
 ## 0.0.8 (2016-08-08)
 
 * Library Support

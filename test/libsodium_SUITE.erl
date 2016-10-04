@@ -22,10 +22,12 @@
 
 %% Tests.
 -export([aead_aes256gcm/1]).
--export([aead_aes256gcm_checkbytes/1]).
+-export([aead_aes256gcm_check/1]).
 -export([aead_chacha20poly1305/1]).
--export([aead_chacha20poly1305_checkbytes/1]).
+-export([aead_chacha20poly1305_check/1]).
 -export([aead_chacha20poly1305_ietf/1]).
+-export([box_check/1]).
+-export([box_seal/1]).
 -export([pwhash_key_derivation/1]).
 -export([pwhash_password_storage/1]).
 -export([pwhash_scrypt_key_derivation/1]).
@@ -33,6 +35,14 @@
 -export([sign/1]).
 
 %% Macros.
+-define(tv_badarg(T, M, F, A),
+	try erlang:apply(M, F, A) of
+		T ->
+			ct:fail({{M, F, A}, badarg_expected, {got, T}})
+	catch
+		error:badarg ->
+			ok
+	end).
 -define(tv_not(T, M, F, A, E),
 	case erlang:apply(M, F, A) of
 		E ->
@@ -52,6 +62,7 @@ all() ->
 	[
 		{group, aead_aes256gcm},
 		{group, aead_chacha20poly1305},
+		{group, box},
 		{group, pwhash},
 		{group, pwhash_scrypt},
 		{group, sign}
@@ -61,12 +72,16 @@ groups() ->
 	[
 		{aead_aes256gcm, [parallel], [
 			aead_aes256gcm,
-			aead_aes256gcm_checkbytes
+			aead_aes256gcm_check
 		]},
 		{aead_chacha20poly1305, [parallel], [
 			aead_chacha20poly1305,
-			aead_chacha20poly1305_checkbytes,
+			aead_chacha20poly1305_check,
 			aead_chacha20poly1305_ietf
+		]},
+		{box, [parallel], [
+			box_check,
+			box_seal
 		]},
 		{pwhash, [parallel], [
 			pwhash_key_derivation,
@@ -102,7 +117,9 @@ init_group(pwhash, Config) ->
 init_group(pwhash_scrypt, Config) ->
 	tv_file_hex("pwhash_scrypt.config", Config) ++ Config;
 init_group(sign, Config) ->
-	tv_file_hex("sign.config", Config) ++ Config.
+	tv_file_hex("sign.config", Config) ++ Config;
+init_group(_, Config) ->
+	Config.
 
 end_per_group(_Group, Config) ->
 	libsodium_ct:stop(Config),
@@ -122,10 +139,10 @@ aead_aes256gcm(Config) ->
 			ok
 	end.
 
-aead_aes256gcm_checkbytes(_Config) ->
+aead_aes256gcm_check(_Config) ->
 	case libsodium_crypto_aead_aes256gcm:is_available() of
 		1 ->
-			checkbytes(libsodium_crypto_aead_aes256gcm, [
+			check(libsodium_crypto_aead_aes256gcm, [
 				{keybytes,    32},
 				{nsecbytes,    0},
 				{npubbytes,   12},
@@ -141,8 +158,8 @@ aead_chacha20poly1305(Config) ->
 	TV = ?config(tv, Config),
 	aead_chacha20poly1305(TV, Config).
 
-aead_chacha20poly1305_checkbytes(_Config) ->
-	checkbytes(libsodium_crypto_aead_chacha20poly1305, [
+aead_chacha20poly1305_check(_Config) ->
+	check(libsodium_crypto_aead_chacha20poly1305, [
 		{keybytes,       32},
 		{nsecbytes,       0},
 		{npubbytes,       8},
@@ -153,6 +170,31 @@ aead_chacha20poly1305_checkbytes(_Config) ->
 aead_chacha20poly1305_ietf(Config) ->
 	TVIETF = ?config(tv_ietf, Config),
 	aead_chacha20poly1305_ietf(TVIETF, Config).
+
+box_check(_Config) ->
+	check(libsodium_crypto_box, [
+		{seedbytes,      32},
+		{publickeybytes, 32},
+		{secretkeybytes, 32},
+		{noncebytes,     24},
+		{macbytes,       16},
+		{primitive,      curve25519xsalsa20poly1305},
+		{beforenmbytes,  32},
+		{sealbytes,      48},
+		{zerobytes,      32},
+		{boxzerobytes,   16}
+	]).
+
+box_seal(_Config) ->
+	{PK, SK} = libsodium_crypto_box:keypair(),
+	MLen = libsodium_randombytes:uniform(1000),
+	CLen = libsodium_crypto_box:sealbytes() + MLen,
+	M = libsodium_randombytes:buf(MLen),
+	C = ?tv_not(T0, libsodium_crypto_box, seal, [M, PK], -1),
+	?tv_ok(T1, libsodium_crypto_box, seal_open, [C, PK, SK], M),
+	?tv_badarg(T2, libsodium_crypto_box, seal_open, [<<>>, PK, SK]),
+	?tv_ok(T3, libsodium_crypto_box, seal_open, [binary:part(C, 0, byte_size(C) - 1), PK, SK], -1),
+	ok.
 
 pwhash_key_derivation(Config) ->
 	TV = ?config(tv, Config),
@@ -286,14 +328,14 @@ sign([], _Config) ->
 %%%-------------------------------------------------------------------
 
 %% @private
-checkbytes(Module, [{Function, Bytes} | Checks]) ->
+check(Module, [{Function, Value} | Checks]) ->
 	case Module:Function() of
-		Bytes ->
-			checkbytes(Module, Checks);
+		Value ->
+			check(Module, Checks);
 		Other ->
-			ct:fail({{Module, Function, []}, {expected, Bytes}, {got, Other}})
+			ct:fail({{Module, Function, []}, {expected, Value}, {got, Other}})
 	end;
-checkbytes(_Module, []) ->
+check(_Module, []) ->
 	ok.
 
 %% @private
