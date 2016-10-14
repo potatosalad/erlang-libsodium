@@ -23,11 +23,10 @@
 -export([encrypt/4]).
 -export([decrypt/3]).
 -export([decrypt/4]).
-% -export([beforenm/1]).
-% -export([encrypt_afternm/3]).
-% -export([encrypt_afternm/4]).
-% -export([decrypt_afternm/3]).
-% -export([decrypt_afternm/4]).
+-export([encrypt_detached/3]).
+-export([encrypt_detached/4]).
+-export([decrypt_detached/4]).
+-export([decrypt_detached/5]).
 
 %% Internal API
 -export([call/1]).
@@ -81,35 +80,33 @@ decrypt(C, AD, NPub, K)
 		andalso is_binary(K) ->
 	call(decrypt, {<<>>, C, AD, NPub, K}).
 
-% beforenm(K)
-% 		when is_binary(K) ->
-% 	call(beforenm, {K}).
+encrypt_detached(M, NPub, K)
+		when is_binary(M)
+		andalso is_binary(NPub)
+		andalso is_binary(K) ->
+	encrypt_detached(M, <<>>, NPub, K).
 
-% encrypt_afternm(M, NPub, CTX)
-% 		when is_binary(M)
-% 		andalso is_binary(NPub)
-% 		andalso is_binary(CTX) ->
-% 	encrypt_afternm(M, <<>>, NPub, CTX).
+encrypt_detached(M, AD, NPub, K)
+		when is_binary(M)
+		andalso is_binary(AD)
+		andalso is_binary(NPub)
+		andalso is_binary(K) ->
+	call(encrypt_detached, {M, AD, <<>>, NPub, K}).
 
-% encrypt_afternm(M, AD, NPub, CTX)
-% 		when is_binary(M)
-% 		andalso is_binary(AD)
-% 		andalso is_binary(NPub)
-% 		andalso is_binary(CTX) ->
-% 	call(encrypt_afternm, {M, AD, <<>>, NPub, CTX}).
+decrypt_detached(C, MAC, NPub, K)
+		when is_binary(C)
+		andalso is_binary(MAC)
+		andalso is_binary(NPub)
+		andalso is_binary(K) ->
+	decrypt_detached(C, MAC, <<>>, NPub, K).
 
-% decrypt_afternm(C, NPub, CTX)
-% 		when is_binary(C)
-% 		andalso is_binary(NPub)
-% 		andalso is_binary(CTX) ->
-% 	decrypt_afternm(C, <<>>, NPub, CTX).
-
-% decrypt_afternm(C, AD, NPub, CTX)
-% 		when is_binary(C)
-% 		andalso is_binary(AD)
-% 		andalso is_binary(NPub)
-% 		andalso is_binary(CTX) ->
-% 	call(decrypt_afternm, {<<>>, C, AD, NPub, CTX}).
+decrypt_detached(C, MAC, AD, NPub, K)
+		when is_binary(C)
+		andalso is_binary(MAC)
+		andalso is_binary(AD)
+		andalso is_binary(NPub)
+		andalso is_binary(K) ->
+	call(decrypt_detached, {<<>>, C, MAC, AD, NPub, K}).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

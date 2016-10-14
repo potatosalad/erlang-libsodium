@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.0.10 (2016-10-14)
+
+* Enhancements
+  * Add detached functions to `libsodium_crypto_aead_aes256gcm`:
+    * `encrypt_detached/3`
+    * `encrypt_detached/4`
+    * `decrypt_detached/4`
+    * `decrypt_detached/5`
+
 ## 0.0.9 (2016-10-04)
 
 * Fixes

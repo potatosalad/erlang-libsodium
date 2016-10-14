@@ -188,7 +188,7 @@ box_check(_Config) ->
 box_seal(_Config) ->
 	{PK, SK} = libsodium_crypto_box:keypair(),
 	MLen = libsodium_randombytes:uniform(1000),
-	CLen = libsodium_crypto_box:sealbytes() + MLen,
+	_CLen = libsodium_crypto_box:sealbytes() + MLen,
 	M = libsodium_randombytes:buf(MLen),
 	C = ?tv_not(T0, libsodium_crypto_box, seal, [M, PK], -1),
 	?tv_ok(T1, libsodium_crypto_box, seal_open, [C, PK, SK], M),
@@ -225,30 +225,46 @@ aead_aes256gcm([{Key, Nonce, Message, Ad, Ciphertext, Mac} | Vectors], Config) -
 	ExpectedCiphertext = << Ciphertext/binary, Mac/binary >>,
 	TruncatedCiphertext = binary:part(ExpectedCiphertext, 0, libsodium_randombytes:uniform(byte_size(ExpectedCiphertext))),
 	TruncatedTag = binary:part(ExpectedCiphertext, 0, libsodium_randombytes:uniform(libsodium_crypto_aead_aes256gcm:abytes())),
+	TruncatedDetachedMac = binary:part(Mac, 0, libsodium_randombytes:uniform(byte_size(Mac))),
 	?tv_ok(T0, libsodium_crypto_aead_aes256gcm, encrypt, [Message, Ad, Nonce, Key], ExpectedCiphertext),
 	?tv_ok(T1, libsodium_crypto_aead_aes256gcm, decrypt, [TruncatedCiphertext, Ad, Nonce, Key], -1),
 	?tv_ok(T2, libsodium_crypto_aead_aes256gcm, decrypt, [TruncatedTag, Ad, Nonce, Key], -1),
 	?tv_ok(T3, libsodium_crypto_aead_aes256gcm, decrypt, [ExpectedCiphertext, Ad, Nonce, Key], Message),
+	?tv_ok(T4, libsodium_crypto_aead_aes256gcm, encrypt_detached, [Message, Ad, Nonce, Key], {Ciphertext, Mac}),
+	?tv_badarg(T6, libsodium_crypto_aead_aes256gcm, decrypt_detached, [Ciphertext, TruncatedDetachedMac, Ad, Nonce, Key]),
+	?tv_ok(T7, libsodium_crypto_aead_aes256gcm, decrypt_detached, [Ciphertext, Mac, Ad, Nonce, Key], Message),
 	aead_aes256gcm(Vectors, Config);
 aead_aes256gcm([], _Config) ->
 	ok.
 
 %% @private
 aead_chacha20poly1305([{K, M, NPub, AD, C, CNoAD} | Vectors], Config) ->
+	MLen = byte_size(M),
+	<< CD:MLen/binary, MAC/binary >> = C,
+	TruncatedMAC = binary:part(MAC, 0, libsodium_randombytes:uniform(byte_size(MAC))),
 	?tv_ok(T0, libsodium_crypto_aead_chacha20poly1305, encrypt, [M, AD, NPub, K], C),
 	?tv_ok(T1, libsodium_crypto_aead_chacha20poly1305, encrypt, [M, NPub, K], CNoAD),
 	?tv_ok(T2, libsodium_crypto_aead_chacha20poly1305, decrypt, [C, AD, NPub, K], M),
 	?tv_ok(T3, libsodium_crypto_aead_chacha20poly1305, decrypt, [CNoAD, NPub, K], M),
+	?tv_ok(T4, libsodium_crypto_aead_chacha20poly1305, encrypt_detached, [M, AD, NPub, K], {CD, MAC}),
+	?tv_badarg(T5, libsodium_crypto_aead_chacha20poly1305, decrypt_detached, [CD, TruncatedMAC, AD, NPub, K]),
+	?tv_ok(T6, libsodium_crypto_aead_chacha20poly1305, decrypt_detached, [CD, MAC, AD, NPub, K], M),
 	aead_chacha20poly1305(Vectors, Config);
 aead_chacha20poly1305([], _Config) ->
 	ok.
 
 %% @private
 aead_chacha20poly1305_ietf([{K, M, NPub, AD, C, CNoAD} | Vectors], Config) ->
+	MLen = byte_size(M),
+	<< CD:MLen/binary, MAC/binary >> = C,
+	TruncatedMAC = binary:part(MAC, 0, libsodium_randombytes:uniform(byte_size(MAC))),
 	?tv_ok(T0, libsodium_crypto_aead_chacha20poly1305, ietf_encrypt, [M, AD, NPub, K], C),
 	?tv_ok(T1, libsodium_crypto_aead_chacha20poly1305, ietf_encrypt, [M, NPub, K], CNoAD),
 	?tv_ok(T2, libsodium_crypto_aead_chacha20poly1305, ietf_decrypt, [C, AD, NPub, K], M),
 	?tv_ok(T3, libsodium_crypto_aead_chacha20poly1305, ietf_decrypt, [CNoAD, NPub, K], M),
+	?tv_ok(T4, libsodium_crypto_aead_chacha20poly1305, ietf_encrypt_detached, [M, AD, NPub, K], {CD, MAC}),
+	?tv_badarg(T5, libsodium_crypto_aead_chacha20poly1305, ietf_decrypt_detached, [CD, TruncatedMAC, AD, NPub, K]),
+	?tv_ok(T6, libsodium_crypto_aead_chacha20poly1305, ietf_decrypt_detached, [CD, MAC, AD, NPub, K], M),
 	aead_chacha20poly1305_ietf(Vectors, Config);
 aead_chacha20poly1305_ietf([], _Config) ->
 	ok.
