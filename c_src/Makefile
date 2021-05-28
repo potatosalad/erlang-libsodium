@@ -64,9 +64,9 @@ ifeq ($(PLATFORM),msys2)
 	CXXFLAGS ?= -O3 -finline-functions -fstack-protector -Wall
 else ifeq ($(PLATFORM),darwin)
 	CC ?= cc
-	CFLAGS ?= -O3 -std=c99 -arch x86_64 -fstack-protector -Wall -Wmissing-prototypes
-	CXXFLAGS ?= -O3 -arch x86_64 -fstack-protector -Wall
-	LDFLAGS ?= -arch x86_64 -flat_namespace -undefined suppress
+	CFLAGS ?= -O3 -std=c99 -fstack-protector -Wall -Wmissing-prototypes
+	CXXFLAGS ?= -O3 -fstack-protector -Wall
+	LDFLAGS ?= -flat_namespace -undefined suppress
 else ifeq ($(PLATFORM),freebsd)
 	CC ?= cc
 	CFLAGS ?= -O3 -std=c99 -finline-functions -fstack-protector -Wall -Wmissing-prototypes
@@ -90,9 +90,9 @@ endif
 CFLAGS += -I"$(ERTS_INCLUDE_DIR)" -I"$(ERL_INTERFACE_INCLUDE_DIR)" -I"$(LIBSODIUM_DIR)/src/libsodium/include"
 CXXFLAGS += -I"$(ERTS_INCLUDE_DIR)" -I"$(ERL_INTERFACE_INCLUDE_DIR)" -I"$(LIBSODIUM_DIR)/src/libsodium/include"
 
-LDLIBS += -L"$(ERL_INTERFACE_LIB_DIR)" -lerl_interface -lei "$(LIBSODIUM_OUTPUT_FILE)"
+LDLIBS += -L"$(ERL_INTERFACE_LIB_DIR)" -lei "$(LIBSODIUM_OUTPUT_FILE)"
 
-LIBSODIUM_VSN ?= 1.0.11
+LIBSODIUM_VSN ?= 1.0.18
 LIBSODIUM_DIR ?= $(BASEDIR)/.libsodium
 LIBSODIUM_GIT ?= git://github.com/jedisct1/libsodium.git
 LIBSODIUM_OUTPUT_FILE ?= $(LIBSODIUM_DIR)/src/libsodium/.libs/libsodium.a

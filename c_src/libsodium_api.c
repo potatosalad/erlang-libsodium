@@ -31,7 +31,6 @@
 #include "libsodium_api_crypto_sign.h"
 #include "libsodium_api_crypto_sign_ed25519.h"
 #include "libsodium_api_crypto_stream.h"
-#include "libsodium_api_crypto_stream_aes128ctr.h"
 #include "libsodium_api_crypto_stream_chacha20.h"
 #include "libsodium_api_crypto_stream_salsa20.h"
 #include "libsodium_api_crypto_stream_salsa2012.h"
@@ -74,7 +73,6 @@ static libsodium_namespace_t	libsodium_namespaces[] = {
 	LS_NS(crypto_sign),
 	LS_NS(crypto_sign_ed25519),
 	LS_NS(crypto_stream),
-	LS_NS(crypto_stream_aes128ctr),
 	LS_NS(crypto_stream_chacha20),
 	LS_NS(crypto_stream_salsa20),
 	LS_NS(crypto_stream_salsa2012),
