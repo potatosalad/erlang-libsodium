@@ -6,7 +6,7 @@
 
 #include <sys/types.h>
 #include <erl_driver.h>
-#include <erl_interface.h>
+#include <ei.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <string.h>
