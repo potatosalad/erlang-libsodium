@@ -17,6 +17,9 @@ cache:
     - docker-otp-23.3
 
 before_install:
+  - echo 'DOCKER_OPTS="$DOCKER_OPTS --debug --registry-mirror=https://mirror.gcr.io"'
+  - sudo service docker restart
+  - docker system info
   -
     if [ -e "docker-otp-${OTP_VERSION}/image.tar" ]; then
       docker load -i "docker-otp-${OTP_VERSION}/image.tar";
