@@ -1,4 +1,4 @@
-FROM ubuntu:xenial
+FROM ubuntu:bionic
 
 ARG OTP_VERSION=local
 ENV OTP_VERSION ${OTP_VERSION}

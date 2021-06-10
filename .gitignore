@@ -8,6 +8,7 @@ _*
 /.libsodium
 .erlang.cookie
 .erlang.mk.packages.*
+libsodium.d
 ebin
 log
 ct.coverdata
