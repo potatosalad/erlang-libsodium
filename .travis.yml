@@ -9,13 +9,11 @@ notifications:
   email: false
 
 env:
-  - OTP_VERSION=18.3
-  - OTP_VERSION=19.0
+  - OTP_VERSION=23.3
 
 cache:
   directories:
-    - docker-otp-18.3
-    - docker-otp-19.0
+    - docker-otp-23.3
 
 before_install:
   -
