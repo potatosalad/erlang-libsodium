@@ -94,7 +94,7 @@ LDLIBS += -L"$(ERL_INTERFACE_LIB_DIR)" -lei "$(LIBSODIUM_OUTPUT_FILE)"
 
 LIBSODIUM_VSN ?= 1.0.18
 LIBSODIUM_DIR ?= $(BASEDIR)/.libsodium
-LIBSODIUM_GIT ?= git://github.com/jedisct1/libsodium.git
+LIBSODIUM_GIT ?= https://github.com/jedisct1/libsodium.git
 LIBSODIUM_OUTPUT_FILE ?= $(LIBSODIUM_DIR)/src/libsodium/.libs/libsodium.a
 LIBSODIUM_CONFIGURE_FILE ?= $(LIBSODIUM_DIR)/configure
 LIBSODIUM_MAKE_FILE ?= $(LIBSODIUM_DIR)/Makefile
