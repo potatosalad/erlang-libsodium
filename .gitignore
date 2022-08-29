@@ -1,3 +1,53 @@
+# The directory Mix will write compiled artifacts to.
+/_build/
+
+# The directory make downloads the C dependencies sources to.
+/c_deps/libsodium-build/
+!/c_deps/libsodium/
+
+# If you run "mix test --cover", coverage assets end up here.
+/cover/
+
+# The directory Mix downloads your dependencies sources to.
+/deps/
+
+# Where 3rd-party dependencies like ExDoc output generated docs.
+/doc/
+
+# Ignore .fetch files in case you like to edit your project deps locally.
+/.fetch
+
+# If the VM crashes, it generates a dump, let's ignore it too.
+erl_crash.dump
+
+# Also ignore archive artifacts (built via "mix archive.build").
+*.ez
+
+# Ignore package tarball (built via "mix hex.build").
+libsodium-*.tar
+
+# Build artifact exclusions.
+/c_src/env.mk
+/c_src/Makefile.auto.win
+/c_src/*.obj
+/priv/*.dll
+/priv/*.lib
+/priv/*.exp
+/priv/*.dylib
+/priv/*.so
+
+# erlang.mk exclusions.
+.erlang.mk.packages.*
+ct.coverdata
+_rel
+_deps
+_plugins
+_tdeps
+/.erlang.mk
+/libsodium.d
+
+# Rebar3 exclusions.
+.rebar3
 _*
 .eunit
 *.o
@@ -5,30 +55,17 @@ _*
 *.plt
 *.swp
 *.swo
-/.libsodium
 .erlang.cookie
-.erlang.mk.packages.*
-libsodium.d
 ebin
 log
-ct.coverdata
 erl_crash.dump
 .rebar
-.rebar3
-rebar3
-_rel
-_deps
-_plugins
-_tdeps
-deps
-doc
 logs
-test/ct.cover.spec
-/_build
-/c_src/env.mk
-/cover
-/priv/*.dll
-/priv/*.dylib
-/priv/*.so
+_build
+.idea
+*.iml
+rebar3.crashdump
+/rebar3
+
+# Other test artifacts.
 /tmp
-*.ez

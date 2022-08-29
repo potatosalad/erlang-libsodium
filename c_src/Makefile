@@ -184,7 +184,6 @@ $(LIBSODIUM_SRC_DIR):
 	else \
 		true; \
 	fi
-	$(verbose) exit 1
 
 $(LIBSODIUM_CONFIGURE_FILE): $(LIBSODIUM_SRC_DIR)
 	$(verbose) if [ ! -f $(LIBSODIUM_CONFIGURE_FILE) ]; then \
@@ -200,13 +199,16 @@ $(LIBSODIUM_MAKE_FILE): $(LIBSODIUM_CONFIGURE_FILE)
 		(cd $(LIBSODIUM_SRC_DIR) \
 			&& $(LIBSODIUM_CONFIGURE_FILE) \
 			--disable-pie \
-			--enable-opt); \
+			--disable-shared \
+			--enable-opt \
+			--enable-static \
+			--with-pic); \
 	else \
 		true; \
 	fi
 
 $(LIBSODIUM_OUTPUT_FILE): $(LIBSODIUM_MAKE_FILE)
-	$(MAKE) -C $(LIBSODIUM_SRC_DIR)
+	$(MAKE) -j -C $(LIBSODIUM_SRC_DIR)
 
 $(C_SRC_DRV_FILE): $(DRV_OBJECTS)
 	$(verbose) mkdir -p $(BASEDIR)/priv
@@ -267,95 +269,3 @@ distclean-env:
 
 format:
 	$(gen_verbose) clang-format -i drv/*.c drv/*.h
-
-# $(ED448GOLDILOCKS_MAKE_FILE): $(ED448GOLDILOCKS_SRC_DIR)
-# 	$(verbose) mkdir -p $(ED448GOLDILOCKS_BUILD_DIR)
-# 	$(verbose) if [ ! -f $(ED448GOLDILOCKS_MAKE_FILE) ]; then \
-# 		(cd $(ED448GOLDILOCKS_BUILD_DIR) \
-# 			&& cmake \
-# 			-DENABLE_SHARED=OFF \
-# 			-DENABLE_STATIC=ON \
-# 			-DENABLE_STRICT=OFF \
-# 			-DCMAKE_C_FLAGS="-fPIC" \
-# 			-DCMAKE_CXX_FLAGS="-fPIC" \
-# 			"$(ED448GOLDILOCKS_SRC_DIR)"); \
-# 	else \
-# 		true; \
-# 	fi
-
-# $(ED448GOLDILOCKS_OUTPUT_FILE): $(ED448GOLDILOCKS_MAKE_FILE)
-# 	$(MAKE) -C $(ED448GOLDILOCKS_BUILD_DIR)
-
-# .PHONY: platform
-
-# all:: deps app
-
-# app:: $(C_SRC_OUTPUT_FILE)
-
-# ifneq ($(wildcard $(LIBSODIUM_OUTPUT_FILE)),)
-
-# deps::
-
-# else
-
-# deps:: $(LIBSODIUM_OUTPUT_FILE)
-
-# endif
-
-# test-build:: $(C_SRC_OUTPUT_FILE)
-
-# $(LIBSODIUM_DIR):
-# 	$(verbose) if [ ! -f $(LIBSODIUM_DIR)/autogen.sh ]; then \
-# 		git clone -n $(LIBSODIUM_GIT) $(LIBSODIUM_DIR) && \
-# 		(cd $(LIBSODIUM_DIR) && git checkout -q $(LIBSODIUM_VSN)); \
-# 	else \
-# 		true; \
-# 	fi
-
-# $(LIBSODIUM_CONFIGURE_FILE): $(LIBSODIUM_DIR)
-# 	$(verbose) if [ ! -f $(LIBSODIUM_CONFIGURE_FILE) ]; then \
-# 		(cd $(LIBSODIUM_DIR) && chmod +x autogen.sh && ./autogen.sh); \
-# 	else \
-# 		true; \
-# 	fi
-
-# $(LIBSODIUM_MAKE_FILE): $(LIBSODIUM_CONFIGURE_FILE)
-# 	$(verbose) if [ ! -f $(LIBSODIUM_MAKE_FILE) ]; then \
-# 		(cd $(LIBSODIUM_DIR) && ./configure --disable-pie --enable-opt); \
-# 	else \
-# 		true; \
-# 	fi
-
-# $(LIBSODIUM_OUTPUT_FILE): $(LIBSODIUM_MAKE_FILE)
-# 	$(MAKE) -C $(LIBSODIUM_DIR)
-
-# $(C_SRC_OUTPUT_FILE): $(OBJECTS)
-# 	$(verbose) mkdir -p $(BASEDIR)/priv/
-# 	$(link_verbose) $(CC) $(OBJECTS) \
-# 		$(LDFLAGS) $(if $(filter $(C_SRC_TYPE),shared),-shared) $(LDLIBS) \
-# 		-o $(C_SRC_OUTPUT_FILE)
-
-# %.o: %.c
-# 	$(COMPILE_C) $(OUTPUT_OPTION) $<
-
-# %.o: %.cc
-# 	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
-
-# %.o: %.C
-# 	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
-
-# %.o: %.cpp
-# 	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
-
-# clean:: clean-c_src
-
-# clean-c_src:
-# 	$(gen_verbose) rm -f $(C_SRC_OUTPUT_FILE) $(OBJECTS) $(C_SRC_ENV)
-
-# ifneq ($(wildcard $(C_SRC_ENV)),)
-# -include $(C_SRC_ENV)
-# else
-# ERTS_INCLUDE_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~s/erts-~s/include/\", [code:root_dir(), erlang:system_info(version)]).")
-# ERL_INTERFACE_INCLUDE_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~s\", [code:lib_dir(erl_interface, include)]).")
-# ERL_INTERFACE_LIB_DIR ?= $(shell erl -noshell -s init stop -eval "io:format(\"~s\", [code:lib_dir(erl_interface, lib)]).")
-# endif

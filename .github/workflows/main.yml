@@ -1,0 +1,34 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - erlang: 25.0.4-alpine-3.16.1
+          # - erlang: 24.3.4.4-alpine-3.16.1 # appears to have a broken 'ssl' library
+          - erlang: 23.3.4.16-alpine-3.16.0
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup
+        run: |
+          make docker-setup DOCKER_OTP_VERSION=${{matrix.erlang}}
+
+      - name: Test
+        run: |
+          make docker-test DOCKER_OTP_VERSION=${{matrix.erlang}}
+
+      - name: Logs
+        uses: actions/upload-artifact@v2-preview
+        if: failure()
+        with:
+          name: ct-logs-${{matrix.erlang}}
+          path: logs/*

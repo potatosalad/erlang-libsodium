@@ -1,0 +1,10 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+AllowShortFunctionsOnASingleLine: None
+AlwaysBreakAfterDefinitionReturnType: true
+BreakBeforeBraces: Linux
+ColumnLimit: 132
+IndentWidth: 4
+SortIncludes: false
+...
