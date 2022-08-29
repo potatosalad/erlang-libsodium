@@ -1,22 +1,25 @@
 %% -*- mode: erlang; tab-width: 4; indent-tabs-mode: 1; st-rulers: [70] -*-
 %% vim: ts=4 sw=4 ft=erlang noet
 %%%-------------------------------------------------------------------
-%%% @author Andrew Bennett <andrew@pixid.com>
-%%% @copyright 2015-2016, Andrew Bennett
+%%% @author Andrew Bennett <potatosaladx@gmail.com>
+%%% @copyright 2015-2022, Andrew Bennett
 %%% @doc
 %%%
 %%% @end
-%%% Created :  31 Dec 2015 by Andrew Bennett <andrew@pixid.com>
+%%% Created :  29 Aug 2022 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(libsodium_crypto_stream_salsa208).
+-module(libsodium_crypto_stream_xchacha20).
 
--define(NAMESPACE, crypto_stream_salsa208).
+-define(NAMESPACE, crypto_stream_xchacha20).
 
 %% API
 -export([keybytes/0]).
 -export([noncebytes/0]).
--export([crypto_stream_salsa208/3]).
+-export([messagebytes_max/0]).
+-export([crypto_stream_xchacha20/3]).
 -export(['xor'/3]).
+-export([xor_ic/4]).
+-export([keygen/0]).
 
 %% Internal API
 -export([call/1]).
@@ -32,17 +35,30 @@ keybytes() ->
 noncebytes() ->
 	call(noncebytes).
 
-crypto_stream_salsa208(CLen, N, K)
+messagebytes_max() ->
+	call(messagebytes_max).
+
+crypto_stream_xchacha20(CLen, N, K)
 		when is_integer(CLen)
 		andalso is_binary(N)
 		andalso is_binary(K) ->
-	call(crypto_stream_salsa208, {CLen, N, K}).
+	call(crypto_stream_xchacha20, {CLen, N, K}).
 
 'xor'(M, N, K)
 		when is_binary(M)
 		andalso is_binary(N)
 		andalso is_binary(K) ->
 	call('xor', {M, N, K}).
+
+xor_ic(M, N, IC, K)
+		when is_binary(M)
+		andalso is_binary(N)
+		andalso is_integer(IC)
+		andalso is_binary(K) ->
+	call(xor_ic, {M, N, IC, K}).
+
+keygen() ->
+	call(keygen).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

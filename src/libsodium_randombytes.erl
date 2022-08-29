@@ -1,18 +1,19 @@
 %% -*- mode: erlang; tab-width: 4; indent-tabs-mode: 1; st-rulers: [70] -*-
 %% vim: ts=4 sw=4 ft=erlang noet
 %%%-------------------------------------------------------------------
-%%% @author Andrew Bennett <andrew@pixid.com>
-%%% @copyright 2015-2016, Andrew Bennett
+%%% @author Andrew Bennett <potatosaladx@gmail.com>
+%%% @copyright 2015-2022, Andrew Bennett
 %%% @doc
 %%%
 %%% @end
-%%% Created :  29 Dec 2015 by Andrew Bennett <andrew@pixid.com>
+%%% Created :  29 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
 -module(libsodium_randombytes).
 
 -define(NAMESPACE, randombytes).
 
 %% API
+-export([seedbytes/0]).
 -export([buf/1]).
 -export([random/0]).
 -export([uniform/1]).
@@ -29,6 +30,9 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+seedbytes() ->
+	call(seedbytes).
 
 buf(Size)
 		when is_integer(Size)

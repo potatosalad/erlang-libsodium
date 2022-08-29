@@ -4281,7 +4281,7 @@ pkg_zucchini_fetch = git
 pkg_zucchini_repo = https://github.com/devinus/zucchini
 pkg_zucchini_commit = master
 
-# Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2015-2022, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
 .PHONY: search
@@ -5512,7 +5512,7 @@ doc-deps: $(ALL_DOC_DEPS_DIRS)
 	$(verbose) set -e; for dep in $(ALL_DOC_DEPS_DIRS) ; do $(MAKE) -C $$dep IS_DEP=1; done
 endif
 
-# Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2015-2022, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
 .PHONY: rel-deps
@@ -5532,7 +5532,7 @@ rel-deps: $(ALL_REL_DEPS_DIRS)
 	$(verbose) set -e; for dep in $(ALL_REL_DEPS_DIRS) ; do $(MAKE) -C $$dep; done
 endif
 
-# Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2015-2022, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
 .PHONY: test-deps test-dir test-build clean-test-dir
@@ -5621,7 +5621,7 @@ ifneq ($(wildcard $(TEST_DIR)/*.beam),)
 	$(gen_verbose) rm -f $(TEST_DIR)/*.beam $(ERLANG_MK_TMP)/$(PROJECT).last-testdir-build
 endif
 
-# Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2015-2022, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
 .PHONY: rebar.config
@@ -5654,7 +5654,7 @@ endef
 rebar.config:
 	$(gen_verbose) $(call core_render,compat_rebar_config,rebar.config)
 
-# Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2015-2022, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
 ifeq ($(filter asciideck,$(DEPS) $(DOC_DEPS)),asciideck)
@@ -6942,7 +6942,7 @@ escript:: escript-zip
 distclean-escript:
 	$(gen_verbose) rm -f $(ESCRIPT_FILE)
 
-# Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2015-2022, Loïc Hoguin <essen@ninenines.eu>
 # Copyright (c) 2014, Enrique Fernandez <enrique.fernandez@erlang-solutions.com>
 # This file is contributed to erlang.mk and subject to the terms of the ISC License.
 
@@ -7404,7 +7404,7 @@ proper: test-build cover-data-dir
 endif
 endif
 
-# Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2015-2022, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
 # Verbosity.
@@ -7607,7 +7607,7 @@ help::
 endif
 endif
 
-# Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2015-2022, Loïc Hoguin <essen@ninenines.eu>
 # Copyright (c) 2014, M Robert Martin <rob@version2beta.com>
 # This file is contributed to erlang.mk and subject to the terms of the ISC License.
 
@@ -7726,7 +7726,7 @@ show-ERLC_OPTS:
 show-TEST_ERLC_OPTS:
 	@$(foreach opt,$(TEST_ERLC_OPTS) -pa ebin -I include,echo "$(opt)";)
 
-# Copyright (c) 2015-2016, Loïc Hoguin <essen@ninenines.eu>
+# Copyright (c) 2015-2022, Loïc Hoguin <essen@ninenines.eu>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
 ifeq ($(filter triq,$(DEPS) $(TEST_DEPS)),triq)
@@ -8232,7 +8232,7 @@ help-plugins::
 	$(verbose) :
 
 # Copyright (c) 2013-2015, Loïc Hoguin <essen@ninenines.eu>
-# Copyright (c) 2015-2016, Jean-Sébastien Pédron <jean-sebastien@rabbitmq.com>
+# Copyright (c) 2015-2022, Jean-Sébastien Pédron <jean-sebastien@rabbitmq.com>
 # This file is part of erlang.mk and subject to the terms of the ISC License.
 
 # Fetch dependencies recursively (without building them).

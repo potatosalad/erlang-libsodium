@@ -1,12 +1,12 @@
 %% -*- mode: erlang; tab-width: 4; indent-tabs-mode: 1; st-rulers: [70] -*-
 %% vim: ts=4 sw=4 ft=erlang noet
 %%%-------------------------------------------------------------------
-%%% @author Andrew Bennett <andrew@pixid.com>
-%%% @copyright 2015-2016, Andrew Bennett
+%%% @author Andrew Bennett <potatosaladx@gmail.com>
+%%% @copyright 2015-2022, Andrew Bennett
 %%% @doc
 %%%
 %%% @end
-%%% Created :  31 Dec 2015 by Andrew Bennett <andrew@pixid.com>
+%%% Created :  31 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
 -module(libsodium_crypto_aead_aes256gcm).
 
@@ -18,6 +18,7 @@
 -export([nsecbytes/0]).
 -export([npubbytes/0]).
 -export([abytes/0]).
+-export([messagebytes_max/0]).
 -export([statebytes/0]).
 -export([encrypt/3]).
 -export([encrypt/4]).
@@ -27,6 +28,7 @@
 -export([encrypt_detached/4]).
 -export([decrypt_detached/4]).
 -export([decrypt_detached/5]).
+-export([keygen/0]).
 
 %% Internal API
 -export([call/1]).
@@ -50,6 +52,9 @@ npubbytes() ->
 
 abytes() ->
 	call(abytes).
+
+messagebytes_max() ->
+	call(messagebytes_max).
 
 statebytes() ->
 	call(statebytes).
@@ -107,6 +112,9 @@ decrypt_detached(C, MAC, AD, NPub, K)
 		andalso is_binary(NPub)
 		andalso is_binary(K) ->
 	call(decrypt_detached, {<<>>, C, MAC, AD, NPub, K}).
+
+keygen() ->
+	call(keygen).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

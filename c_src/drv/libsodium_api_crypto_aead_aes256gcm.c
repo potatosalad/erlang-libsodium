@@ -8,6 +8,7 @@ static void LS_API_EXEC(crypto_aead_aes256gcm, keybytes);
 static void LS_API_EXEC(crypto_aead_aes256gcm, nsecbytes);
 static void LS_API_EXEC(crypto_aead_aes256gcm, npubbytes);
 static void LS_API_EXEC(crypto_aead_aes256gcm, abytes);
+static void LS_API_EXEC(crypto_aead_aes256gcm, messagebytes_max);
 static void LS_API_EXEC(crypto_aead_aes256gcm, statebytes);
 static int LS_API_INIT(crypto_aead_aes256gcm, encrypt);
 static void LS_API_EXEC(crypto_aead_aes256gcm, encrypt);
@@ -17,17 +18,20 @@ static int LS_API_INIT(crypto_aead_aes256gcm, encrypt_detached);
 static void LS_API_EXEC(crypto_aead_aes256gcm, encrypt_detached);
 static int LS_API_INIT(crypto_aead_aes256gcm, decrypt_detached);
 static void LS_API_EXEC(crypto_aead_aes256gcm, decrypt_detached);
+static void LS_API_EXEC(crypto_aead_aes256gcm, keygen);
 
 libsodium_function_t libsodium_functions_crypto_aead_aes256gcm[] = {LS_API_R_ARG0(crypto_aead_aes256gcm, is_available),
                                                                     LS_API_R_ARG0(crypto_aead_aes256gcm, keybytes),
                                                                     LS_API_R_ARG0(crypto_aead_aes256gcm, nsecbytes),
                                                                     LS_API_R_ARG0(crypto_aead_aes256gcm, npubbytes),
                                                                     LS_API_R_ARG0(crypto_aead_aes256gcm, abytes),
+                                                                    LS_API_R_ARG0(crypto_aead_aes256gcm, messagebytes_max),
                                                                     LS_API_R_ARG0(crypto_aead_aes256gcm, statebytes),
                                                                     LS_API_R_ARGV(crypto_aead_aes256gcm, encrypt, 5),
                                                                     LS_API_R_ARGV(crypto_aead_aes256gcm, decrypt, 5),
                                                                     LS_API_R_ARGV(crypto_aead_aes256gcm, encrypt_detached, 5),
                                                                     LS_API_R_ARGV(crypto_aead_aes256gcm, decrypt_detached, 6),
+                                                                    LS_API_R_ARG0(crypto_aead_aes256gcm, keygen),
                                                                     {NULL}};
 
 /* crypto_aead_aes256gcm_is_available/0 */
@@ -49,6 +53,10 @@ LS_API_GET_SIZE(crypto_aead_aes256gcm, npubbytes);
 /* crypto_aead_aes256gcm_abytes/0 */
 
 LS_API_GET_SIZE(crypto_aead_aes256gcm, abytes);
+
+/* crypto_aead_aes256gcm_messagebytes_max/0 */
+
+LS_API_GET_SIZE(crypto_aead_aes256gcm, messagebytes_max);
 
 /* crypto_aead_aes256gcm_statebytes/0 */
 
@@ -736,4 +744,19 @@ LS_API_EXEC(crypto_aead_aes256gcm, decrypt_detached)
                   __LINE__);
 
     (void)sodium_memzero(m, mlen);
+}
+
+/* crypto_aead_aes256gcm_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_aead_aes256gcm, keygen)
+{
+    unsigned char k[crypto_aead_aes256gcm_KEYBYTES];
+
+    (void)crypto_aead_aes256gcm_keygen(k);
+
+    ErlDrvTermData spec[] = {
+        LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k), crypto_aead_aes256gcm_KEYBYTES, ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

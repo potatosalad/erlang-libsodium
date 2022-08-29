@@ -3,6 +3,7 @@
 
 #include "libsodium_api_randombytes.h"
 
+static void LS_API_EXEC(randombytes, seedbytes);
 static int LS_API_INIT(randombytes, buf);
 static void LS_API_EXEC(randombytes, buf);
 static void LS_API_EXEC(randombytes, random);
@@ -16,7 +17,8 @@ static void LS_API_EXEC(randombytes, implementation_name);
 static int LS_API_INIT(randombytes, randombytes);
 static void LS_API_EXEC(randombytes, randombytes);
 
-libsodium_function_t libsodium_functions_randombytes[] = {LS_API_R_ARGV(randombytes, buf, 1),
+libsodium_function_t libsodium_functions_randombytes[] = {LS_API_R_ARG0(randombytes, seedbytes),
+                                                          LS_API_R_ARGV(randombytes, buf, 1),
                                                           LS_API_R_ARG0(randombytes, random),
                                                           LS_API_R_ARGV(randombytes, uniform, 1),
                                                           LS_API_R_ARG0(randombytes, stir),
@@ -25,6 +27,10 @@ libsodium_function_t libsodium_functions_randombytes[] = {LS_API_R_ARGV(randomby
                                                           LS_API_R_ARG0(randombytes, implementation_name),
                                                           LS_API_R_ARGV(randombytes, randombytes, 1),
                                                           {NULL}};
+
+/* randombytes_seedbytes/0 */
+
+LS_API_GET_SIZE(randombytes, seedbytes);
 
 /* randombytes_buf/1 */
 

@@ -6,14 +6,14 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  24 May 2016 by Andrew Bennett <potatosaladx@gmail.com>
+%%% Created :  29 Aug 2022 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(libsodium_crypto_pwhash_argon2i).
+-module(libsodium_crypto_pwhash_argon2id).
 
--define(NAMESPACE, crypto_pwhash_argon2i).
+-define(NAMESPACE, crypto_pwhash_argon2id).
 
 %% API
--export([alg_argon2i13/0]).
+-export([alg_argon2id13/0]).
 -export([bytes_min/0]).
 -export([bytes_max/0]).
 -export([passwd_min/0]).
@@ -31,7 +31,7 @@
 -export([memlimit_moderate/0]).
 -export([opslimit_sensitive/0]).
 -export([memlimit_sensitive/0]).
--export([crypto_pwhash_argon2i/6]).
+-export([crypto_pwhash_argon2id/6]).
 -export([str/3]).
 -export([str_verify/2]).
 -export([str_needs_rehash/3]).
@@ -44,8 +44,8 @@
 %%% API
 %%%===================================================================
 
-alg_argon2i13() ->
-	call(alg_argon2i13).
+alg_argon2id13() ->
+	call(alg_argon2id13).
 
 bytes_min() ->
 	call(bytes_min).
@@ -98,14 +98,14 @@ opslimit_sensitive() ->
 memlimit_sensitive() ->
 	call(memlimit_sensitive).
 
-crypto_pwhash_argon2i(Outlen, Passwd, Salt, Opslimit, Memlimit, Alg)
+crypto_pwhash_argon2id(Outlen, Passwd, Salt, Opslimit, Memlimit, Alg)
 		when (is_integer(Outlen) andalso Outlen >= 0)
 		andalso is_binary(Passwd)
 		andalso is_binary(Salt)
 		andalso (is_integer(Opslimit) andalso Opslimit >= 0)
 		andalso (is_integer(Memlimit) andalso Memlimit >= 0)
 		andalso is_integer(Alg) ->
-	call(crypto_pwhash_argon2i, {Outlen, Passwd, Salt, Opslimit, Memlimit, Alg}).
+	call(crypto_pwhash_argon2id, {Outlen, Passwd, Salt, Opslimit, Memlimit, Alg}).
 
 str(Passwd, Opslimit, Memlimit)
 		when is_binary(Passwd)

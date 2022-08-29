@@ -5,30 +5,40 @@
 
 static void LS_API_EXEC(crypto_stream_chacha20, keybytes);
 static void LS_API_EXEC(crypto_stream_chacha20, noncebytes);
+static void LS_API_EXEC(crypto_stream_chacha20, messagebytes_max);
 static int LS_API_INIT(crypto_stream_chacha20, crypto_stream_chacha20);
 static void LS_API_EXEC(crypto_stream_chacha20, crypto_stream_chacha20);
 static int LS_API_INIT(crypto_stream_chacha20, xor);
 static void LS_API_EXEC(crypto_stream_chacha20, xor);
 static int LS_API_INIT(crypto_stream_chacha20, xor_ic);
 static void LS_API_EXEC(crypto_stream_chacha20, xor_ic);
+static void LS_API_EXEC(crypto_stream_chacha20, keygen);
+static void LS_API_EXEC(crypto_stream_chacha20, ietf_keybytes);
 static void LS_API_EXEC(crypto_stream_chacha20, ietf_noncebytes);
+static void LS_API_EXEC(crypto_stream_chacha20, ietf_messagebytes_max);
 static int LS_API_INIT(crypto_stream_chacha20, ietf);
 static void LS_API_EXEC(crypto_stream_chacha20, ietf);
 static int LS_API_INIT(crypto_stream_chacha20, ietf_xor);
 static void LS_API_EXEC(crypto_stream_chacha20, ietf_xor);
 static int LS_API_INIT(crypto_stream_chacha20, ietf_xor_ic);
 static void LS_API_EXEC(crypto_stream_chacha20, ietf_xor_ic);
+static void LS_API_EXEC(crypto_stream_chacha20, ietf_keygen);
 
 libsodium_function_t libsodium_functions_crypto_stream_chacha20[] = {
     LS_API_R_ARG0(crypto_stream_chacha20, keybytes),
     LS_API_R_ARG0(crypto_stream_chacha20, noncebytes),
+    LS_API_R_ARG0(crypto_stream_chacha20, messagebytes_max),
     LS_API_R_ARGV(crypto_stream_chacha20, crypto_stream_chacha20, 3),
     LS_API_R_ARGV(crypto_stream_chacha20, xor, 3),
     LS_API_R_ARGV(crypto_stream_chacha20, xor_ic, 4),
+    LS_API_R_ARG0(crypto_stream_chacha20, keygen),
+    LS_API_R_ARG0(crypto_stream_chacha20, ietf_keybytes),
     LS_API_R_ARG0(crypto_stream_chacha20, ietf_noncebytes),
+    LS_API_R_ARG0(crypto_stream_chacha20, ietf_messagebytes_max),
     LS_API_R_ARGV(crypto_stream_chacha20, ietf, 3),
     LS_API_R_ARGV(crypto_stream_chacha20, ietf_xor, 3),
     LS_API_R_ARGV(crypto_stream_chacha20, ietf_xor_ic, 4),
+    LS_API_R_ARG0(crypto_stream_chacha20, ietf_keygen),
     {NULL}};
 
 /* crypto_stream_chacha20_keybytes/0 */
@@ -55,6 +65,20 @@ LS_API_EXEC(crypto_stream_chacha20, noncebytes)
     noncebytes = crypto_stream_chacha20_noncebytes();
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(noncebytes), ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_stream_chacha20_messagebytes_max/0 */
+
+static void
+LS_API_EXEC(crypto_stream_chacha20, messagebytes_max)
+{
+    size_t messagebytes_max;
+
+    messagebytes_max = crypto_stream_chacha20_messagebytes_max();
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(messagebytes_max), ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }
@@ -367,6 +391,35 @@ LS_API_EXEC(crypto_stream_chacha20, xor_ic)
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }
 
+/* crypto_stream_chacha20_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_stream_chacha20, keygen)
+{
+    unsigned char k[crypto_stream_chacha20_KEYBYTES];
+
+    (void)crypto_stream_chacha20_keygen(k);
+
+    ErlDrvTermData spec[] = {
+        LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k), crypto_stream_chacha20_KEYBYTES, ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_stream_chacha20_ietf_keybytes/0 */
+
+static void
+LS_API_EXEC(crypto_stream_chacha20, ietf_keybytes)
+{
+    size_t ietf_keybytes;
+
+    ietf_keybytes = crypto_stream_chacha20_ietf_keybytes();
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(ietf_keybytes), ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
 /* crypto_stream_chacha20_ietf_noncebytes/0 */
 
 static void
@@ -377,6 +430,20 @@ LS_API_EXEC(crypto_stream_chacha20, ietf_noncebytes)
     ietf_noncebytes = crypto_stream_chacha20_ietf_noncebytes();
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(ietf_noncebytes), ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_stream_chacha20_ietf_messagebytes_max/0 */
+
+static void
+LS_API_EXEC(crypto_stream_chacha20, ietf_messagebytes_max)
+{
+    size_t ietf_messagebytes_max;
+
+    ietf_messagebytes_max = crypto_stream_chacha20_ietf_messagebytes_max();
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(ietf_messagebytes_max), ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }
@@ -685,6 +752,21 @@ LS_API_EXEC(crypto_stream_chacha20, ietf_xor_ic)
     (void)crypto_stream_chacha20_ietf_xor_ic(c, argv->m, argv->mlen, argv->n, argv->ic, argv->k);
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(c), argv->mlen, ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_stream_chacha20_ietf_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_stream_chacha20, ietf_keygen)
+{
+    unsigned char k[crypto_stream_chacha20_KEYBYTES];
+
+    (void)crypto_stream_chacha20_ietf_keygen(k);
+
+    ErlDrvTermData spec[] = {
+        LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k), crypto_stream_chacha20_KEYBYTES, ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

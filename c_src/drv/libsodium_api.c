@@ -13,7 +13,6 @@
 #include "libsodium_api_crypto_core_hsalsa20.h"
 #include "libsodium_api_crypto_core_salsa20.h"
 #include "libsodium_api_crypto_core_salsa2012.h"
-#include "libsodium_api_crypto_core_salsa208.h"
 #include "libsodium_api_crypto_generichash.h"
 #include "libsodium_api_crypto_generichash_blake2b.h"
 #include "libsodium_api_crypto_hash.h"
@@ -23,6 +22,7 @@
 #include "libsodium_api_crypto_onetimeauth_poly1305.h"
 #include "libsodium_api_crypto_pwhash.h"
 #include "libsodium_api_crypto_pwhash_argon2i.h"
+#include "libsodium_api_crypto_pwhash_argon2id.h"
 #include "libsodium_api_crypto_pwhash_scryptsalsa208sha256.h"
 #include "libsodium_api_crypto_scalarmult.h"
 #include "libsodium_api_crypto_scalarmult_curve25519.h"
@@ -34,7 +34,7 @@
 #include "libsodium_api_crypto_stream_chacha20.h"
 #include "libsodium_api_crypto_stream_salsa20.h"
 #include "libsodium_api_crypto_stream_salsa2012.h"
-#include "libsodium_api_crypto_stream_salsa208.h"
+#include "libsodium_api_crypto_stream_xchacha20.h"
 #include "libsodium_api_crypto_stream_xsalsa20.h"
 #include "libsodium_api_randombytes.h"
 #include "libsodium_api_runtime.h"
@@ -57,7 +57,6 @@ static libsodium_namespace_t libsodium_namespaces[] = {LS_NS(crypto_aead_aes256g
                                                        LS_NS(crypto_core_hsalsa20),
                                                        LS_NS(crypto_core_salsa20),
                                                        LS_NS(crypto_core_salsa2012),
-                                                       LS_NS(crypto_core_salsa208),
                                                        LS_NS(crypto_generichash),
                                                        LS_NS(crypto_generichash_blake2b),
                                                        LS_NS(crypto_hash),
@@ -67,6 +66,7 @@ static libsodium_namespace_t libsodium_namespaces[] = {LS_NS(crypto_aead_aes256g
                                                        LS_NS(crypto_onetimeauth_poly1305),
                                                        LS_NS(crypto_pwhash),
                                                        LS_NS(crypto_pwhash_argon2i),
+                                                       LS_NS(crypto_pwhash_argon2id),
                                                        LS_NS(crypto_pwhash_scryptsalsa208sha256),
                                                        LS_NS(crypto_scalarmult),
                                                        LS_NS(crypto_scalarmult_curve25519),
@@ -78,7 +78,7 @@ static libsodium_namespace_t libsodium_namespaces[] = {LS_NS(crypto_aead_aes256g
                                                        LS_NS(crypto_stream_chacha20),
                                                        LS_NS(crypto_stream_salsa20),
                                                        LS_NS(crypto_stream_salsa2012),
-                                                       LS_NS(crypto_stream_salsa208),
+                                                       LS_NS(crypto_stream_xchacha20),
                                                        LS_NS(crypto_stream_xsalsa20),
                                                        LS_NS(randombytes),
                                                        LS_NS(runtime),

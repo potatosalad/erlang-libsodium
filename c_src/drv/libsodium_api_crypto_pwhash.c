@@ -4,10 +4,19 @@
 #include "libsodium_api_crypto_pwhash.h"
 
 static void LS_API_EXEC(crypto_pwhash, alg_argon2i13);
+static void LS_API_EXEC(crypto_pwhash, alg_argon2id13);
 static void LS_API_EXEC(crypto_pwhash, alg_default);
+static void LS_API_EXEC(crypto_pwhash, bytes_min);
+static void LS_API_EXEC(crypto_pwhash, bytes_max);
+static void LS_API_EXEC(crypto_pwhash, passwd_min);
+static void LS_API_EXEC(crypto_pwhash, passwd_max);
 static void LS_API_EXEC(crypto_pwhash, saltbytes);
 static void LS_API_EXEC(crypto_pwhash, strbytes);
 static void LS_API_EXEC(crypto_pwhash, strprefix);
+static void LS_API_EXEC(crypto_pwhash, opslimit_min);
+static void LS_API_EXEC(crypto_pwhash, opslimit_max);
+static void LS_API_EXEC(crypto_pwhash, memlimit_min);
+static void LS_API_EXEC(crypto_pwhash, memlimit_max);
 static void LS_API_EXEC(crypto_pwhash, opslimit_interactive);
 static void LS_API_EXEC(crypto_pwhash, memlimit_interactive);
 static void LS_API_EXEC(crypto_pwhash, opslimit_moderate);
@@ -20,13 +29,24 @@ static int LS_API_INIT(crypto_pwhash, str);
 static void LS_API_EXEC(crypto_pwhash, str);
 static int LS_API_INIT(crypto_pwhash, str_verify);
 static void LS_API_EXEC(crypto_pwhash, str_verify);
+static int LS_API_INIT(crypto_pwhash, str_needs_rehash);
+static void LS_API_EXEC(crypto_pwhash, str_needs_rehash);
 static void LS_API_EXEC(crypto_pwhash, primitive);
 
 libsodium_function_t libsodium_functions_crypto_pwhash[] = {LS_API_R_ARG0(crypto_pwhash, alg_argon2i13),
+                                                            LS_API_R_ARG0(crypto_pwhash, alg_argon2id13),
                                                             LS_API_R_ARG0(crypto_pwhash, alg_default),
+                                                            LS_API_R_ARG0(crypto_pwhash, bytes_min),
+                                                            LS_API_R_ARG0(crypto_pwhash, bytes_max),
+                                                            LS_API_R_ARG0(crypto_pwhash, passwd_min),
+                                                            LS_API_R_ARG0(crypto_pwhash, passwd_max),
                                                             LS_API_R_ARG0(crypto_pwhash, saltbytes),
                                                             LS_API_R_ARG0(crypto_pwhash, strbytes),
                                                             LS_API_R_ARG0(crypto_pwhash, strprefix),
+                                                            LS_API_R_ARG0(crypto_pwhash, opslimit_min),
+                                                            LS_API_R_ARG0(crypto_pwhash, opslimit_max),
+                                                            LS_API_R_ARG0(crypto_pwhash, memlimit_min),
+                                                            LS_API_R_ARG0(crypto_pwhash, memlimit_max),
                                                             LS_API_R_ARG0(crypto_pwhash, opslimit_interactive),
                                                             LS_API_R_ARG0(crypto_pwhash, memlimit_interactive),
                                                             LS_API_R_ARG0(crypto_pwhash, opslimit_moderate),
@@ -36,6 +56,7 @@ libsodium_function_t libsodium_functions_crypto_pwhash[] = {LS_API_R_ARG0(crypto
                                                             LS_API_R_ARGV(crypto_pwhash, crypto_pwhash, 6),
                                                             LS_API_R_ARGV(crypto_pwhash, str, 3),
                                                             LS_API_R_ARGV(crypto_pwhash, str_verify, 2),
+                                                            LS_API_R_ARGV(crypto_pwhash, str_needs_rehash, 3),
                                                             LS_API_R_ARG0(crypto_pwhash, primitive),
                                                             {NULL}};
 
@@ -43,9 +64,29 @@ libsodium_function_t libsodium_functions_crypto_pwhash[] = {LS_API_R_ARG0(crypto
 
 LS_API_GET_SINT(crypto_pwhash, alg_argon2i13);
 
+/* crypto_pwhash_alg_argon2id13/0 */
+
+LS_API_GET_SINT(crypto_pwhash, alg_argon2id13);
+
 /* crypto_pwhash_alg_default/0 */
 
 LS_API_GET_SINT(crypto_pwhash, alg_default);
+
+/* crypto_pwhash_bytes_min/0 */
+
+LS_API_GET_SIZE(crypto_pwhash, bytes_min);
+
+/* crypto_pwhash_bytes_max/0 */
+
+LS_API_GET_SIZE(crypto_pwhash, bytes_max);
+
+/* crypto_pwhash_passwd_min/0 */
+
+LS_API_GET_SIZE(crypto_pwhash, passwd_min);
+
+/* crypto_pwhash_passwd_max/0 */
+
+LS_API_GET_SIZE(crypto_pwhash, passwd_max);
 
 /* crypto_pwhash_saltbytes/0 */
 
@@ -58,6 +99,22 @@ LS_API_GET_SIZE(crypto_pwhash, strbytes);
 /* crypto_pwhash_strprefix/0 */
 
 LS_API_GET_STR(crypto_pwhash, strprefix);
+
+/* crypto_pwhash_opslimit_min/0 */
+
+LS_API_GET_SIZE(crypto_pwhash, opslimit_min);
+
+/* crypto_pwhash_opslimit_max/0 */
+
+LS_API_GET_SIZE(crypto_pwhash, opslimit_max);
+
+/* crypto_pwhash_memlimit_min/0 */
+
+LS_API_GET_SIZE(crypto_pwhash, memlimit_min);
+
+/* crypto_pwhash_memlimit_max/0 */
+
+LS_API_GET_SIZE(crypto_pwhash, memlimit_max);
 
 /* crypto_pwhash_opslimit_interactive/0 */
 
@@ -376,6 +433,79 @@ LS_API_EXEC(crypto_pwhash, str_verify)
     LS_API_READ_ARGV(crypto_pwhash, str_verify);
 
     int r = crypto_pwhash_str_verify(argv->str, argv->passwd, argv->passwdlen);
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_INT, (ErlDrvSInt)(r), ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_pwhash_str_needs_rehash/2 */
+
+typedef struct LS_API_F_ARGV(crypto_pwhash, str_needs_rehash) {
+    const char str[crypto_pwhash_STRBYTES];
+    unsigned long long opslimit;
+    size_t memlimit;
+} LS_API_F_ARGV_T(crypto_pwhash, str_needs_rehash);
+
+static int
+LS_API_INIT(crypto_pwhash, str_needs_rehash)
+{
+    LS_API_F_ARGV_T(crypto_pwhash, str_needs_rehash) * argv;
+    int skip;
+    int type;
+    int type_length;
+    unsigned long long opslimit;
+    size_t memlimit;
+    ErlDrvSizeT x;
+    void *p;
+
+    if (ei_get_type(buffer, index, &type, &type_length) < 0 || type != ERL_BINARY_EXT || type_length > crypto_pwhash_STRBYTES) {
+        return -1;
+    }
+
+    skip = *index;
+
+    if (ei_skip_term(buffer, &skip) < 0) {
+        return -1;
+    }
+
+    if (ei_decode_ulong(buffer, &skip, (unsigned long *)&(opslimit)) < 0) {
+        return -1;
+    }
+
+    if (ei_decode_ulong(buffer, &skip, (unsigned long *)&(memlimit)) < 0) {
+        return -1;
+    }
+
+    x = (ErlDrvSizeT)(sizeof(LS_API_F_ARGV_T(crypto_pwhash, str_needs_rehash)));
+    p = (void *)(driver_alloc(x));
+    (void)sodium_memzero(p, x);
+
+    if (p == NULL) {
+        return -1;
+    }
+
+    argv = (LS_API_F_ARGV_T(crypto_pwhash, str_needs_rehash) *)(p);
+    argv->opslimit = opslimit;
+    argv->memlimit = memlimit;
+
+    if (ei_decode_binary(buffer, index, (void *)(argv->str), NULL) < 0) {
+        (void)driver_free(argv);
+        return -1;
+    }
+
+    request->argv = (void *)(argv);
+
+    return 0;
+}
+
+static void
+LS_API_EXEC(crypto_pwhash, str_needs_rehash)
+{
+    LS_API_F_ARGV_T(crypto_pwhash, str_needs_rehash) * argv;
+    LS_API_READ_ARGV(crypto_pwhash, str_needs_rehash);
+
+    int r = crypto_pwhash_str_needs_rehash(argv->str, argv->opslimit, argv->memlimit);
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_INT, (ErlDrvSInt)(r), ERL_DRV_TUPLE, 2};
 

@@ -1,12 +1,12 @@
 %% -*- mode: erlang; tab-width: 4; indent-tabs-mode: 1; st-rulers: [70] -*-
 %% vim: ts=4 sw=4 ft=erlang noet
 %%%-------------------------------------------------------------------
-%%% @author Andrew Bennett <andrew@pixid.com>
-%%% @copyright 2015-2016, Andrew Bennett
+%%% @author Andrew Bennett <potatosaladx@gmail.com>
+%%% @copyright 2015-2022, Andrew Bennett
 %%% @doc
 %%%
 %%% @end
-%%% Created :  31 Dec 2015 by Andrew Bennett <andrew@pixid.com>
+%%% Created :  31 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
 -module(libsodium_crypto_stream_chacha20).
 
@@ -15,13 +15,18 @@
 %% API
 -export([keybytes/0]).
 -export([noncebytes/0]).
+-export([messagebytes_max/0]).
 -export([crypto_stream_chacha20/3]).
 -export(['xor'/3]).
 -export([xor_ic/4]).
+-export([keygen/0]).
+-export([ietf_keybytes/0]).
 -export([ietf_noncebytes/0]).
+-export([ietf_messagebytes_max/0]).
 -export([ietf/3]).
 -export([ietf_xor/3]).
 -export([ietf_xor_ic/4]).
+-export([ietf_keygen/0]).
 
 %% Internal API
 -export([call/1]).
@@ -36,6 +41,9 @@ keybytes() ->
 
 noncebytes() ->
 	call(noncebytes).
+
+messagebytes_max() ->
+	call(messagebytes_max).
 
 crypto_stream_chacha20(CLen, N, K)
 		when is_integer(CLen)
@@ -56,8 +64,17 @@ xor_ic(M, N, IC, K)
 		andalso is_binary(K) ->
 	call(xor_ic, {M, N, IC, K}).
 
+keygen() ->
+	call(keygen).
+
+ietf_keybytes() ->
+	call(ietf_keybytes).
+
 ietf_noncebytes() ->
 	call(ietf_noncebytes).
+
+ietf_messagebytes_max() ->
+	call(ietf_messagebytes_max).
 
 ietf(CLen, N, K)
 		when is_integer(CLen)
@@ -77,6 +94,9 @@ ietf_xor_ic(M, N, IC, K)
 		andalso is_integer(IC)
 		andalso is_binary(K) ->
 	call(ietf_xor_ic, {M, N, IC, K}).
+
+ietf_keygen() ->
+	call(ietf_keygen).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

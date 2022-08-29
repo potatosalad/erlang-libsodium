@@ -3,9 +3,17 @@
 
 #include "libsodium_api_crypto_pwhash_scryptsalsa208sha256.h"
 
+static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, bytes_min);
+static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, bytes_max);
+static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, passwd_min);
+static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, passwd_max);
 static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, saltbytes);
 static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, strbytes);
 static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, strprefix);
+static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, opslimit_min);
+static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, opslimit_max);
+static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, memlimit_min);
+static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, memlimit_max);
 static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, opslimit_interactive);
 static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, memlimit_interactive);
 static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, opslimit_sensitive);
@@ -18,11 +26,21 @@ static int LS_API_INIT(crypto_pwhash_scryptsalsa208sha256, str_verify);
 static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, str_verify);
 static int LS_API_INIT(crypto_pwhash_scryptsalsa208sha256, ll);
 static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, ll);
+static int LS_API_INIT(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash);
+static void LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash);
 
 libsodium_function_t libsodium_functions_crypto_pwhash_scryptsalsa208sha256[] = {
+    LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, bytes_min),
+    LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, bytes_max),
+    LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, passwd_min),
+    LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, passwd_max),
     LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, saltbytes),
     LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, strbytes),
     LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, strprefix),
+    LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, opslimit_min),
+    LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, opslimit_max),
+    LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, memlimit_min),
+    LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, memlimit_max),
     LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, opslimit_interactive),
     LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, memlimit_interactive),
     LS_API_R_ARG0(crypto_pwhash_scryptsalsa208sha256, opslimit_sensitive),
@@ -31,7 +49,24 @@ libsodium_function_t libsodium_functions_crypto_pwhash_scryptsalsa208sha256[] = 
     LS_API_R_ARGV(crypto_pwhash_scryptsalsa208sha256, str, 3),
     LS_API_R_ARGV(crypto_pwhash_scryptsalsa208sha256, str_verify, 2),
     LS_API_R_ARGV(crypto_pwhash_scryptsalsa208sha256, ll, 6),
+    LS_API_R_ARGV(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash, 3),
     {NULL}};
+
+/* crypto_pwhash_scryptsalsa208sha256_bytes_min/0 */
+
+LS_API_GET_SIZE(crypto_pwhash_scryptsalsa208sha256, bytes_min);
+
+/* crypto_pwhash_scryptsalsa208sha256_bytes_max/0 */
+
+LS_API_GET_SIZE(crypto_pwhash_scryptsalsa208sha256, bytes_max);
+
+/* crypto_pwhash_scryptsalsa208sha256_passwd_min/0 */
+
+LS_API_GET_SIZE(crypto_pwhash_scryptsalsa208sha256, passwd_min);
+
+/* crypto_pwhash_scryptsalsa208sha256_passwd_max/0 */
+
+LS_API_GET_SIZE(crypto_pwhash_scryptsalsa208sha256, passwd_max);
 
 /* crypto_pwhash_scryptsalsa208sha256_saltbytes/0 */
 
@@ -44,6 +79,22 @@ LS_API_GET_SIZE(crypto_pwhash_scryptsalsa208sha256, strbytes);
 /* crypto_pwhash_scryptsalsa208sha256_strprefix/0 */
 
 LS_API_GET_STR(crypto_pwhash_scryptsalsa208sha256, strprefix);
+
+/* crypto_pwhash_scryptsalsa208sha256_opslimit_min/0 */
+
+LS_API_GET_SIZE(crypto_pwhash_scryptsalsa208sha256, opslimit_min);
+
+/* crypto_pwhash_scryptsalsa208sha256_opslimit_max/0 */
+
+LS_API_GET_SIZE(crypto_pwhash_scryptsalsa208sha256, opslimit_max);
+
+/* crypto_pwhash_scryptsalsa208sha256_memlimit_min/0 */
+
+LS_API_GET_SIZE(crypto_pwhash_scryptsalsa208sha256, memlimit_min);
+
+/* crypto_pwhash_scryptsalsa208sha256_memlimit_max/0 */
+
+LS_API_GET_SIZE(crypto_pwhash_scryptsalsa208sha256, memlimit_max);
 
 /* crypto_pwhash_scryptsalsa208sha256_opslimit_interactive/0 */
 
@@ -476,4 +527,78 @@ LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, ll)
                   __FILE__, __LINE__);
 
     (void)sodium_memzero(buf, argv->buflen);
+}
+
+/* crypto_pwhash_scryptsalsa208sha256_str_needs_rehash/2 */
+
+typedef struct LS_API_F_ARGV(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash) {
+    const char str[crypto_pwhash_scryptsalsa208sha256_STRBYTES];
+    unsigned long long opslimit;
+    size_t memlimit;
+} LS_API_F_ARGV_T(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash);
+
+static int
+LS_API_INIT(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash)
+{
+    LS_API_F_ARGV_T(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash) * argv;
+    int skip;
+    int type;
+    int type_length;
+    unsigned long long opslimit;
+    size_t memlimit;
+    ErlDrvSizeT x;
+    void *p;
+
+    if (ei_get_type(buffer, index, &type, &type_length) < 0 || type != ERL_BINARY_EXT ||
+        type_length > crypto_pwhash_scryptsalsa208sha256_STRBYTES) {
+        return -1;
+    }
+
+    skip = *index;
+
+    if (ei_skip_term(buffer, &skip) < 0) {
+        return -1;
+    }
+
+    if (ei_decode_ulong(buffer, &skip, (unsigned long *)&(opslimit)) < 0) {
+        return -1;
+    }
+
+    if (ei_decode_ulong(buffer, &skip, (unsigned long *)&(memlimit)) < 0) {
+        return -1;
+    }
+
+    x = (ErlDrvSizeT)(sizeof(LS_API_F_ARGV_T(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash)));
+    p = (void *)(driver_alloc(x));
+    (void)sodium_memzero(p, x);
+
+    if (p == NULL) {
+        return -1;
+    }
+
+    argv = (LS_API_F_ARGV_T(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash) *)(p);
+    argv->opslimit = opslimit;
+    argv->memlimit = memlimit;
+
+    if (ei_decode_binary(buffer, index, (void *)(argv->str), NULL) < 0) {
+        (void)driver_free(argv);
+        return -1;
+    }
+
+    request->argv = (void *)(argv);
+
+    return 0;
+}
+
+static void
+LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash)
+{
+    LS_API_F_ARGV_T(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash) * argv;
+    LS_API_READ_ARGV(crypto_pwhash_scryptsalsa208sha256, str_needs_rehash);
+
+    int r = crypto_pwhash_scryptsalsa208sha256_str_needs_rehash(argv->str, argv->opslimit, argv->memlimit);
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_INT, (ErlDrvSInt)(r), ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
 }
