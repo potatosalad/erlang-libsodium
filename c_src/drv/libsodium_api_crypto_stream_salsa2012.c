@@ -5,16 +5,20 @@
 
 static void LS_API_EXEC(crypto_stream_salsa2012, keybytes);
 static void LS_API_EXEC(crypto_stream_salsa2012, noncebytes);
+static void LS_API_EXEC(crypto_stream_salsa2012, messagebytes_max);
 static int LS_API_INIT(crypto_stream_salsa2012, crypto_stream_salsa2012);
 static void LS_API_EXEC(crypto_stream_salsa2012, crypto_stream_salsa2012);
 static int LS_API_INIT(crypto_stream_salsa2012, xor);
 static void LS_API_EXEC(crypto_stream_salsa2012, xor);
+static void LS_API_EXEC(crypto_stream_salsa2012, keygen);
 
 libsodium_function_t libsodium_functions_crypto_stream_salsa2012[] = {
     LS_API_R_ARG0(crypto_stream_salsa2012, keybytes),
     LS_API_R_ARG0(crypto_stream_salsa2012, noncebytes),
+    LS_API_R_ARG0(crypto_stream_salsa2012, messagebytes_max),
     LS_API_R_ARGV(crypto_stream_salsa2012, crypto_stream_salsa2012, 3),
     LS_API_R_ARGV(crypto_stream_salsa2012, xor, 3),
+    LS_API_R_ARG0(crypto_stream_salsa2012, keygen),
     {NULL}};
 
 /* crypto_stream_salsa2012_keybytes/0 */
@@ -41,6 +45,20 @@ LS_API_EXEC(crypto_stream_salsa2012, noncebytes)
     noncebytes = crypto_stream_salsa2012_noncebytes();
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(noncebytes), ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_stream_salsa2012_messagebytes_max/0 */
+
+static void
+LS_API_EXEC(crypto_stream_salsa2012, messagebytes_max)
+{
+    size_t messagebytes_max;
+
+    messagebytes_max = crypto_stream_salsa2012_messagebytes_max();
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(messagebytes_max), ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }
@@ -237,6 +255,21 @@ LS_API_EXEC(crypto_stream_salsa2012, xor)
     (void)crypto_stream_salsa2012_xor(c, argv->m, argv->mlen, argv->n, argv->k);
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(c), argv->mlen, ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_stream_salsa2012_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_stream_salsa2012, keygen)
+{
+    unsigned char k[crypto_stream_salsa2012_KEYBYTES];
+
+    (void)crypto_stream_salsa2012_keygen(k);
+
+    ErlDrvTermData spec[] = {
+        LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k), crypto_stream_salsa2012_KEYBYTES, ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

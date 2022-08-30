@@ -10,10 +10,15 @@ static int LS_API_INIT(crypto_auth, crypto_auth);
 static void LS_API_EXEC(crypto_auth, crypto_auth);
 static int LS_API_INIT(crypto_auth, verify);
 static void LS_API_EXEC(crypto_auth, verify);
+static void LS_API_EXEC(crypto_auth, keygen);
 
-libsodium_function_t libsodium_functions_crypto_auth[] = {
-    LS_API_R_ARG0(crypto_auth, bytes),          LS_API_R_ARG0(crypto_auth, keybytes),  LS_API_R_ARG0(crypto_auth, primitive),
-    LS_API_R_ARGV(crypto_auth, crypto_auth, 2), LS_API_R_ARGV(crypto_auth, verify, 3), {NULL}};
+libsodium_function_t libsodium_functions_crypto_auth[] = {LS_API_R_ARG0(crypto_auth, bytes),
+                                                          LS_API_R_ARG0(crypto_auth, keybytes),
+                                                          LS_API_R_ARG0(crypto_auth, primitive),
+                                                          LS_API_R_ARGV(crypto_auth, crypto_auth, 2),
+                                                          LS_API_R_ARGV(crypto_auth, verify, 3),
+                                                          LS_API_R_ARG0(crypto_auth, keygen),
+                                                          {NULL}};
 
 /* crypto_auth_bytes/0 */
 
@@ -242,6 +247,20 @@ LS_API_EXEC(crypto_auth, verify)
     r = crypto_auth_verify(argv->h, argv->in, argv->inlen, argv->k);
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_INT, (ErlDrvSInt)(r), ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_auth_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_auth, keygen)
+{
+    unsigned char k[crypto_auth_KEYBYTES];
+
+    (void)crypto_auth_keygen(k);
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k), crypto_auth_KEYBYTES, ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

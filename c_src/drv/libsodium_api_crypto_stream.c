@@ -5,16 +5,19 @@
 
 static void LS_API_EXEC(crypto_stream, keybytes);
 static void LS_API_EXEC(crypto_stream, noncebytes);
+static void LS_API_EXEC(crypto_stream, messagebytes_max);
 static void LS_API_EXEC(crypto_stream, primitive);
 static int LS_API_INIT(crypto_stream, crypto_stream);
 static void LS_API_EXEC(crypto_stream, crypto_stream);
 static int LS_API_INIT(crypto_stream, xor);
 static void LS_API_EXEC(crypto_stream, xor);
+static void LS_API_EXEC(crypto_stream, keygen);
 
 libsodium_function_t libsodium_functions_crypto_stream[] = {
-    LS_API_R_ARG0(crypto_stream, keybytes),  LS_API_R_ARG0(crypto_stream, noncebytes),
-    LS_API_R_ARG0(crypto_stream, primitive), LS_API_R_ARGV(crypto_stream, crypto_stream, 3),
-    LS_API_R_ARGV(crypto_stream, xor, 3),    {NULL}};
+    LS_API_R_ARG0(crypto_stream, keybytes),         LS_API_R_ARG0(crypto_stream, noncebytes),
+    LS_API_R_ARG0(crypto_stream, messagebytes_max), LS_API_R_ARG0(crypto_stream, primitive),
+    LS_API_R_ARGV(crypto_stream, crypto_stream, 3), LS_API_R_ARGV(crypto_stream, xor, 3),
+    LS_API_R_ARG0(crypto_stream, keygen),           {NULL}};
 
 /* crypto_stream_keybytes/0 */
 
@@ -40,6 +43,20 @@ LS_API_EXEC(crypto_stream, noncebytes)
     noncebytes = crypto_stream_noncebytes();
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(noncebytes), ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_stream_messagebytes_max/0 */
+
+static void
+LS_API_EXEC(crypto_stream, messagebytes_max)
+{
+    size_t messagebytes_max;
+
+    messagebytes_max = crypto_stream_messagebytes_max();
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(messagebytes_max), ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }
@@ -250,6 +267,21 @@ LS_API_EXEC(crypto_stream, xor)
     (void)crypto_stream_xor(c, argv->m, argv->mlen, argv->n, argv->k);
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(c), argv->mlen, ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_stream_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_stream, keygen)
+{
+    unsigned char k[crypto_stream_KEYBYTES];
+
+    (void)crypto_stream_keygen(k);
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request),    ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k),
+                             crypto_stream_KEYBYTES, ERL_DRV_TUPLE,      2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

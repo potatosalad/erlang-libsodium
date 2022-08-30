@@ -13,10 +13,12 @@
 -define(NAMESPACE, crypto_sign).
 
 %% API
+-export([statebytes/0]).
 -export([bytes/0]).
 -export([seedbytes/0]).
 -export([publickeybytes/0]).
 -export([secretkeybytes/0]).
+-export([messagebytes_max/0]).
 -export([primitive/0]).
 -export([seed_keypair/1]).
 -export([keypair/0]).
@@ -24,6 +26,10 @@
 -export([open/2]).
 -export([detached/2]).
 -export([verify_detached/3]).
+-export([init/0]).
+-export([update/2]).
+-export([final_create/2]).
+-export([final_verify/3]).
 
 %% Internal API
 -export([call/1]).
@@ -32,6 +38,9 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+statebytes() ->
+	call(statebytes).
 
 bytes() ->
 	call(bytes).
@@ -44,6 +53,9 @@ publickeybytes() ->
 
 secretkeybytes() ->
 	call(secretkeybytes).
+
+messagebytes_max() ->
+	call(messagebytes_max).
 
 primitive() ->
 	call(primitive).
@@ -75,6 +87,25 @@ verify_detached(Sig, M, PK)
 		andalso is_binary(M)
 		andalso is_binary(PK) ->
 	call(verify_detached, {Sig, M, PK}).
+
+init() ->
+	call(init).
+
+update(State, M)
+		when is_binary(State)
+		andalso is_binary(M) ->
+	call(update, {State, M}).
+
+final_create(State, SK)
+		when is_binary(State)
+		andalso is_binary(SK) ->
+	call(final_create, {State, SK}).
+
+final_verify(State, Sig, PK)
+		when is_binary(State)
+		andalso is_binary(Sig)
+		andalso is_binary(PK) ->
+	call(final_verify, {State, Sig, PK}).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

@@ -21,21 +21,23 @@
 -export([keybytes/0]).
 -export([saltbytes/0]).
 -export([personalbytes/0]).
+-export([statebytes/0]).
 -export([crypto_generichash_blake2b/1]).
 -export([crypto_generichash_blake2b/2]).
 -export([crypto_generichash_blake2b/3]).
-% -export([salt_personal/3]).
-% -export([salt_personal/4]).
-% -export([salt_personal/5]).
+-export([salt_personal/3]).
+-export([salt_personal/4]).
+-export([salt_personal/5]).
 -export([init/0]).
 -export([init/1]).
 -export([init/2]).
-% -export([init_salt_personal/2]).
-% -export([init_salt_personal/3]).
-% -export([init_salt_personal/4]).
+-export([init_salt_personal/2]).
+-export([init_salt_personal/3]).
+-export([init_salt_personal/4]).
 -export([update/2]).
 -export([final/1]).
 -export([final/2]).
+-export([keygen/0]).
 
 %% Internal API
 -export([call/1]).
@@ -69,6 +71,9 @@ saltbytes() ->
 personalbytes() ->
 	call(personalbytes).
 
+statebytes() ->
+	call(statebytes).
+
 crypto_generichash_blake2b(In)
 		when is_binary(In) ->
 	crypto_generichash_blake2b(In, <<>>).
@@ -84,6 +89,27 @@ crypto_generichash_blake2b(Outlen, In, Key)
 		andalso is_binary(Key) ->
 	call(crypto_generichash_blake2b, {Outlen, In, Key}).
 
+salt_personal(In, Salt, Personal)
+		when is_binary(In)
+		andalso is_binary(Salt)
+		andalso is_binary(Personal) ->
+	salt_personal(In, <<>>, Salt, Personal).
+
+salt_personal(In, Key, Salt, Personal)
+		when is_binary(In)
+		andalso is_binary(Key)
+		andalso is_binary(Salt)
+		andalso is_binary(Personal) ->
+	salt_personal(bytes(), In, Key, Salt, Personal).
+
+salt_personal(Outlen, In, Key, Salt, Personal)
+		when is_integer(Outlen)
+		andalso is_binary(In)
+		andalso is_binary(Key)
+		andalso is_binary(Salt)
+		andalso is_binary(Personal) ->
+	call(salt_personal, {Outlen, In, Key, Salt, Personal}).
+
 init() ->
 	init(<<>>).
 
@@ -95,6 +121,24 @@ init(Key, Outlen)
 		when is_binary(Key)
 		andalso is_integer(Outlen) ->
 	call(init, {Key, Outlen}).
+
+init_salt_personal(Salt, Personal)
+	when is_binary(Salt)
+	andalso is_binary(Personal) ->
+	init_salt_personal(<<>>, Salt, Personal).
+
+init_salt_personal(Key, Salt, Personal)
+		when is_binary(Key)
+		andalso is_binary(Salt)
+		andalso is_binary(Personal) ->
+	init_salt_personal(Key, bytes(), Salt, Personal).
+
+init_salt_personal(Key, Outlen, Salt, Personal)
+		when is_binary(Key)
+		andalso is_integer(Outlen)
+		andalso is_binary(Salt)
+		andalso is_binary(Personal) ->
+	call(init_salt_personal, {Key, Outlen, Salt, Personal}).
 
 update(State, In)
 		when is_binary(State)
@@ -109,6 +153,9 @@ final(State, Outlen)
 		when is_binary(State)
 		andalso is_integer(Outlen) ->
 	call(final, {State, Outlen}).
+
+keygen() ->
+	call(keygen).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

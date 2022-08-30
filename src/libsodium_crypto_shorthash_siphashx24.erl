@@ -6,21 +6,16 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  31 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
+%%% Created :  30 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(libsodium_crypto_stream_aes128ctr).
+-module(libsodium_crypto_shorthash_siphashx24).
 
--define(NAMESPACE, crypto_stream_aes128ctr).
+-define(NAMESPACE, crypto_shorthash_siphashx24).
 
 %% API
+-export([bytes/0]).
 -export([keybytes/0]).
--export([noncebytes/0]).
--export([beforenmbytes/0]).
--export([crypto_stream_aes128ctr/3]).
--export(['xor'/3]).
--export([beforenm/1]).
--export([afternm/3]).
--export([xor_afternm/3]).
+-export([crypto_shorthash_siphashx24/2]).
 
 %% Internal API
 -export([call/1]).
@@ -30,42 +25,16 @@
 %%% API
 %%%===================================================================
 
+bytes() ->
+	call(bytes).
+
 keybytes() ->
 	call(keybytes).
 
-noncebytes() ->
-	call(noncebytes).
-
-beforenmbytes() ->
-	call(beforenmbytes).
-
-crypto_stream_aes128ctr(Outlen, N, K)
-		when is_integer(Outlen)
-		andalso is_binary(N)
-		andalso is_binary(K) ->
-	call(crypto_stream_aes128ctr, {Outlen, N, K}).
-
-'xor'(In, N, K)
+crypto_shorthash_siphashx24(In, K)
 		when is_binary(In)
-		andalso is_binary(N)
 		andalso is_binary(K) ->
-	call('xor', {In, N, K}).
-
-beforenm(K)
-		when is_binary(K) ->
-	call(beforenm, {K}).
-
-afternm(Len, Nonce, C)
-		when is_integer(Len)
-		andalso is_binary(Nonce)
-		andalso is_binary(C) ->
-	call(afternm, {Len, Nonce, C}).
-
-xor_afternm(In, Nonce, C)
-		when is_binary(In)
-		andalso is_binary(Nonce)
-		andalso is_binary(C) ->
-	call(xor_afternm, {In, Nonce, C}).
+	call(crypto_shorthash_siphashx24, {In, K}).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

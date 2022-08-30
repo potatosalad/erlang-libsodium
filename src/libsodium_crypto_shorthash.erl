@@ -17,6 +17,7 @@
 -export([keybytes/0]).
 -export([primitive/0]).
 -export([crypto_shorthash/2]).
+-export([keygen/0]).
 
 %% Internal API
 -export([call/1]).
@@ -39,6 +40,9 @@ crypto_shorthash(In, K)
 		when is_binary(In)
 		andalso is_binary(K) ->
 	call(crypto_shorthash, {In, K}).
+
+keygen() ->
+	call(keygen).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

@@ -7,6 +7,7 @@ static void LS_API_EXEC(crypto_sign_ed25519, bytes);
 static void LS_API_EXEC(crypto_sign_ed25519, seedbytes);
 static void LS_API_EXEC(crypto_sign_ed25519, publickeybytes);
 static void LS_API_EXEC(crypto_sign_ed25519, secretkeybytes);
+static void LS_API_EXEC(crypto_sign_ed25519, messagebytes_max);
 static int LS_API_INIT(crypto_sign_ed25519, crypto_sign_ed25519);
 static void LS_API_EXEC(crypto_sign_ed25519, crypto_sign_ed25519);
 static int LS_API_INIT(crypto_sign_ed25519, open);
@@ -31,6 +32,7 @@ libsodium_function_t libsodium_functions_crypto_sign_ed25519[] = {LS_API_R_ARG0(
                                                                   LS_API_R_ARG0(crypto_sign_ed25519, seedbytes),
                                                                   LS_API_R_ARG0(crypto_sign_ed25519, publickeybytes),
                                                                   LS_API_R_ARG0(crypto_sign_ed25519, secretkeybytes),
+                                                                  LS_API_R_ARG0(crypto_sign_ed25519, messagebytes_max),
                                                                   LS_API_R_ARGV(crypto_sign_ed25519, crypto_sign_ed25519, 2),
                                                                   LS_API_R_ARGV(crypto_sign_ed25519, open, 2),
                                                                   LS_API_R_ARGV(crypto_sign_ed25519, detached, 2),
@@ -58,6 +60,10 @@ LS_API_GET_SIZE(crypto_sign_ed25519, publickeybytes);
 /* crypto_sign_ed25519_secretkeybytes/0 */
 
 LS_API_GET_SIZE(crypto_sign_ed25519, secretkeybytes);
+
+/* crypto_sign_ed25519_messagebytes_max/0 */
+
+LS_API_GET_SIZE(crypto_sign_ed25519, messagebytes_max);
 
 /* crypto_sign_ed25519_crypto_sign_ed25519/2 */
 

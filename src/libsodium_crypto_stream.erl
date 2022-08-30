@@ -15,9 +15,11 @@
 %% API
 -export([keybytes/0]).
 -export([noncebytes/0]).
+-export([messagebytes_max/0]).
 -export([primitive/0]).
 -export([crypto_stream/3]).
 -export(['xor'/3]).
+-export([keygen/0]).
 
 %% Internal API
 -export([call/1]).
@@ -33,6 +35,9 @@ keybytes() ->
 noncebytes() ->
 	call(noncebytes).
 
+messagebytes_max() ->
+	call(messagebytes_max).
+
 primitive() ->
 	call(primitive).
 
@@ -47,6 +52,9 @@ crypto_stream(CLen, N, K)
 		andalso is_binary(N)
 		andalso is_binary(K) ->
 	call('xor', {M, N, K}).
+
+keygen() ->
+	call(keygen).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

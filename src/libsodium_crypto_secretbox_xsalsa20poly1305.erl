@@ -6,19 +6,23 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  31 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
+%%% Created :  30 Aug 2022 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(libsodium_crypto_stream_salsa2012).
+-module(libsodium_crypto_secretbox_xsalsa20poly1305).
 
--define(NAMESPACE, crypto_stream_salsa2012).
+-define(NAMESPACE, crypto_secretbox_xsalsa20poly1305).
 
 %% API
 -export([keybytes/0]).
 -export([noncebytes/0]).
+-export([macbytes/0]).
 -export([messagebytes_max/0]).
--export([crypto_stream_salsa2012/3]).
--export(['xor'/3]).
+-export([crypto_secretbox_xsalsa20poly1305/3]).
+-export([open/3]).
 -export([keygen/0]).
+-export([zerobytes/0]).
+-export([boxzerobytes/0]).
+
 
 %% Internal API
 -export([call/1]).
@@ -34,23 +38,32 @@ keybytes() ->
 noncebytes() ->
 	call(noncebytes).
 
+macbytes() ->
+	call(macbytes).
+
 messagebytes_max() ->
 	call(messagebytes_max).
 
-crypto_stream_salsa2012(CLen, N, K)
-		when is_integer(CLen)
-		andalso is_binary(N)
-		andalso is_binary(K) ->
-	call(crypto_stream_salsa2012, {CLen, N, K}).
-
-'xor'(M, N, K)
+crypto_secretbox_xsalsa20poly1305(M, N, K)
 		when is_binary(M)
 		andalso is_binary(N)
 		andalso is_binary(K) ->
-	call('xor', {M, N, K}).
+	call(crypto_secretbox_xsalsa20poly1305, {M, N, K}).
+
+open(C, N, K)
+		when is_binary(C)
+		andalso is_binary(N)
+		andalso is_binary(K) ->
+	call(open, {C, N, K}).
 
 keygen() ->
 	call(keygen).
+
+zerobytes() ->
+	call(zerobytes).
+
+boxzerobytes() ->
+	call(boxzerobytes).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

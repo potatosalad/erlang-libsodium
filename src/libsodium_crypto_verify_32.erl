@@ -6,19 +6,15 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  31 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
+%%% Created :  30 Aug 2022 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(libsodium_crypto_stream_salsa2012).
+-module(libsodium_crypto_verify_32).
 
--define(NAMESPACE, crypto_stream_salsa2012).
+-define(NAMESPACE, crypto_verify_32).
 
 %% API
--export([keybytes/0]).
--export([noncebytes/0]).
--export([messagebytes_max/0]).
--export([crypto_stream_salsa2012/3]).
--export(['xor'/3]).
--export([keygen/0]).
+-export([bytes/0]).
+-export([crypto_verify_32/2]).
 
 %% Internal API
 -export([call/1]).
@@ -28,29 +24,13 @@
 %%% API
 %%%===================================================================
 
-keybytes() ->
-	call(keybytes).
+bytes() ->
+	call(bytes).
 
-noncebytes() ->
-	call(noncebytes).
-
-messagebytes_max() ->
-	call(messagebytes_max).
-
-crypto_stream_salsa2012(CLen, N, K)
-		when is_integer(CLen)
-		andalso is_binary(N)
-		andalso is_binary(K) ->
-	call(crypto_stream_salsa2012, {CLen, N, K}).
-
-'xor'(M, N, K)
-		when is_binary(M)
-		andalso is_binary(N)
-		andalso is_binary(K) ->
-	call('xor', {M, N, K}).
-
-keygen() ->
-	call(keygen).
+crypto_verify_32(X, Y)
+		when is_binary(X)
+		andalso is_binary(Y) ->
+	call(crypto_verify_32, {X, Y}).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

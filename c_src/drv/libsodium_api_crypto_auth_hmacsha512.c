@@ -16,6 +16,7 @@ static int LS_API_INIT(crypto_auth_hmacsha512, update);
 static void LS_API_EXEC(crypto_auth_hmacsha512, update);
 static int LS_API_INIT(crypto_auth_hmacsha512, final);
 static void LS_API_EXEC(crypto_auth_hmacsha512, final);
+static void LS_API_EXEC(crypto_auth_hmacsha512, keygen);
 
 libsodium_function_t libsodium_functions_crypto_auth_hmacsha512[] = {
     LS_API_R_ARG0(crypto_auth_hmacsha512, bytes),
@@ -26,6 +27,7 @@ libsodium_function_t libsodium_functions_crypto_auth_hmacsha512[] = {
     LS_API_R_ARGV(crypto_auth_hmacsha512, init, 1),
     LS_API_R_ARGV(crypto_auth_hmacsha512, update, 2),
     LS_API_R_ARGV(crypto_auth_hmacsha512, final, 1),
+    LS_API_R_ARG0(crypto_auth_hmacsha512, keygen),
     {NULL}};
 
 /* crypto_auth_hmacsha512_bytes/0 */
@@ -471,6 +473,21 @@ LS_API_EXEC(crypto_auth_hmacsha512, final)
     (void)crypto_auth_hmacsha512_final(argv->state, out);
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(out), bytes, ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_auth_hmacsha512_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_auth_hmacsha512, keygen)
+{
+    unsigned char k[crypto_auth_hmacsha512_KEYBYTES];
+
+    (void)crypto_auth_hmacsha512_keygen(k);
+
+    ErlDrvTermData spec[] = {
+        LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k), crypto_auth_hmacsha512_KEYBYTES, ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

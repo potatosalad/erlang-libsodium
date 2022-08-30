@@ -18,6 +18,7 @@
 -export([primitive/0]).
 -export([crypto_auth/2]).
 -export([verify/3]).
+-export([keygen/0]).
 
 %% Internal API
 -export([call/1]).
@@ -46,6 +47,9 @@ verify(H, In, K)
 		andalso is_binary(In)
 		andalso is_binary(K) ->
 	call(verify, {H, In, K}).
+
+keygen() ->
+	call(keygen).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

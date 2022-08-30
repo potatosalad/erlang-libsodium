@@ -15,9 +15,11 @@
 %% API
 -export([keybytes/0]).
 -export([noncebytes/0]).
+-export([messagebytes_max/0]).
 -export([crypto_stream_xsalsa20/3]).
 -export(['xor'/3]).
 -export([xor_ic/4]).
+-export([keygen/0]).
 
 %% Internal API
 -export([call/1]).
@@ -32,6 +34,9 @@ keybytes() ->
 
 noncebytes() ->
 	call(noncebytes).
+
+messagebytes_max() ->
+	call(messagebytes_max).
 
 crypto_stream_xsalsa20(CLen, N, K)
 		when is_integer(CLen)
@@ -51,6 +56,9 @@ xor_ic(M, N, IC, K)
 		andalso is_integer(IC)
 		andalso is_binary(K) ->
 	call(xor_ic, {M, N, IC, K}).
+
+keygen() ->
+	call(keygen).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

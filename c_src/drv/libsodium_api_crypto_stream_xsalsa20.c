@@ -5,20 +5,20 @@
 
 static void LS_API_EXEC(crypto_stream_xsalsa20, keybytes);
 static void LS_API_EXEC(crypto_stream_xsalsa20, noncebytes);
+static void LS_API_EXEC(crypto_stream_xsalsa20, messagebytes_max);
 static int LS_API_INIT(crypto_stream_xsalsa20, crypto_stream_xsalsa20);
 static void LS_API_EXEC(crypto_stream_xsalsa20, crypto_stream_xsalsa20);
 static int LS_API_INIT(crypto_stream_xsalsa20, xor);
 static void LS_API_EXEC(crypto_stream_xsalsa20, xor);
 static int LS_API_INIT(crypto_stream_xsalsa20, xor_ic);
 static void LS_API_EXEC(crypto_stream_xsalsa20, xor_ic);
+static void LS_API_EXEC(crypto_stream_xsalsa20, keygen);
 
 libsodium_function_t libsodium_functions_crypto_stream_xsalsa20[] = {
-    LS_API_R_ARG0(crypto_stream_xsalsa20, keybytes),
-    LS_API_R_ARG0(crypto_stream_xsalsa20, noncebytes),
-    LS_API_R_ARGV(crypto_stream_xsalsa20, crypto_stream_xsalsa20, 3),
-    LS_API_R_ARGV(crypto_stream_xsalsa20, xor, 3),
-    LS_API_R_ARGV(crypto_stream_xsalsa20, xor_ic, 4),
-    {NULL}};
+    LS_API_R_ARG0(crypto_stream_xsalsa20, keybytes),         LS_API_R_ARG0(crypto_stream_xsalsa20, noncebytes),
+    LS_API_R_ARG0(crypto_stream_xsalsa20, messagebytes_max), LS_API_R_ARGV(crypto_stream_xsalsa20, crypto_stream_xsalsa20, 3),
+    LS_API_R_ARGV(crypto_stream_xsalsa20, xor, 3),           LS_API_R_ARGV(crypto_stream_xsalsa20, xor_ic, 4),
+    LS_API_R_ARG0(crypto_stream_xsalsa20, keygen),           {NULL}};
 
 /* crypto_stream_xsalsa20_keybytes/0 */
 
@@ -44,6 +44,20 @@ LS_API_EXEC(crypto_stream_xsalsa20, noncebytes)
     noncebytes = crypto_stream_xsalsa20_noncebytes();
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(noncebytes), ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_stream_xsalsa20_messagebytes_max/0 */
+
+static void
+LS_API_EXEC(crypto_stream_xsalsa20, messagebytes_max)
+{
+    size_t messagebytes_max;
+
+    messagebytes_max = crypto_stream_xsalsa20_messagebytes_max();
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_UINT, (ErlDrvUInt)(messagebytes_max), ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }
@@ -352,6 +366,21 @@ LS_API_EXEC(crypto_stream_xsalsa20, xor_ic)
     (void)crypto_stream_xsalsa20_xor_ic(c, argv->m, argv->mlen, argv->n, argv->ic, argv->k);
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(c), argv->mlen, ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_stream_xsalsa20_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_stream_xsalsa20, keygen)
+{
+    unsigned char k[crypto_stream_xsalsa20_KEYBYTES];
+
+    (void)crypto_stream_xsalsa20_keygen(k);
+
+    ErlDrvTermData spec[] = {
+        LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k), crypto_stream_xsalsa20_KEYBYTES, ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

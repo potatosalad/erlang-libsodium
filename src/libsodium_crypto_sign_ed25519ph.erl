@@ -6,19 +6,18 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  31 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
+%%% Created :  30 Aug 2022 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(libsodium_crypto_stream_salsa2012).
+-module(libsodium_crypto_sign_ed25519ph).
 
--define(NAMESPACE, crypto_stream_salsa2012).
+-define(NAMESPACE, crypto_sign_ed25519ph).
 
 %% API
--export([keybytes/0]).
--export([noncebytes/0]).
--export([messagebytes_max/0]).
--export([crypto_stream_salsa2012/3]).
--export(['xor'/3]).
--export([keygen/0]).
+-export([statebytes/0]).
+-export([init/0]).
+-export([update/2]).
+-export([final_create/2]).
+-export([final_verify/3]).
 
 %% Internal API
 -export([call/1]).
@@ -28,29 +27,27 @@
 %%% API
 %%%===================================================================
 
-keybytes() ->
-	call(keybytes).
+statebytes() ->
+	call(statebytes).
 
-noncebytes() ->
-	call(noncebytes).
+init() ->
+	call(init).
 
-messagebytes_max() ->
-	call(messagebytes_max).
+update(State, M)
+		when is_binary(State)
+		andalso is_binary(M) ->
+	call(update, {State, M}).
 
-crypto_stream_salsa2012(CLen, N, K)
-		when is_integer(CLen)
-		andalso is_binary(N)
-		andalso is_binary(K) ->
-	call(crypto_stream_salsa2012, {CLen, N, K}).
+final_create(State, SK)
+		when is_binary(State)
+		andalso is_binary(SK) ->
+	call(final_create, {State, SK}).
 
-'xor'(M, N, K)
-		when is_binary(M)
-		andalso is_binary(N)
-		andalso is_binary(K) ->
-	call('xor', {M, N, K}).
-
-keygen() ->
-	call(keygen).
+final_verify(State, Sig, PK)
+		when is_binary(State)
+		andalso is_binary(Sig)
+		andalso is_binary(PK) ->
+	call(final_verify, {State, Sig, PK}).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

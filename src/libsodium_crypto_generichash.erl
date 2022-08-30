@@ -30,6 +30,7 @@
 -export([update/2]).
 -export([final/1]).
 -export([final/2]).
+-export([keygen/0]).
 
 %% Internal API
 -export([call/1]).
@@ -103,6 +104,9 @@ final(State, Outlen)
 		when is_binary(State)
 		andalso is_integer(Outlen) ->
 	call(final, {State, Outlen}).
+
+keygen() ->
+	call(keygen).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

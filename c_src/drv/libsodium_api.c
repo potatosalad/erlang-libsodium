@@ -36,16 +36,25 @@
 #include "libsodium_api_crypto_scalarmult_curve25519.h"
 #include "libsodium_api_crypto_scalarmult_ed25519.h"
 #include "libsodium_api_crypto_scalarmult_ristretto255.h"
+#include "libsodium_api_crypto_secretbox.h"
+#include "libsodium_api_crypto_secretbox_xchacha20poly1305.h"
+#include "libsodium_api_crypto_secretbox_xsalsa20poly1305.h"
+#include "libsodium_api_crypto_secretstream_xchacha20poly1305.h"
 #include "libsodium_api_crypto_shorthash.h"
 #include "libsodium_api_crypto_shorthash_siphash24.h"
+#include "libsodium_api_crypto_shorthash_siphashx24.h"
 #include "libsodium_api_crypto_sign.h"
 #include "libsodium_api_crypto_sign_ed25519.h"
+#include "libsodium_api_crypto_sign_ed25519ph.h"
 #include "libsodium_api_crypto_stream.h"
 #include "libsodium_api_crypto_stream_chacha20.h"
 #include "libsodium_api_crypto_stream_salsa20.h"
 #include "libsodium_api_crypto_stream_salsa2012.h"
 #include "libsodium_api_crypto_stream_xchacha20.h"
 #include "libsodium_api_crypto_stream_xsalsa20.h"
+#include "libsodium_api_crypto_verify_16.h"
+#include "libsodium_api_crypto_verify_32.h"
+#include "libsodium_api_crypto_verify_64.h"
 #include "libsodium_api_randombytes.h"
 #include "libsodium_api_runtime.h"
 #include "libsodium_api_utils.h"
@@ -90,16 +99,25 @@ static libsodium_namespace_t libsodium_namespaces[] = {LS_NS(crypto_aead_aes256g
                                                        LS_NS(crypto_scalarmult_curve25519),
                                                        LS_NS(crypto_scalarmult_ed25519),
                                                        LS_NS(crypto_scalarmult_ristretto255),
+                                                       LS_NS(crypto_secretbox),
+                                                       LS_NS(crypto_secretbox_xchacha20poly1305),
+                                                       LS_NS(crypto_secretbox_xsalsa20poly1305),
+                                                       LS_NS(crypto_secretstream_xchacha20poly1305),
                                                        LS_NS(crypto_shorthash),
                                                        LS_NS(crypto_shorthash_siphash24),
+                                                       LS_NS(crypto_shorthash_siphashx24),
                                                        LS_NS(crypto_sign),
                                                        LS_NS(crypto_sign_ed25519),
+                                                       LS_NS(crypto_sign_ed25519ph),
                                                        LS_NS(crypto_stream),
                                                        LS_NS(crypto_stream_chacha20),
                                                        LS_NS(crypto_stream_salsa20),
                                                        LS_NS(crypto_stream_salsa2012),
                                                        LS_NS(crypto_stream_xchacha20),
                                                        LS_NS(crypto_stream_xsalsa20),
+                                                       LS_NS(crypto_verify_16),
+                                                       LS_NS(crypto_verify_32),
+                                                       LS_NS(crypto_verify_64),
                                                        LS_NS(randombytes),
                                                        LS_NS(runtime),
                                                        LS_NS(utils),

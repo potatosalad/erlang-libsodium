@@ -8,12 +8,12 @@ static void LS_API_EXEC(crypto_shorthash, keybytes);
 static void LS_API_EXEC(crypto_shorthash, primitive);
 static int LS_API_INIT(crypto_shorthash, crypto_shorthash);
 static void LS_API_EXEC(crypto_shorthash, crypto_shorthash);
+static void LS_API_EXEC(crypto_shorthash, keygen);
 
-libsodium_function_t libsodium_functions_crypto_shorthash[] = {LS_API_R_ARG0(crypto_shorthash, bytes),
-                                                               LS_API_R_ARG0(crypto_shorthash, keybytes),
-                                                               LS_API_R_ARG0(crypto_shorthash, primitive),
-                                                               LS_API_R_ARGV(crypto_shorthash, crypto_shorthash, 2),
-                                                               {NULL}};
+libsodium_function_t libsodium_functions_crypto_shorthash[] = {
+    LS_API_R_ARG0(crypto_shorthash, bytes),     LS_API_R_ARG0(crypto_shorthash, keybytes),
+    LS_API_R_ARG0(crypto_shorthash, primitive), LS_API_R_ARGV(crypto_shorthash, crypto_shorthash, 2),
+    LS_API_R_ARG0(crypto_shorthash, keygen),    {NULL}};
 
 /* crypto_shorthash_bytes/0 */
 
@@ -146,4 +146,19 @@ LS_API_EXEC(crypto_shorthash, crypto_shorthash)
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 
     (void)driver_free(out);
+}
+
+/* crypto_shorthash_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_shorthash, keygen)
+{
+    unsigned char k[crypto_shorthash_KEYBYTES];
+
+    (void)crypto_shorthash_keygen(k);
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request),       ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k),
+                             crypto_shorthash_KEYBYTES, ERL_DRV_TUPLE,      2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

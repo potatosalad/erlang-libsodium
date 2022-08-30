@@ -19,6 +19,7 @@ static int LS_API_INIT(crypto_generichash, update);
 static void LS_API_EXEC(crypto_generichash, update);
 static int LS_API_INIT(crypto_generichash, final);
 static void LS_API_EXEC(crypto_generichash, final);
+static void LS_API_EXEC(crypto_generichash, keygen);
 
 libsodium_function_t libsodium_functions_crypto_generichash[] = {LS_API_R_ARG0(crypto_generichash, bytes_min),
                                                                  LS_API_R_ARG0(crypto_generichash, bytes_max),
@@ -32,6 +33,7 @@ libsodium_function_t libsodium_functions_crypto_generichash[] = {LS_API_R_ARG0(c
                                                                  LS_API_R_ARGV(crypto_generichash, init, 2),
                                                                  LS_API_R_ARGV(crypto_generichash, update, 2),
                                                                  LS_API_R_ARGV(crypto_generichash, final, 2),
+                                                                 LS_API_R_ARG0(crypto_generichash, keygen),
                                                                  {NULL}};
 
 /* crypto_generichash_bytes_min/0 */
@@ -250,11 +252,9 @@ LS_API_EXEC(crypto_generichash, crypto_generichash)
         return;
     }
 
-    (void)crypto_generichash(out, argv->outlen, argv->in, argv->inlen, argv->key, argv->keylen);
-
-    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(out), argv->outlen, ERL_DRV_TUPLE, 2};
-
-    LS_RESPOND(request, spec, __FILE__, __LINE__);
+    LS_SAFE_REPLY(crypto_generichash(out, argv->outlen, argv->in, argv->inlen, argv->key, argv->keylen),
+                  LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(out), argv->outlen, ERL_DRV_TUPLE, 2}),
+                  __FILE__, __LINE__);
 
     (void)driver_free(out);
 }
@@ -348,12 +348,10 @@ LS_API_EXEC(crypto_generichash, init)
         return;
     }
 
-    (void)crypto_generichash_init(state, argv->key, argv->keylen, argv->outlen);
-
-    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(char *)(state),
-                             statebytes,          ERL_DRV_TUPLE,      2};
-
-    LS_RESPOND(request, spec, __FILE__, __LINE__);
+    LS_SAFE_REPLY(
+        crypto_generichash_init(state, argv->key, argv->keylen, argv->outlen),
+        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(char *)(state), statebytes, ERL_DRV_TUPLE, 2}),
+        __FILE__, __LINE__);
 
     (void)sodium_free(state);
 }
@@ -430,12 +428,10 @@ LS_API_EXEC(crypto_generichash, update)
 
     statebytes = crypto_generichash_statebytes();
 
-    (void)crypto_generichash_update(argv->state, argv->in, argv->inlen);
-
-    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(char *)(argv->state),
-                             statebytes,          ERL_DRV_TUPLE,      2};
-
-    LS_RESPOND(request, spec, __FILE__, __LINE__);
+    LS_SAFE_REPLY(
+        crypto_generichash_update(argv->state, argv->in, argv->inlen),
+        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(char *)(argv->state), statebytes, ERL_DRV_TUPLE, 2}),
+        __FILE__, __LINE__);
 }
 
 /* crypto_generichash_final/2 */
@@ -513,9 +509,24 @@ LS_API_EXEC(crypto_generichash, final)
         return;
     }
 
-    (void)crypto_generichash_final(argv->state, out, argv->outlen);
+    LS_SAFE_REPLY(crypto_generichash_final(argv->state, out, argv->outlen),
+                  LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(out), argv->outlen, ERL_DRV_TUPLE, 2}),
+                  __FILE__, __LINE__);
 
-    ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(out), argv->outlen, ERL_DRV_TUPLE, 2};
+    (void)driver_free(out);
+}
+
+/* crypto_generichash_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_generichash, keygen)
+{
+    unsigned char k[crypto_generichash_KEYBYTES];
+
+    (void)crypto_generichash_keygen(k);
+
+    ErlDrvTermData spec[] = {LS_RES_TAG(request),         ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k),
+                             crypto_generichash_KEYBYTES, ERL_DRV_TUPLE,      2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }
