@@ -6,20 +6,19 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  31 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
+%%% Created :  30 Aug 2022 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(libsodium_crypto_onetimeauth_poly1305).
+-module(libsodium_crypto_kdf).
 
--define(NAMESPACE, crypto_onetimeauth_poly1305).
+-define(NAMESPACE, crypto_kdf).
 
 %% API
--export([bytes/0]).
+-export([bytes_min/0]).
+-export([bytes_max/0]).
+-export([contextbytes/0]).
 -export([keybytes/0]).
--export([crypto_onetimeauth_poly1305/2]).
--export([verify/3]).
--export([init/1]).
--export([update/2]).
--export([final/1]).
+-export([primitive/0]).
+-export([derive_from_key/4]).
 -export([keygen/0]).
 
 %% Internal API
@@ -30,35 +29,27 @@
 %%% API
 %%%===================================================================
 
-bytes() ->
-	call(bytes).
+bytes_min() ->
+	call(bytes_min).
+
+bytes_max() ->
+	call(bytes_max).
+
+contextbytes() ->
+	call(contextbytes).
 
 keybytes() ->
 	call(keybytes).
 
-crypto_onetimeauth_poly1305(In, K)
-		when is_binary(In)
-		andalso is_binary(K) ->
-	call(crypto_onetimeauth_poly1305, {In, K}).
+primitive() ->
+	call(primitive).
 
-verify(H, In, K)
-		when is_binary(H)
-		andalso is_binary(In)
-		andalso is_binary(K) ->
-	call(verify, {H, In, K}).
-
-init(Key)
-		when is_binary(Key) ->
-	call(init, {Key}).
-
-update(State, In)
-		when is_binary(State)
-		andalso is_binary(In) ->
-	call(update, {State, In}).
-
-final(State)
-		when is_binary(State) ->
-	call(final, {State}).
+derive_from_key(SubkeyLen, SubkeyId, Ctx, Key)
+		when (is_integer(SubkeyLen) andalso SubkeyLen >= 0)
+		andalso (is_integer(SubkeyId) andalso SubkeyId >= 0)
+		andalso is_binary(Ctx)
+		andalso is_binary(Key) ->
+	call(derive_from_key, {SubkeyLen, SubkeyId, Ctx, Key}).
 
 keygen() ->
 	call(keygen).

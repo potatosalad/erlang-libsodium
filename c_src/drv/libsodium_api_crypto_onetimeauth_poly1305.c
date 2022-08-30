@@ -15,6 +15,7 @@ static int LS_API_INIT(crypto_onetimeauth_poly1305, update);
 static void LS_API_EXEC(crypto_onetimeauth_poly1305, update);
 static int LS_API_INIT(crypto_onetimeauth_poly1305, final);
 static void LS_API_EXEC(crypto_onetimeauth_poly1305, final);
+static void LS_API_EXEC(crypto_onetimeauth_poly1305, keygen);
 
 libsodium_function_t libsodium_functions_crypto_onetimeauth_poly1305[] = {
     LS_API_R_ARG0(crypto_onetimeauth_poly1305, bytes),
@@ -24,6 +25,7 @@ libsodium_function_t libsodium_functions_crypto_onetimeauth_poly1305[] = {
     LS_API_R_ARGV(crypto_onetimeauth_poly1305, init, 1),
     LS_API_R_ARGV(crypto_onetimeauth_poly1305, update, 2),
     LS_API_R_ARGV(crypto_onetimeauth_poly1305, final, 1),
+    LS_API_R_ARG0(crypto_onetimeauth_poly1305, keygen),
     {NULL}};
 
 #define LS_API_CRYPTO_ONETIMEAUTH_POLY1305_STATEBYTES (sizeof(crypto_onetimeauth_poly1305_state))
@@ -457,6 +459,21 @@ LS_API_EXEC(crypto_onetimeauth_poly1305, final)
     (void)crypto_onetimeauth_poly1305_final(argv->state, out);
 
     ErlDrvTermData spec[] = {LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(out), bytes, ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
+/* crypto_onetimeauth_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_onetimeauth_poly1305, keygen)
+{
+    unsigned char k[crypto_onetimeauth_poly1305_KEYBYTES];
+
+    (void)crypto_onetimeauth_poly1305_keygen(k);
+
+    ErlDrvTermData spec[] = {
+        LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k), crypto_onetimeauth_poly1305_KEYBYTES, ERL_DRV_TUPLE, 2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

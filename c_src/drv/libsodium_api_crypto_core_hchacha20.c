@@ -11,11 +11,11 @@ static int LS_API_INIT(crypto_core_hchacha20, crypto_core_hchacha20);
 static void LS_API_EXEC(crypto_core_hchacha20, crypto_core_hchacha20);
 
 libsodium_function_t libsodium_functions_crypto_core_hchacha20[] = {LS_API_R_ARG0(crypto_core_hchacha20, outputbytes),
-                                                                   LS_API_R_ARG0(crypto_core_hchacha20, inputbytes),
-                                                                   LS_API_R_ARG0(crypto_core_hchacha20, keybytes),
-                                                                   LS_API_R_ARG0(crypto_core_hchacha20, constbytes),
-                                                                   LS_API_R_ARGV(crypto_core_hchacha20, crypto_core_hchacha20, 3),
-                                                                   {NULL}};
+                                                                    LS_API_R_ARG0(crypto_core_hchacha20, inputbytes),
+                                                                    LS_API_R_ARG0(crypto_core_hchacha20, keybytes),
+                                                                    LS_API_R_ARG0(crypto_core_hchacha20, constbytes),
+                                                                    LS_API_R_ARGV(crypto_core_hchacha20, crypto_core_hchacha20, 3),
+                                                                    {NULL}};
 
 /* crypto_core_hchacha20_outputbytes/0 */
 

@@ -22,6 +22,7 @@
 -export([init/1]).
 -export([update/2]).
 -export([final/1]).
+-export([keygen/0]).
 
 %% Internal API
 -export([call/1]).
@@ -66,6 +67,9 @@ update(State, In)
 final(State)
 		when is_binary(State) ->
 	call(final, {State}).
+
+keygen() ->
+	call(keygen).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

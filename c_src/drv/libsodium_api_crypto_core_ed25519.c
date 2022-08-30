@@ -36,25 +36,25 @@ static int LS_API_INIT(crypto_core_ed25519, scalar_reduce);
 static void LS_API_EXEC(crypto_core_ed25519, scalar_reduce);
 
 libsodium_function_t libsodium_functions_crypto_core_ed25519[] = {LS_API_R_ARG0(crypto_core_ed25519, bytes),
-                                                                   LS_API_R_ARG0(crypto_core_ed25519, uniformbytes),
-                                                                   LS_API_R_ARG0(crypto_core_ed25519, hashbytes),
-                                                                   LS_API_R_ARG0(crypto_core_ed25519, scalarbytes),
-                                                                   LS_API_R_ARG0(crypto_core_ed25519, nonreducedscalarbytes),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, is_valid_point, 1),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, add, 2),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, sub, 2),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, from_uniform, 1),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, from_hash, 1),
-                                                                   LS_API_R_ARG0(crypto_core_ed25519, random),
-                                                                   LS_API_R_ARG0(crypto_core_ed25519, scalar_random),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, scalar_invert, 1),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, scalar_negate, 1),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, scalar_complement, 1),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, scalar_add, 2),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, scalar_sub, 2),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, scalar_mul, 2),
-                                                                   LS_API_R_ARGV(crypto_core_ed25519, scalar_reduce, 1),
-                                                                   {NULL}};
+                                                                  LS_API_R_ARG0(crypto_core_ed25519, uniformbytes),
+                                                                  LS_API_R_ARG0(crypto_core_ed25519, hashbytes),
+                                                                  LS_API_R_ARG0(crypto_core_ed25519, scalarbytes),
+                                                                  LS_API_R_ARG0(crypto_core_ed25519, nonreducedscalarbytes),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, is_valid_point, 1),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, add, 2),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, sub, 2),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, from_uniform, 1),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, from_hash, 1),
+                                                                  LS_API_R_ARG0(crypto_core_ed25519, random),
+                                                                  LS_API_R_ARG0(crypto_core_ed25519, scalar_random),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, scalar_invert, 1),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, scalar_negate, 1),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, scalar_complement, 1),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, scalar_add, 2),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, scalar_sub, 2),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, scalar_mul, 2),
+                                                                  LS_API_R_ARGV(crypto_core_ed25519, scalar_reduce, 1),
+                                                                  {NULL}};
 
 /* crypto_core_ed25519_bytes/0 */
 
@@ -211,7 +211,8 @@ LS_API_EXEC(crypto_core_ed25519, add)
 
     LS_SAFE_REPLY(
         crypto_core_ed25519_add(rp, argv->p, argv->q),
-        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(rp), crypto_core_ed25519_BYTES, ERL_DRV_TUPLE, 2}), __FILE__, __LINE__);
+        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(rp), crypto_core_ed25519_BYTES, ERL_DRV_TUPLE, 2}),
+        __FILE__, __LINE__);
 
     (void)sodium_memzero(rp, crypto_core_ed25519_BYTES);
 }
@@ -289,7 +290,8 @@ LS_API_EXEC(crypto_core_ed25519, sub)
 
     LS_SAFE_REPLY(
         crypto_core_ed25519_sub(rp, argv->p, argv->q),
-        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(rp), crypto_core_ed25519_BYTES, ERL_DRV_TUPLE, 2}), __FILE__, __LINE__);
+        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(rp), crypto_core_ed25519_BYTES, ERL_DRV_TUPLE, 2}),
+        __FILE__, __LINE__);
 
     (void)sodium_memzero(rp, crypto_core_ed25519_BYTES);
 }
@@ -353,7 +355,8 @@ LS_API_EXEC(crypto_core_ed25519, from_uniform)
 
     LS_SAFE_REPLY(
         crypto_core_ed25519_from_uniform(rp, argv->r),
-        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(rp), crypto_core_ed25519_BYTES, ERL_DRV_TUPLE, 2}), __FILE__, __LINE__);
+        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(rp), crypto_core_ed25519_BYTES, ERL_DRV_TUPLE, 2}),
+        __FILE__, __LINE__);
 
     (void)sodium_memzero(rp, crypto_core_ed25519_BYTES);
 }
@@ -417,7 +420,8 @@ LS_API_EXEC(crypto_core_ed25519, from_hash)
 
     LS_SAFE_REPLY(
         crypto_core_ed25519_from_hash(rp, argv->h),
-        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(rp), crypto_core_ed25519_BYTES, ERL_DRV_TUPLE, 2}), __FILE__, __LINE__);
+        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(rp), crypto_core_ed25519_BYTES, ERL_DRV_TUPLE, 2}),
+        __FILE__, __LINE__);
 
     (void)sodium_memzero(rp, crypto_core_ed25519_BYTES);
 }
@@ -431,8 +435,8 @@ LS_API_EXEC(crypto_core_ed25519, random)
 
     (void)crypto_core_ed25519_random(p);
 
-    ErlDrvTermData spec[] = {
-        LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(p), crypto_core_ed25519_BYTES, ERL_DRV_TUPLE, 2};
+    ErlDrvTermData spec[] = {LS_RES_TAG(request),       ERL_DRV_BUF2BINARY, (ErlDrvTermData)(p),
+                             crypto_core_ed25519_BYTES, ERL_DRV_TUPLE,      2};
 
     LS_RESPOND(request, spec, __FILE__, __LINE__);
 }
@@ -509,9 +513,10 @@ LS_API_EXEC(crypto_core_ed25519, scalar_invert)
 
     unsigned char recip[crypto_core_ed25519_SCALARBYTES];
 
-    LS_SAFE_REPLY(
-        crypto_core_ed25519_scalar_invert(recip, argv->s),
-        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(recip), crypto_core_ed25519_SCALARBYTES, ERL_DRV_TUPLE, 2}), __FILE__, __LINE__);
+    LS_SAFE_REPLY(crypto_core_ed25519_scalar_invert(recip, argv->s),
+                  LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(recip), crypto_core_ed25519_SCALARBYTES,
+                              ERL_DRV_TUPLE, 2}),
+                  __FILE__, __LINE__);
 
     (void)sodium_memzero(recip, crypto_core_ed25519_SCALARBYTES);
 }

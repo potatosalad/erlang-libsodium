@@ -123,8 +123,6 @@ typedef struct LS_API_F_ARGV(crypto_pwhash_scryptsalsa208sha256, crypto_pwhash_s
     size_t memlimit;
 } LS_API_F_ARGV_T(crypto_pwhash_scryptsalsa208sha256, crypto_pwhash_scryptsalsa208sha256);
 
-extern int erts_fprintf(FILE *stream, const char *format, ...);
-
 static int
 LS_API_INIT(crypto_pwhash_scryptsalsa208sha256, crypto_pwhash_scryptsalsa208sha256)
 {
@@ -141,12 +139,10 @@ LS_API_INIT(crypto_pwhash_scryptsalsa208sha256, crypto_pwhash_scryptsalsa208sha2
     void *p;
 
     if (ei_decode_ulong(buffer, index, (unsigned long *)&(outlen)) < 0) {
-        erts_fprintf(stderr, "%s:%d Call to ei_decode_ulong() failed\n", __FILE__, __LINE__);
         return -1;
     }
 
     if (ei_get_type(buffer, index, &type, &type_length) < 0 || type != ERL_BINARY_EXT) {
-        erts_fprintf(stderr, "%s:%d Call to ei_get_type() failed\n", __FILE__, __LINE__);
         return -1;
     }
 
@@ -155,29 +151,24 @@ LS_API_INIT(crypto_pwhash_scryptsalsa208sha256, crypto_pwhash_scryptsalsa208sha2
     skip = *index;
 
     if (ei_skip_term(buffer, &skip) < 0) {
-        erts_fprintf(stderr, "%s:%d Call to ei_skip_term() failed\n", __FILE__, __LINE__);
         return -1;
     }
 
     saltbytes = crypto_pwhash_scryptsalsa208sha256_saltbytes();
 
     if (ei_get_type(buffer, &skip, &type, &type_length) < 0 || type != ERL_BINARY_EXT || type_length != saltbytes) {
-        erts_fprintf(stderr, "%s:%d type_length != saltbytes (%d != %d)\n", __FILE__, __LINE__, type_length, saltbytes);
         return -1;
     }
 
     if (ei_skip_term(buffer, &skip) < 0) {
-        erts_fprintf(stderr, "%s:%d Call to ei_skip_term() failed\n", __FILE__, __LINE__);
         return -1;
     }
 
     if (ei_decode_ulong(buffer, &skip, (unsigned long *)&(opslimit)) < 0) {
-        erts_fprintf(stderr, "%s:%d Call to ei_decode_ulong() failed\n", __FILE__, __LINE__);
         return -1;
     }
 
     if (ei_decode_ulong(buffer, &skip, (unsigned long *)&(memlimit)) < 0) {
-        erts_fprintf(stderr, "%s:%d Call to ei_decode_ulong() failed\n", __FILE__, __LINE__);
         return -1;
     }
 
@@ -198,25 +189,21 @@ LS_API_INIT(crypto_pwhash_scryptsalsa208sha256, crypto_pwhash_scryptsalsa208sha2
 
     if (ei_decode_binary(buffer, index, (void *)(argv->passwd), (long *)&(argv->passwdlen)) < 0) {
         (void)driver_free(argv);
-        erts_fprintf(stderr, "%s:%d Call to ei_decode_binary() failed\n", __FILE__, __LINE__);
         return -1;
     }
 
     if (ei_decode_binary(buffer, index, (void *)(argv->salt), NULL) < 0) {
         (void)driver_free(argv);
-        erts_fprintf(stderr, "%s:%d Call to ei_decode_binary() failed\n", __FILE__, __LINE__);
         return -1;
     }
 
     if (ei_skip_term(buffer, index) < 0) {
         (void)driver_free(argv);
-        erts_fprintf(stderr, "%s:%d Call to ei_skip_term() failed\n", __FILE__, __LINE__);
         return -1;
     }
 
     if (ei_skip_term(buffer, index) < 0) {
         (void)driver_free(argv);
-        erts_fprintf(stderr, "%s:%d Call to ei_skip_term() failed\n", __FILE__, __LINE__);
         return -1;
     }
 
@@ -232,17 +219,6 @@ LS_API_EXEC(crypto_pwhash_scryptsalsa208sha256, crypto_pwhash_scryptsalsa208sha2
     LS_API_READ_ARGV(crypto_pwhash_scryptsalsa208sha256, crypto_pwhash_scryptsalsa208sha256);
 
     unsigned char out[argv->outlen];
-
-    erts_fprintf(stderr, "%s:%d Call to crypto_pwhash_scryptsalsa208sha256(out, %d, passwd, %d, salt, %d, %d)\n", __FILE__,
-                 __LINE__, argv->outlen, argv->passwdlen, argv->opslimit, argv->memlimit);
-
-    // int crypto_pwhash_scryptsalsa208sha256(out, argv->outlen
-    //                                    unsigned long long outlen,
-    //                                    const char * const passwd,
-    //                                    unsigned long long passwdlen,
-    //                                    const unsigned char * const salt,
-    //                                    unsigned long long opslimit,
-    //                                    size_t memlimit)
 
     LS_SAFE_REPLY(crypto_pwhash_scryptsalsa208sha256(out, argv->outlen, argv->passwd, argv->passwdlen, argv->salt, argv->opslimit,
                                                      argv->memlimit),

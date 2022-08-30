@@ -23,6 +23,9 @@
 #include "libsodium_api_crypto_hash.h"
 #include "libsodium_api_crypto_hash_sha256.h"
 #include "libsodium_api_crypto_hash_sha512.h"
+#include "libsodium_api_crypto_kdf.h"
+#include "libsodium_api_crypto_kdf_blake2b.h"
+#include "libsodium_api_crypto_kx.h"
 #include "libsodium_api_crypto_onetimeauth.h"
 #include "libsodium_api_crypto_onetimeauth_poly1305.h"
 #include "libsodium_api_crypto_pwhash.h"
@@ -31,6 +34,8 @@
 #include "libsodium_api_crypto_pwhash_scryptsalsa208sha256.h"
 #include "libsodium_api_crypto_scalarmult.h"
 #include "libsodium_api_crypto_scalarmult_curve25519.h"
+#include "libsodium_api_crypto_scalarmult_ed25519.h"
+#include "libsodium_api_crypto_scalarmult_ristretto255.h"
 #include "libsodium_api_crypto_shorthash.h"
 #include "libsodium_api_crypto_shorthash_siphash24.h"
 #include "libsodium_api_crypto_sign.h"
@@ -72,6 +77,9 @@ static libsodium_namespace_t libsodium_namespaces[] = {LS_NS(crypto_aead_aes256g
                                                        LS_NS(crypto_hash),
                                                        LS_NS(crypto_hash_sha256),
                                                        LS_NS(crypto_hash_sha512),
+                                                       LS_NS(crypto_kdf),
+                                                       LS_NS(crypto_kdf_blake2b),
+                                                       LS_NS(crypto_kx),
                                                        LS_NS(crypto_onetimeauth),
                                                        LS_NS(crypto_onetimeauth_poly1305),
                                                        LS_NS(crypto_pwhash),
@@ -80,6 +88,8 @@ static libsodium_namespace_t libsodium_namespaces[] = {LS_NS(crypto_aead_aes256g
                                                        LS_NS(crypto_pwhash_scryptsalsa208sha256),
                                                        LS_NS(crypto_scalarmult),
                                                        LS_NS(crypto_scalarmult_curve25519),
+                                                       LS_NS(crypto_scalarmult_ed25519),
+                                                       LS_NS(crypto_scalarmult_ristretto255),
                                                        LS_NS(crypto_shorthash),
                                                        LS_NS(crypto_shorthash_siphash24),
                                                        LS_NS(crypto_sign),

@@ -6,21 +6,19 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  31 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
+%%% Created :  30 Aug 2022 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(libsodium_crypto_onetimeauth_poly1305).
+-module(libsodium_crypto_scalarmult_ed25519).
 
--define(NAMESPACE, crypto_onetimeauth_poly1305).
+-define(NAMESPACE, crypto_scalarmult_ed25519).
 
 %% API
 -export([bytes/0]).
--export([keybytes/0]).
--export([crypto_onetimeauth_poly1305/2]).
--export([verify/3]).
--export([init/1]).
--export([update/2]).
--export([final/1]).
--export([keygen/0]).
+-export([scalarbytes/0]).
+-export([crypto_scalarmult_ed25519/2]).
+-export([noclamp/2]).
+-export([base/1]).
+-export([base_noclamp/1]).
 
 %% Internal API
 -export([call/1]).
@@ -33,35 +31,26 @@
 bytes() ->
 	call(bytes).
 
-keybytes() ->
-	call(keybytes).
+scalarbytes() ->
+	call(scalarbytes).
 
-crypto_onetimeauth_poly1305(In, K)
-		when is_binary(In)
-		andalso is_binary(K) ->
-	call(crypto_onetimeauth_poly1305, {In, K}).
+crypto_scalarmult_ed25519(N, P)
+		when is_binary(N)
+		andalso is_binary(P) ->
+	call(crypto_scalarmult_ed25519, {N, P}).
 
-verify(H, In, K)
-		when is_binary(H)
-		andalso is_binary(In)
-		andalso is_binary(K) ->
-	call(verify, {H, In, K}).
+noclamp(N, P)
+		when is_binary(N)
+		andalso is_binary(P) ->
+	call(noclamp, {N, P}).
 
-init(Key)
-		when is_binary(Key) ->
-	call(init, {Key}).
+base(N)
+		when is_binary(N) ->
+	call(base, {N}).
 
-update(State, In)
-		when is_binary(State)
-		andalso is_binary(In) ->
-	call(update, {State, In}).
-
-final(State)
-		when is_binary(State) ->
-	call(final, {State}).
-
-keygen() ->
-	call(keygen).
+base_noclamp(N)
+		when is_binary(N) ->
+	call(base_noclamp, {N}).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

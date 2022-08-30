@@ -66,7 +66,7 @@ all() ->
 		{group, aead_chacha20poly1305},
 		{group, box},
 		{group, pwhash_argon2i},
-		{group, pwhash_argon2id},
+		% {group, pwhash_argon2id},
 		{group, pwhash_scrypt},
 		{group, sign}
 	].
