@@ -14,14 +14,12 @@
 
 %% API
 -export([bytes/0]).
--export([uniformbytes/0]).
 -export([hashbytes/0]).
 -export([scalarbytes/0]).
 -export([nonreducedscalarbytes/0]).
 -export([is_valid_point/1]).
 -export([add/2]).
 -export([sub/2]).
--export([from_uniform/1]).
 -export([from_hash/1]).
 -export([random/0]).
 -export([scalar_random/0]).
@@ -43,9 +41,6 @@
 
 bytes() ->
 	call(bytes).
-
-uniformbytes() ->
-	call(uniformbytes).
 
 hashbytes() ->
 	call(hashbytes).
@@ -69,10 +64,6 @@ sub(P, Q)
 		when is_binary(P)
 		andalso is_binary(Q) ->
 	call(sub, {P, Q}).
-
-from_uniform(R)
-		when is_binary(R) ->
-	call(from_uniform, {R}).
 
 from_hash(H)
 		when is_binary(H) ->

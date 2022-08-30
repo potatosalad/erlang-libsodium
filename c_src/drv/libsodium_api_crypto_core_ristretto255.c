@@ -4,7 +4,6 @@
 #include "libsodium_api_crypto_core_ristretto255.h"
 
 static void LS_API_EXEC(crypto_core_ristretto255, bytes);
-static void LS_API_EXEC(crypto_core_ristretto255, uniformbytes);
 static void LS_API_EXEC(crypto_core_ristretto255, hashbytes);
 static void LS_API_EXEC(crypto_core_ristretto255, scalarbytes);
 static void LS_API_EXEC(crypto_core_ristretto255, nonreducedscalarbytes);
@@ -14,8 +13,6 @@ static int LS_API_INIT(crypto_core_ristretto255, add);
 static void LS_API_EXEC(crypto_core_ristretto255, add);
 static int LS_API_INIT(crypto_core_ristretto255, sub);
 static void LS_API_EXEC(crypto_core_ristretto255, sub);
-static int LS_API_INIT(crypto_core_ristretto255, from_uniform);
-static void LS_API_EXEC(crypto_core_ristretto255, from_uniform);
 static int LS_API_INIT(crypto_core_ristretto255, from_hash);
 static void LS_API_EXEC(crypto_core_ristretto255, from_hash);
 static void LS_API_EXEC(crypto_core_ristretto255, random);
@@ -36,14 +33,12 @@ static int LS_API_INIT(crypto_core_ristretto255, scalar_reduce);
 static void LS_API_EXEC(crypto_core_ristretto255, scalar_reduce);
 
 libsodium_function_t libsodium_functions_crypto_core_ristretto255[] = {LS_API_R_ARG0(crypto_core_ristretto255, bytes),
-                                                                   LS_API_R_ARG0(crypto_core_ristretto255, uniformbytes),
                                                                    LS_API_R_ARG0(crypto_core_ristretto255, hashbytes),
                                                                    LS_API_R_ARG0(crypto_core_ristretto255, scalarbytes),
                                                                    LS_API_R_ARG0(crypto_core_ristretto255, nonreducedscalarbytes),
                                                                    LS_API_R_ARGV(crypto_core_ristretto255, is_valid_point, 1),
                                                                    LS_API_R_ARGV(crypto_core_ristretto255, add, 2),
                                                                    LS_API_R_ARGV(crypto_core_ristretto255, sub, 2),
-                                                                   LS_API_R_ARGV(crypto_core_ristretto255, from_uniform, 1),
                                                                    LS_API_R_ARGV(crypto_core_ristretto255, from_hash, 1),
                                                                    LS_API_R_ARG0(crypto_core_ristretto255, random),
                                                                    LS_API_R_ARG0(crypto_core_ristretto255, scalar_random),
@@ -59,10 +54,6 @@ libsodium_function_t libsodium_functions_crypto_core_ristretto255[] = {LS_API_R_
 /* crypto_core_ristretto255_bytes/0 */
 
 LS_API_GET_SIZE(crypto_core_ristretto255, bytes);
-
-/* crypto_core_ristretto255_uniformbytes/0 */
-
-LS_API_GET_SIZE(crypto_core_ristretto255, uniformbytes);
 
 /* crypto_core_ristretto255_hashbytes/0 */
 
@@ -289,70 +280,6 @@ LS_API_EXEC(crypto_core_ristretto255, sub)
 
     LS_SAFE_REPLY(
         crypto_core_ristretto255_sub(rp, argv->p, argv->q),
-        LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(rp), crypto_core_ristretto255_BYTES, ERL_DRV_TUPLE, 2}), __FILE__, __LINE__);
-
-    (void)sodium_memzero(rp, crypto_core_ristretto255_BYTES);
-}
-
-/* crypto_core_ristretto255_from_uniform/1 */
-
-typedef struct LS_API_F_ARGV(crypto_core_ristretto255, from_uniform) {
-    const unsigned char r[crypto_core_ristretto255_UNIFORMBYTES];
-} LS_API_F_ARGV_T(crypto_core_ristretto255, from_uniform);
-
-static int
-LS_API_INIT(crypto_core_ristretto255, from_uniform)
-{
-    LS_API_F_ARGV_T(crypto_core_ristretto255, from_uniform) * argv;
-    int skip;
-    int type;
-    int type_length;
-    size_t uniformbytes;
-    ErlDrvSizeT x;
-    void *p;
-
-    uniformbytes = crypto_core_ristretto255_uniformbytes();
-
-    if (ei_get_type(buffer, index, &type, &type_length) < 0 || type != ERL_BINARY_EXT || type_length != uniformbytes) {
-        return -1;
-    }
-
-    skip = *index;
-
-    if (ei_skip_term(buffer, &skip) < 0) {
-        return -1;
-    }
-
-    x = (ErlDrvSizeT)((sizeof(LS_API_F_ARGV_T(crypto_core_ristretto255, from_uniform))));
-    p = (void *)(driver_alloc(x));
-
-    if (p == NULL) {
-        return -1;
-    }
-
-    argv = (LS_API_F_ARGV_T(crypto_core_ristretto255, from_uniform) *)(p);
-    p += (sizeof(LS_API_F_ARGV_T(crypto_core_ristretto255, from_uniform)));
-
-    if (ei_decode_binary(buffer, index, (void *)(argv->r), NULL) < 0) {
-        (void)driver_free(argv);
-        return -1;
-    }
-
-    request->argv = (void *)(argv);
-
-    return 0;
-}
-
-static void
-LS_API_EXEC(crypto_core_ristretto255, from_uniform)
-{
-    LS_API_F_ARGV_T(crypto_core_ristretto255, from_uniform) * argv;
-    LS_API_READ_ARGV(crypto_core_ristretto255, from_uniform);
-
-    unsigned char rp[crypto_core_ristretto255_BYTES];
-
-    LS_SAFE_REPLY(
-        crypto_core_ristretto255_from_uniform(rp, argv->r),
         LS_PROTECT({LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(rp), crypto_core_ristretto255_BYTES, ERL_DRV_TUPLE, 2}), __FILE__, __LINE__);
 
     (void)sodium_memzero(rp, crypto_core_ristretto255_BYTES);
