@@ -6,41 +6,31 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  14 Jan 2016 by Andrew Bennett <potatosaladx@gmail.com>
+%%% Created :  29 Aug 2022 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(libsodium_crypto_box).
+-module(libsodium_crypto_box_curve25519xchacha20poly1305).
 
--define(NAMESPACE, crypto_box).
+-define(NAMESPACE, crypto_box_curve25519xchacha20poly1305).
 
 %% API
 -export([seedbytes/0]).
 -export([publickeybytes/0]).
 -export([secretkeybytes/0]).
+-export([beforenmbytes/0]).
 -export([noncebytes/0]).
 -export([macbytes/0]).
 -export([messagebytes_max/0]).
--export([primitive/0]).
 -export([seed_keypair/1]).
 -export([keypair/0]).
 -export([easy/4]).
 -export([open_easy/4]).
 -export([detached/4]).
 -export([open_detached/5]).
--export([beforenmbytes/0]).
 -export([beforenm/2]).
 -export([easy_afternm/3]).
 -export([open_easy_afternm/3]).
 -export([detached_afternm/3]).
 -export([open_detached_afternm/4]).
--export([sealbytes/0]).
--export([seal/2]).
--export([seal_open/3]).
--export([zerobytes/0]).
--export([boxzerobytes/0]).
--export([crypto_box/4]).
--export([open/4]).
--export([afternm/3]).
--export([open_afternm/3]).
 
 %% Internal API
 -export([call/1]).
@@ -59,6 +49,9 @@ publickeybytes() ->
 secretkeybytes() ->
 	call(secretkeybytes).
 
+beforenmbytes() ->
+	call(beforenmbytes).
+
 noncebytes() ->
 	call(noncebytes).
 
@@ -67,9 +60,6 @@ macbytes() ->
 
 messagebytes_max() ->
 	call(messagebytes_max).
-
-primitive() ->
-	call(primitive).
 
 seed_keypair(Seed)
 		when is_binary(Seed) ->
@@ -107,9 +97,6 @@ open_detached(C, MAC, N, PK, SK)
 		andalso is_binary(SK) ->
 	call(open_detached, {C, MAC, N, PK, SK}).
 
-beforenmbytes() ->
-	call(beforenmbytes).
-
 beforenm(PK, SK)
 		when is_binary(PK)
 		andalso is_binary(SK) ->
@@ -139,52 +126,6 @@ open_detached_afternm(C, MAC, N, K)
 		andalso is_binary(N)
 		andalso is_binary(K) ->
 	call(open_detached_afternm, {C, MAC, N, K}).
-
-sealbytes() ->
-	call(sealbytes).
-
-seal(M, PK)
-		when is_binary(M)
-		andalso is_binary(PK) ->
-	call(seal, {M, PK}).
-
-seal_open(C, PK, SK)
-		when is_binary(C)
-		andalso is_binary(PK)
-		andalso is_binary(SK) ->
-	call(seal_open, {C, PK, SK}).
-
-zerobytes() ->
-	call(zerobytes).
-
-boxzerobytes() ->
-	call(boxzerobytes).
-
-crypto_box(M, N, PK, SK)
-		when is_binary(M)
-		andalso is_binary(N)
-		andalso is_binary(PK)
-		andalso is_binary(SK) ->
-	call(crypto_box, {M, N, PK, SK}).
-
-open(C, N, PK, SK)
-		when is_binary(C)
-		andalso is_binary(N)
-		andalso is_binary(PK)
-		andalso is_binary(SK) ->
-	call(open, {C, N, PK, SK}).
-
-afternm(M, N, K)
-		when is_binary(M)
-		andalso is_binary(N)
-		andalso is_binary(K) ->
-	call(afternm, {M, N, K}).
-
-open_afternm(C, N, K)
-		when is_binary(C)
-		andalso is_binary(N)
-		andalso is_binary(K) ->
-	call(open_afternm, {C, N, K}).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

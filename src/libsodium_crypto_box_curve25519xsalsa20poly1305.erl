@@ -21,6 +21,7 @@
 -export([zerobytes/0]).
 -export([boxzerobytes/0]).
 -export([macbytes/0]).
+-export([messagebytes_max/0]).
 -export([crypto_box_curve25519xsalsa20poly1305/4]).
 -export([open/4]).
 -export([seed_keypair/1]).
@@ -60,6 +61,9 @@ boxzerobytes() ->
 
 macbytes() ->
 	call(macbytes).
+
+messagebytes_max() ->
+	call(messagebytes_max).
 
 crypto_box_curve25519xsalsa20poly1305(M, N, PK, SK)
 		when is_binary(M)

@@ -6,24 +6,18 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  30 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
+%%% Created :  29 Aug 2022 by Andrew Bennett <potatosaladx@gmail.com>
 %%%-------------------------------------------------------------------
--module(libsodium_runtime).
+-module(libsodium_crypto_core_hchacha20).
 
--define(NAMESPACE, runtime).
+-define(NAMESPACE, crypto_core_hchacha20).
 
 %% API
--export([has_neon/0]).
--export([has_sse2/0]).
--export([has_sse3/0]).
--export([has_ssse3/0]).
--export([has_sse41/0]).
--export([has_avx/0]).
--export([has_avx2/0]).
--export([has_avx512f/0]).
--export([has_pclmul/0]).
--export([has_aesni/0]).
--export([has_rdrand/0]).
+-export([outputbytes/0]).
+-export([inputbytes/0]).
+-export([keybytes/0]).
+-export([constbytes/0]).
+-export([crypto_core_hchacha20/3]).
 
 %% Internal API
 -export([call/1]).
@@ -33,38 +27,23 @@
 %%% API
 %%%===================================================================
 
-has_neon() ->
-	call(has_neon).
+outputbytes() ->
+	call(outputbytes).
 
-has_sse2() ->
-	call(has_sse2).
+inputbytes() ->
+	call(inputbytes).
 
-has_sse3() ->
-	call(has_sse3).
+keybytes() ->
+	call(keybytes).
 
-has_ssse3() ->
-	call(has_ssse3).
+constbytes() ->
+	call(constbytes).
 
-has_sse41() ->
-	call(has_sse41).
-
-has_avx() ->
-	call(has_avx).
-
-has_avx2() ->
-	call(has_avx2).
-
-has_avx512f() ->
-	call(has_avx512f).
-
-has_pclmul() ->
-	call(has_pclmul).
-
-has_aesni() ->
-	call(has_aesni).
-
-has_rdrand() ->
-	call(has_rdrand).
+crypto_core_hchacha20(In, K, C)
+		when is_binary(In)
+		andalso is_binary(K)
+		andalso is_binary(C) ->
+	call(crypto_core_hchacha20, {In, K, C}).
 
 %%%-------------------------------------------------------------------
 %%% Internal functions

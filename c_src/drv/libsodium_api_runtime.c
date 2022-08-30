@@ -9,13 +9,17 @@ static void LS_API_EXEC(runtime, has_sse3);
 static void LS_API_EXEC(runtime, has_ssse3);
 static void LS_API_EXEC(runtime, has_sse41);
 static void LS_API_EXEC(runtime, has_avx);
+static void LS_API_EXEC(runtime, has_avx2);
+static void LS_API_EXEC(runtime, has_avx512f);
 static void LS_API_EXEC(runtime, has_pclmul);
 static void LS_API_EXEC(runtime, has_aesni);
+static void LS_API_EXEC(runtime, has_rdrand);
 
 libsodium_function_t libsodium_functions_runtime[] = {
-    LS_API_R_ARG0(runtime, has_neon),   LS_API_R_ARG0(runtime, has_sse2),  LS_API_R_ARG0(runtime, has_sse3),
-    LS_API_R_ARG0(runtime, has_ssse3),  LS_API_R_ARG0(runtime, has_sse41), LS_API_R_ARG0(runtime, has_avx),
-    LS_API_R_ARG0(runtime, has_pclmul), LS_API_R_ARG0(runtime, has_aesni), {NULL}};
+    LS_API_R_ARG0(runtime, has_neon),  LS_API_R_ARG0(runtime, has_sse2),    LS_API_R_ARG0(runtime, has_sse3),
+    LS_API_R_ARG0(runtime, has_ssse3), LS_API_R_ARG0(runtime, has_sse41),   LS_API_R_ARG0(runtime, has_avx),
+    LS_API_R_ARG0(runtime, has_avx2),  LS_API_R_ARG0(runtime, has_avx512f), LS_API_R_ARG0(runtime, has_pclmul),
+    LS_API_R_ARG0(runtime, has_aesni), LS_API_R_ARG0(runtime, has_rdrand),  {NULL}};
 
 #define LS_API_RUNTIME_HAS(FEATURE, FILE, LINE)                                                                                    \
     static void LS_API_EXEC(runtime, has_##FEATURE)                                                                                \
@@ -50,6 +54,14 @@ LS_API_RUNTIME_HAS(sse41, __FILE__, __LINE__);
 
 LS_API_RUNTIME_HAS(avx, __FILE__, __LINE__);
 
+/* runtime_has_avx2/0 */
+
+LS_API_RUNTIME_HAS(avx2, __FILE__, __LINE__);
+
+/* runtime_has_avx512f/0 */
+
+LS_API_RUNTIME_HAS(avx512f, __FILE__, __LINE__);
+
 /* runtime_has_pclmul/0 */
 
 LS_API_RUNTIME_HAS(pclmul, __FILE__, __LINE__);
@@ -57,3 +69,7 @@ LS_API_RUNTIME_HAS(pclmul, __FILE__, __LINE__);
 /* runtime_has_aesni/0 */
 
 LS_API_RUNTIME_HAS(aesni, __FILE__, __LINE__);
+
+/* runtime_has_rdrand/0 */
+
+LS_API_RUNTIME_HAS(rdrand, __FILE__, __LINE__);

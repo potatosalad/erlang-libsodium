@@ -4,13 +4,18 @@
 #include "libsodium_api.h"
 #include "libsodium_api_crypto_aead_aes256gcm.h"
 #include "libsodium_api_crypto_aead_chacha20poly1305.h"
+#include "libsodium_api_crypto_aead_xchacha20poly1305.h"
 #include "libsodium_api_crypto_auth.h"
 #include "libsodium_api_crypto_auth_hmacsha256.h"
 #include "libsodium_api_crypto_auth_hmacsha512.h"
 #include "libsodium_api_crypto_auth_hmacsha512256.h"
 #include "libsodium_api_crypto_box.h"
+#include "libsodium_api_crypto_box_curve25519xchacha20poly1305.h"
 #include "libsodium_api_crypto_box_curve25519xsalsa20poly1305.h"
+#include "libsodium_api_crypto_core_ed25519.h"
+#include "libsodium_api_crypto_core_hchacha20.h"
 #include "libsodium_api_crypto_core_hsalsa20.h"
+#include "libsodium_api_crypto_core_ristretto255.h"
 #include "libsodium_api_crypto_core_salsa20.h"
 #include "libsodium_api_crypto_core_salsa2012.h"
 #include "libsodium_api_crypto_generichash.h"
@@ -48,13 +53,18 @@
 
 static libsodium_namespace_t libsodium_namespaces[] = {LS_NS(crypto_aead_aes256gcm),
                                                        LS_NS(crypto_aead_chacha20poly1305),
+                                                       LS_NS(crypto_aead_xchacha20poly1305),
                                                        LS_NS(crypto_auth),
                                                        LS_NS(crypto_auth_hmacsha256),
                                                        LS_NS(crypto_auth_hmacsha512),
                                                        LS_NS(crypto_auth_hmacsha512256),
                                                        LS_NS(crypto_box),
+                                                       LS_NS(crypto_box_curve25519xchacha20poly1305),
                                                        LS_NS(crypto_box_curve25519xsalsa20poly1305),
+                                                       LS_NS(crypto_core_ed25519),
+                                                       LS_NS(crypto_core_hchacha20),
                                                        LS_NS(crypto_core_hsalsa20),
+                                                       LS_NS(crypto_core_ristretto255),
                                                        LS_NS(crypto_core_salsa20),
                                                        LS_NS(crypto_core_salsa2012),
                                                        LS_NS(crypto_generichash),

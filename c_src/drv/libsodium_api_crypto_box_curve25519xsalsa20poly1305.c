@@ -11,6 +11,7 @@ static void LS_API_EXEC(crypto_box_curve25519xsalsa20poly1305, noncebytes);
 static void LS_API_EXEC(crypto_box_curve25519xsalsa20poly1305, zerobytes);
 static void LS_API_EXEC(crypto_box_curve25519xsalsa20poly1305, boxzerobytes);
 static void LS_API_EXEC(crypto_box_curve25519xsalsa20poly1305, macbytes);
+static void LS_API_EXEC(crypto_box_curve25519xsalsa20poly1305, messagebytes_max);
 static int LS_API_INIT(crypto_box_curve25519xsalsa20poly1305, crypto_box_curve25519xsalsa20poly1305);
 static void LS_API_EXEC(crypto_box_curve25519xsalsa20poly1305, crypto_box_curve25519xsalsa20poly1305);
 static int LS_API_INIT(crypto_box_curve25519xsalsa20poly1305, open);
@@ -34,6 +35,7 @@ libsodium_function_t libsodium_functions_crypto_box_curve25519xsalsa20poly1305[]
     LS_API_R_ARG0(crypto_box_curve25519xsalsa20poly1305, zerobytes),
     LS_API_R_ARG0(crypto_box_curve25519xsalsa20poly1305, boxzerobytes),
     LS_API_R_ARG0(crypto_box_curve25519xsalsa20poly1305, macbytes),
+    LS_API_R_ARG0(crypto_box_curve25519xsalsa20poly1305, messagebytes_max),
     LS_API_R_ARGV(crypto_box_curve25519xsalsa20poly1305, crypto_box_curve25519xsalsa20poly1305, 4),
     LS_API_R_ARGV(crypto_box_curve25519xsalsa20poly1305, open, 4),
     LS_API_R_ARGV(crypto_box_curve25519xsalsa20poly1305, seed_keypair, 1),
@@ -74,6 +76,10 @@ LS_API_GET_SIZE(crypto_box_curve25519xsalsa20poly1305, boxzerobytes);
 /* crypto_box_curve25519xsalsa20poly1305_macbytes/0 */
 
 LS_API_GET_SIZE(crypto_box_curve25519xsalsa20poly1305, macbytes);
+
+/* crypto_box_curve25519xsalsa20poly1305_messagebytes_max/0 */
+
+LS_API_GET_SIZE(crypto_box_curve25519xsalsa20poly1305, messagebytes_max);
 
 /* crypto_box_curve25519xsalsa20poly1305_crypto_box_curve25519xsalsa20poly1305/4 */
 

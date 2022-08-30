@@ -8,6 +8,7 @@ static void LS_API_EXEC(crypto_box, publickeybytes);
 static void LS_API_EXEC(crypto_box, secretkeybytes);
 static void LS_API_EXEC(crypto_box, noncebytes);
 static void LS_API_EXEC(crypto_box, macbytes);
+static void LS_API_EXEC(crypto_box, messagebytes_max);
 static void LS_API_EXEC(crypto_box, primitive);
 static int LS_API_INIT(crypto_box, seed_keypair);
 static void LS_API_EXEC(crypto_box, seed_keypair);
@@ -52,6 +53,7 @@ libsodium_function_t libsodium_functions_crypto_box[] = {LS_API_R_ARG0(crypto_bo
                                                          LS_API_R_ARG0(crypto_box, secretkeybytes),
                                                          LS_API_R_ARG0(crypto_box, noncebytes),
                                                          LS_API_R_ARG0(crypto_box, macbytes),
+                                                         LS_API_R_ARG0(crypto_box, messagebytes_max),
                                                          LS_API_R_ARG0(crypto_box, primitive),
                                                          LS_API_R_ARGV(crypto_box, seed_keypair, 1),
                                                          LS_API_R_ARG0(crypto_box, keypair),
@@ -95,6 +97,10 @@ LS_API_GET_SIZE(crypto_box, noncebytes);
 /* crypto_box_macbytes/0 */
 
 LS_API_GET_SIZE(crypto_box, macbytes);
+
+/* crypto_box_messagebytes_max/0 */
+
+LS_API_GET_SIZE(crypto_box, messagebytes_max);
 
 /* crypto_box_primitive/0 */
 

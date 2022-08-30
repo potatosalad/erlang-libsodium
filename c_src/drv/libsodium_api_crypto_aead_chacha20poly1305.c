@@ -7,6 +7,7 @@ static void LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_keybytes);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_nsecbytes);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_npubbytes);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_abytes);
+static void LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_messagebytes_max);
 static int LS_API_INIT(crypto_aead_chacha20poly1305, ietf_encrypt);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_encrypt);
 static int LS_API_INIT(crypto_aead_chacha20poly1305, ietf_decrypt);
@@ -15,10 +16,12 @@ static int LS_API_INIT(crypto_aead_chacha20poly1305, ietf_encrypt_detached);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_encrypt_detached);
 static int LS_API_INIT(crypto_aead_chacha20poly1305, ietf_decrypt_detached);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_decrypt_detached);
+static void LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_keygen);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, keybytes);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, nsecbytes);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, npubbytes);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, abytes);
+static void LS_API_EXEC(crypto_aead_chacha20poly1305, messagebytes_max);
 static int LS_API_INIT(crypto_aead_chacha20poly1305, encrypt);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, encrypt);
 static int LS_API_INIT(crypto_aead_chacha20poly1305, decrypt);
@@ -27,24 +30,29 @@ static int LS_API_INIT(crypto_aead_chacha20poly1305, encrypt_detached);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, encrypt_detached);
 static int LS_API_INIT(crypto_aead_chacha20poly1305, decrypt_detached);
 static void LS_API_EXEC(crypto_aead_chacha20poly1305, decrypt_detached);
+static void LS_API_EXEC(crypto_aead_chacha20poly1305, keygen);
 
 libsodium_function_t libsodium_functions_crypto_aead_chacha20poly1305[] = {
     LS_API_R_ARG0(crypto_aead_chacha20poly1305, ietf_keybytes),
     LS_API_R_ARG0(crypto_aead_chacha20poly1305, ietf_nsecbytes),
     LS_API_R_ARG0(crypto_aead_chacha20poly1305, ietf_npubbytes),
     LS_API_R_ARG0(crypto_aead_chacha20poly1305, ietf_abytes),
+    LS_API_R_ARG0(crypto_aead_chacha20poly1305, ietf_messagebytes_max),
     LS_API_R_ARGV(crypto_aead_chacha20poly1305, ietf_encrypt, 5),
     LS_API_R_ARGV(crypto_aead_chacha20poly1305, ietf_decrypt, 5),
     LS_API_R_ARGV(crypto_aead_chacha20poly1305, ietf_encrypt_detached, 5),
     LS_API_R_ARGV(crypto_aead_chacha20poly1305, ietf_decrypt_detached, 6),
+    LS_API_R_ARG0(crypto_aead_chacha20poly1305, ietf_keygen),
     LS_API_R_ARG0(crypto_aead_chacha20poly1305, keybytes),
     LS_API_R_ARG0(crypto_aead_chacha20poly1305, nsecbytes),
     LS_API_R_ARG0(crypto_aead_chacha20poly1305, npubbytes),
+    LS_API_R_ARG0(crypto_aead_chacha20poly1305, messagebytes_max),
     LS_API_R_ARG0(crypto_aead_chacha20poly1305, abytes),
     LS_API_R_ARGV(crypto_aead_chacha20poly1305, encrypt, 5),
     LS_API_R_ARGV(crypto_aead_chacha20poly1305, decrypt, 5),
     LS_API_R_ARGV(crypto_aead_chacha20poly1305, encrypt_detached, 5),
     LS_API_R_ARGV(crypto_aead_chacha20poly1305, decrypt_detached, 6),
+    LS_API_R_ARG0(crypto_aead_chacha20poly1305, keygen),
     {NULL}};
 
 /* crypto_aead_chacha20poly1305_ietf_keybytes/0 */
@@ -62,6 +70,10 @@ LS_API_GET_SIZE(crypto_aead_chacha20poly1305, ietf_npubbytes);
 /* crypto_aead_chacha20poly1305_ietf_abytes/0 */
 
 LS_API_GET_SIZE(crypto_aead_chacha20poly1305, ietf_abytes);
+
+/* crypto_aead_chacha20poly1305_ietf_messagebytes_max/0 */
+
+LS_API_GET_SIZE(crypto_aead_chacha20poly1305, ietf_messagebytes_max);
 
 /* crypto_aead_chacha20poly1305_ietf_encrypt/5 */
 
@@ -751,6 +763,21 @@ LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_decrypt_detached)
     (void)sodium_memzero(m, mbytes);
 }
 
+/* crypto_aead_chacha20poly1305_ietf_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_aead_chacha20poly1305, ietf_keygen)
+{
+    unsigned char k[crypto_aead_chacha20poly1305_ietf_KEYBYTES];
+
+    (void)crypto_aead_chacha20poly1305_ietf_keygen(k);
+
+    ErlDrvTermData spec[] = {
+        LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k), crypto_aead_chacha20poly1305_ietf_KEYBYTES, ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
+}
+
 /* crypto_aead_chacha20poly1305_keybytes/0 */
 
 LS_API_GET_SIZE(crypto_aead_chacha20poly1305, keybytes);
@@ -766,6 +793,10 @@ LS_API_GET_SIZE(crypto_aead_chacha20poly1305, npubbytes);
 /* crypto_aead_chacha20poly1305_abytes/0 */
 
 LS_API_GET_SIZE(crypto_aead_chacha20poly1305, abytes);
+
+/* crypto_aead_chacha20poly1305_messagebytes_max/0 */
+
+LS_API_GET_SIZE(crypto_aead_chacha20poly1305, messagebytes_max);
 
 /* crypto_aead_chacha20poly1305_encrypt/5 */
 
@@ -1451,4 +1482,19 @@ LS_API_EXEC(crypto_aead_chacha20poly1305, decrypt_detached)
                   __LINE__);
 
     (void)sodium_memzero(m, mbytes);
+}
+
+/* crypto_aead_chacha20poly1305_keygen/0 */
+
+static void
+LS_API_EXEC(crypto_aead_chacha20poly1305, keygen)
+{
+    unsigned char k[crypto_aead_chacha20poly1305_KEYBYTES];
+
+    (void)crypto_aead_chacha20poly1305_keygen(k);
+
+    ErlDrvTermData spec[] = {
+        LS_RES_TAG(request), ERL_DRV_BUF2BINARY, (ErlDrvTermData)(k), crypto_aead_chacha20poly1305_KEYBYTES, ERL_DRV_TUPLE, 2};
+
+    LS_RESPOND(request, spec, __FILE__, __LINE__);
 }

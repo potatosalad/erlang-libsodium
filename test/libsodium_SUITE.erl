@@ -28,8 +28,10 @@
 -export([aead_chacha20poly1305_ietf/1]).
 -export([box_check/1]).
 -export([box_seal/1]).
--export([pwhash_key_derivation/1]).
--export([pwhash_password_storage/1]).
+-export([pwhash_argon2i_key_derivation/1]).
+-export([pwhash_argon2i_password_storage/1]).
+-export([pwhash_argon2id_key_derivation/1]).
+-export([pwhash_argon2id_password_storage/1]).
 -export([pwhash_scrypt_key_derivation/1]).
 -export([pwhash_scrypt_password_storage/1]).
 -export([sign/1]).
@@ -63,7 +65,8 @@ all() ->
 		{group, aead_aes256gcm},
 		{group, aead_chacha20poly1305},
 		{group, box},
-		{group, pwhash},
+		{group, pwhash_argon2i},
+		{group, pwhash_argon2id},
 		{group, pwhash_scrypt},
 		{group, sign}
 	].
@@ -83,9 +86,13 @@ groups() ->
 			box_check,
 			box_seal
 		]},
-		{pwhash, [parallel], [
-			pwhash_key_derivation,
-			pwhash_password_storage
+		{pwhash_argon2i, [parallel], [
+			pwhash_argon2i_key_derivation,
+			pwhash_argon2i_password_storage
+		]},
+		{pwhash_argon2id, [parallel], [
+			pwhash_argon2id_key_derivation,
+			pwhash_argon2id_password_storage
 		]},
 		{pwhash_scrypt, [parallel], [
 			pwhash_scrypt_key_derivation,
@@ -112,8 +119,10 @@ init_group(aead_aes256gcm, Config) ->
 	tv_file_hex("aead_aes256gcm.config", Config) ++ Config;
 init_group(aead_chacha20poly1305, Config) ->
 	tv_file("aead_chacha20poly1305.config", Config) ++ Config;
-init_group(pwhash, Config) ->
-	tv_file_hex("pwhash.config", Config) ++ Config;
+init_group(pwhash_argon2i, Config) ->
+	tv_file_hex("pwhash_argon2i.config", Config) ++ Config;
+init_group(pwhash_argon2id, Config) ->
+	tv_file_hex("pwhash_argon2id.config", Config) ++ Config;
 init_group(pwhash_scrypt, Config) ->
 	tv_file_hex("pwhash_scrypt.config", Config) ++ Config;
 init_group(sign, Config) ->
@@ -196,13 +205,21 @@ box_seal(_Config) ->
 	?tv_ok(T3, libsodium_crypto_box, seal_open, [binary:part(C, 0, byte_size(C) - 1), PK, SK], -1),
 	ok.
 
-pwhash_key_derivation(Config) ->
+pwhash_argon2i_key_derivation(Config) ->
 	TV = ?config(tv, Config),
-	pwhash_key_derivation(TV, Config).
+	pwhash_argon2i_key_derivation(TV, Config).
 
-pwhash_password_storage(Config) ->
+pwhash_argon2i_password_storage(Config) ->
 	TV = ?config(tv3, Config),
-	pwhash_password_storage(TV, Config).
+	pwhash_argon2i_password_storage(TV, Config).
+
+pwhash_argon2id_key_derivation(Config) ->
+	TV = ?config(tv, Config),
+	pwhash_argon2id_key_derivation(TV, Config).
+
+pwhash_argon2id_password_storage(Config) ->
+	TV = ?config(tv3, Config),
+	pwhash_argon2id_password_storage(TV, Config).
 
 pwhash_scrypt_key_derivation(Config) ->
 	TV = ?config(tv, Config),
@@ -270,40 +287,59 @@ aead_chacha20poly1305_ietf([], _Config) ->
 	ok.
 
 %% @private
-pwhash_key_derivation([{Passwd, _Passwdlen, Salt, Outlen, Opslimit, Memlimit, Alg, Out} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash, crypto_pwhash, [Outlen, Passwd, Salt, Opslimit, Memlimit, Alg], Out),
-	?tv_ok(T1, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, Opslimit, Memlimit, Alg], Out),
-	pwhash_key_derivation(Vectors, Config);
-pwhash_key_derivation([{Passwd, _Passwdlen, Salt, Outlen} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash, crypto_pwhash, [Outlen, Passwd, Salt, 3, 1 bsl 12, 0], -1),
-	?tv_ok(T1, libsodium_crypto_pwhash, crypto_pwhash, [Outlen, Passwd, Salt, 3, 1, libsodium_crypto_pwhash:alg_default()], -1),
-	?tv_ok(T2, libsodium_crypto_pwhash, crypto_pwhash, [Outlen, Passwd, Salt, 3, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
-	?tv_ok(T3, libsodium_crypto_pwhash, crypto_pwhash, [Outlen, Passwd, Salt, 2, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
-	% ?tv_ok(T4, libsodium_crypto_pwhash, crypto_pwhash, [16#100000000, Passwd, Salt, 3, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
-	?tv_ok(T5, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 3, 1 bsl 12, 0], -1),
-	?tv_ok(T6, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 3, 1, libsodium_crypto_pwhash:alg_default()], -1),
-	?tv_ok(T7, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 3, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
-	?tv_ok(T8, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 2, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
-	% ?tv_ok(T9, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [16#100000000, Passwd, Salt, 3, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
-	pwhash_key_derivation(Vectors, Config);
-pwhash_key_derivation([], _Config) ->
+pwhash_argon2i_key_derivation([{Passwd, _Passwdlen, Salt, Outlen, Opslimit, Memlimit, Alg, Out} | Vectors], Config) ->
+	?tv_ok(T0, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, Opslimit, Memlimit, Alg], Out),
+	pwhash_argon2i_key_derivation(Vectors, Config);
+pwhash_argon2i_key_derivation([{Passwd, _Passwdlen, Salt, Outlen} | Vectors], Config) ->
+	?tv_ok(T0, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 3, 1 bsl 12, 0], -1),
+	?tv_ok(T1, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 3, 1, libsodium_crypto_pwhash:alg_default()], -1),
+	?tv_ok(T2, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 3, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
+	?tv_ok(T3, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 2, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
+	pwhash_argon2i_key_derivation(Vectors, Config);
+pwhash_argon2i_key_derivation([], _Config) ->
 	ok.
 
 %% @private
-pwhash_password_storage([{Passwd, Out, Verified} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash, str_verify, [Out, Passwd], Verified),
-	?tv_ok(T1, libsodium_crypto_pwhash_argon2i, str_verify, [Out, Passwd], Verified),
-	pwhash_password_storage(Vectors, Config);
-pwhash_password_storage([], _Config) ->
+pwhash_argon2i_password_storage([{Passwd, Out, Verified} | Vectors], Config) ->
+	?tv_ok(T0, libsodium_crypto_pwhash_argon2i, str_verify, [Out, Passwd], Verified),
+	pwhash_argon2i_password_storage(Vectors, Config);
+pwhash_argon2i_password_storage([], _Config) ->
 	Passwd = <<"Correct Horse Battery Staple">>,
 	Opslimit = 3,
 	Memlimit = 5000000,
-	T1 = ?tv_not(T0, libsodium_crypto_pwhash, str, [Passwd, Opslimit, Memlimit], -1),
-	T3 = ?tv_not(T2, libsodium_crypto_pwhash, str, [Passwd, Opslimit, Memlimit], T1),
-	T5 = ?tv_not(T4, libsodium_crypto_pwhash_argon2i, str, [Passwd, Opslimit, Memlimit], T3),
-	?tv_ok(T6, libsodium_crypto_pwhash, str_verify, [T1, Passwd], 0),
-	?tv_ok(T7, libsodium_crypto_pwhash, str_verify, [T3, Passwd], 0),
-	?tv_ok(T8, libsodium_crypto_pwhash_argon2i, str_verify, [T5, Passwd], 0),
+	T1 = ?tv_not(T0, libsodium_crypto_pwhash_argon2i, str, [Passwd, Opslimit, Memlimit], -1),
+	T3 = ?tv_not(T2, libsodium_crypto_pwhash_argon2i, str, [Passwd, Opslimit, Memlimit], T1),
+	_T5 = ?tv_not(T4, libsodium_crypto_pwhash_argon2i, str, [Passwd, Opslimit, Memlimit], T3),
+	?tv_ok(T6, libsodium_crypto_pwhash_argon2i, str_verify, [T1, Passwd], 0),
+	?tv_ok(T7, libsodium_crypto_pwhash_argon2i, str_verify, [T3, Passwd], 0),
+	ok.
+
+%% @private
+pwhash_argon2id_key_derivation([{Passwd, _Passwdlen, Salt, Outlen, Opslimit, Memlimit, Alg, Out} | Vectors], Config) ->
+	?tv_ok(T0, libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, [Outlen, Passwd, Salt, Opslimit, Memlimit, Alg], Out),
+	pwhash_argon2id_key_derivation(Vectors, Config);
+pwhash_argon2id_key_derivation([{Passwd, _Passwdlen, Salt, Outlen} | Vectors], Config) ->
+	?tv_ok(T0, libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, [Outlen, Passwd, Salt, 3, 1 bsl 12, 0], -1),
+	?tv_ok(T1, libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, [Outlen, Passwd, Salt, 3, 1, libsodium_crypto_pwhash:alg_default()], -1),
+	?tv_ok(T2, libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, [Outlen, Passwd, Salt, 3, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
+	?tv_ok(T3, libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, [Outlen, Passwd, Salt, 2, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
+	pwhash_argon2id_key_derivation(Vectors, Config);
+pwhash_argon2id_key_derivation([], _Config) ->
+	ok.
+
+%% @private
+pwhash_argon2id_password_storage([{Passwd, Out, Verified} | Vectors], Config) ->
+	?tv_ok(T0, libsodium_crypto_pwhash_argon2id, str_verify, [Out, Passwd], Verified),
+	pwhash_argon2id_password_storage(Vectors, Config);
+pwhash_argon2id_password_storage([], _Config) ->
+	Passwd = <<"Correct Horse Battery Staple">>,
+	Opslimit = 3,
+	Memlimit = 5000000,
+	T1 = ?tv_not(T0, libsodium_crypto_pwhash_argon2id, str, [Passwd, Opslimit, Memlimit], -1),
+	T3 = ?tv_not(T2, libsodium_crypto_pwhash_argon2id, str, [Passwd, Opslimit, Memlimit], T1),
+	_T5 = ?tv_not(T4, libsodium_crypto_pwhash_argon2id, str, [Passwd, Opslimit, Memlimit], T3),
+	?tv_ok(T6, libsodium_crypto_pwhash_argon2id, str_verify, [T1, Passwd], 0),
+	?tv_ok(T7, libsodium_crypto_pwhash_argon2id, str_verify, [T3, Passwd], 0),
 	ok.
 
 %% @private
