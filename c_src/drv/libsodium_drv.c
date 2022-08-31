@@ -8,6 +8,13 @@
 
 #define INIT_ATOM(NAME) libsodium_drv->am_##NAME = driver_mk_atom(#NAME)
 
+static void
+libsodium_drv_misuse_handler(void)
+{
+    erts_fprintf(stderr, "FATAL ERROR: sodium_misuse() called\n");
+    return;
+}
+
 /*
  * Erlang DRV functions
  */
@@ -24,6 +31,9 @@ libsodium_drv_init(void)
     }
 
     (void)erl_drv_mutex_lock(libsodium_mutex);
+
+    (void)sodium_set_misuse_handler(NULL);
+    (void)sodium_set_misuse_handler(libsodium_drv_misuse_handler);
 
     if (sodium_init() == -1) {
         (void)erl_drv_mutex_unlock(libsodium_mutex);

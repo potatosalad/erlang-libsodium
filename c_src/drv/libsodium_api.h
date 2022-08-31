@@ -21,7 +21,7 @@ typedef struct libsodium_namespace {
     ErlDrvTermData am_namespace;
 } libsodium_namespace_t;
 
-// extern int erts_fprintf(FILE *stream, const char *format, ...);
+extern int erts_fprintf(FILE *stream, const char *format, ...);
 
 extern void init_libsodium_api(void);
 extern libsodium_function_t *get_libsodium_api(const char *namespace, const char *function);

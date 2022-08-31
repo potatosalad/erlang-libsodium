@@ -28,6 +28,13 @@
 -export([encrypt_detached/4]).
 -export([decrypt_detached/4]).
 -export([decrypt_detached/5]).
+% -export([beforenm/1]).
+% -export([encrypt_afternm/3]).
+% -export([encrypt_afternm/4]).
+% -export([decrypt_afternm/3]).
+% -export([decrypt_afternm/4]).
+% -export([encrypt_detached_afternm/3]).
+% -export([encrypt_detached_afternm/4]).
 -export([keygen/0]).
 
 %% Internal API
@@ -112,6 +119,49 @@ decrypt_detached(C, MAC, AD, NPub, K)
 		andalso is_binary(NPub)
 		andalso is_binary(K) ->
 	call(decrypt_detached, {<<>>, C, MAC, AD, NPub, K}).
+
+% beforenm(K)
+% 		when is_binary(K) ->
+% 	call(beforenm, {K}).
+
+% encrypt_afternm(M, NPub, Ctx)
+% 		when is_binary(M)
+% 		andalso is_binary(NPub)
+% 		andalso is_binary(Ctx) ->
+% 	encrypt_afternm(M, <<>>, NPub, Ctx).
+
+% encrypt_afternm(M, AD, NPub, Ctx)
+% 		when is_binary(M)
+% 		andalso is_binary(AD)
+% 		andalso is_binary(NPub)
+% 		andalso is_binary(Ctx) ->
+% 	call(encrypt_afternm, {M, AD, <<>>, NPub, Ctx}).
+
+% decrypt_afternm(C, NPub, Ctx)
+% 		when is_binary(C)
+% 		andalso is_binary(NPub)
+% 		andalso is_binary(Ctx) ->
+% 	decrypt_afternm(C, <<>>, NPub, Ctx).
+
+% decrypt_afternm(C, AD, NPub, Ctx)
+% 		when is_binary(C)
+% 		andalso is_binary(AD)
+% 		andalso is_binary(NPub)
+% 		andalso is_binary(Ctx) ->
+% 	call(decrypt_afternm, {<<>>, C, AD, NPub, Ctx}).
+
+% encrypt_detached_afternm(M, NPub, K)
+% 		when is_binary(M)
+% 		andalso is_binary(NPub)
+% 		andalso is_binary(K) ->
+% 	encrypt_detached_afternm(M, <<>>, NPub, K).
+
+% encrypt_detached_afternm(M, AD, NPub, K)
+% 		when is_binary(M)
+% 		andalso is_binary(AD)
+% 		andalso is_binary(NPub)
+% 		andalso is_binary(K) ->
+% 	call(encrypt_detached_afternm, {M, AD, <<>>, NPub, K}).
 
 keygen() ->
 	call(keygen).

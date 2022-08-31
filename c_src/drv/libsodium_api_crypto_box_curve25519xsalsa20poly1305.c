@@ -472,9 +472,6 @@ LS_API_INIT(crypto_box_curve25519xsalsa20poly1305, beforenm)
     return 0;
 }
 
-int crypto_box_curve25519xsalsa20poly1305_beforenm(unsigned char *k, const unsigned char *pk, const unsigned char *sk)
-    __attribute__((warn_unused_result));
-
 static void
 LS_API_EXEC(crypto_box_curve25519xsalsa20poly1305, beforenm)
 {

@@ -141,6 +141,7 @@ init_libsodium_api(void)
     }
 
     (void)init_libsodium_api_randombytes_implementation();
+    (void)init_libsodium_api_utils_base64_variants();
 }
 
 libsodium_function_t *

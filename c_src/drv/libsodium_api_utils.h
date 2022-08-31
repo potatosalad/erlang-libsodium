@@ -8,4 +8,6 @@
 
 extern libsodium_function_t libsodium_functions_utils[];
 
+extern void init_libsodium_api_utils_base64_variants(void);
+
 #endif
