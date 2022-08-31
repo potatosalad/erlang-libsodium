@@ -19,7 +19,7 @@ typedef struct libsodium_request {
     int argc;
     void *argv;
     void (*execute)(struct libsodium_request *);
-    int error;
+    ErlDrvSSizeT error;
     ei_x_buff reply;
 } libsodium_request_t;
 

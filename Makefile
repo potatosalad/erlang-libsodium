@@ -1,6 +1,6 @@
 PROJECT = libsodium
 PROJECT_DESCRIPTION = libsodium Port Driver
-PROJECT_VERSION = 1.0.18
+PROJECT_VERSION = 1.0.18.1
 
 include erlang.mk
 

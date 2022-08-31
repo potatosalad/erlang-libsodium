@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.18.1 (2022-08-31)
+
+* Fixes
+  * Include `Makefile` in hex.pm package so it works correctly with erlang.mk
+
 ## 1.0.18 (2022-08-31)
 
 * Library Support

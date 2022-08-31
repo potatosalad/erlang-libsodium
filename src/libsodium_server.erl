@@ -101,9 +101,9 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc Load port driver
-%% @spec load() -> ok | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
+-spec load() -> ok | {error, any()}.
 load() ->
 	{ok, Drivers} = erl_ddll:loaded_drivers(),
 	case lists:member(?LIBSODIUM_DRIVER_NAME, Drivers) of
@@ -127,9 +127,9 @@ load() ->
 %%--------------------------------------------------------------------
 %% @private
 %% @doc Unload port driver
-%% @spec unload() -> ok | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
+-spec unload() -> ok | {error, any()}.
 unload() ->
 	case erl_ddll:unload_driver(?LIBSODIUM_DRIVER_NAME) of
 		ok ->

@@ -80,7 +80,7 @@ libsodium_request_free(libsodium_request_t *request)
 static void
 libsodium_request_badarg(libsodium_request_t *request)
 {
-    request->error = (int)(ERL_DRV_ERROR_BADARG);
+    request->error = (ErlDrvSSizeT)(ERL_DRV_ERROR_BADARG);
 }
 
 static void
