@@ -13,7 +13,7 @@ Add `libsodium` to your project's dependencies in `mix.exs`
 ```elixir
 defp deps do
   [
-    {:libsodium, "~> 0.0.10"}
+    {:libsodium, "~> 1.0.18"}
   ]
 end
 ```
@@ -22,7 +22,7 @@ Add `libsodium` to your project's dependencies in your `Makefile` for [`erlang.m
 
 ```erlang
 {deps, [
-  {libsodium, ".*", {git, "git://github.com/potatosalad/erlang-libsodium.git", {branch, "master"}}}
+  {libsodium, "1.0.18"}
 ]}.
 ```
 

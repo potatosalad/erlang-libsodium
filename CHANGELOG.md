@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.0.18 (2022-08-31)
+
+* Library Support
+  * Update to [libsodium 1.0.18](https://github.com/jedisct1/libsodium/releases/tag/1.0.18).
+  * Removed (deprecated upstream)
+    * `crypto_core_salsa208`
+    * `crypto_stream_aes128ctr`
+    * `crypto_stream_salsa208`
+  * Added
+    * `crypto_aead_xchacha20poly1305`
+    * `crypto_box_curve25519xchacha20poly1305`
+    * `crypto_core_ed25519`
+    * `crypto_core_hchacha20`
+    * `crypto_core_ristretto255`
+    * `crypto_kdf`
+    * `crypto_kdf_blake2b`
+    * `crypto_kx`
+    * `crypto_pwhash_argon2id`
+    * `crypto_scalarmult_ed25519`
+    * `crypto_scalarmult_ristretto255`
+    * `crypto_secretbox`
+    * `crypto_secretbox_xchacha20poly1305`
+    * `crypto_secretbox_xsalsa20poly1305`
+    * `crypto_secretstream_xchacha20poly1305`
+    * `crypto_shorthash_siphashx24`
+    * `crypto_sign_ed25519ph`
+    * `crypto_stream_xchacha20`
+    * `crypto_verify_16`
+    * `crypto_verify_32`
+    * `crypto_verify_64`
+    * `sodium_base64_encoded_len`
+    * `sodium_base642bin`
+    * `sodium_bin2base64`
+    * `sodium_pad`
+    * `sodium_sub`
+    * `sodium_unpad`
+* Enhancements
+  * Switch from Travis CI to GitHub Actions.
+  * Relicense library under MIT license.
+  * Update version tag to match upstream libsodium library.
+
+* Enhancements
+  * Add detached functions to `libsodium_crypto_aead_aes256gcm`:
+    * `encrypt_detached/3`
+    * `encrypt_detached/4`
+    * `decrypt_detached/4`
+    * `decrypt_detached/5`
+
 ## 0.0.10 (2016-10-14)
 
 * Enhancements
