@@ -1,9 +1,10 @@
 # Changelog
 
-## 1.0.18.1 (2022-08-31)
+## 2.0.0 (2022-08-31)
 
 * Fixes
   * Include `Makefile` in hex.pm package so it works correctly with erlang.mk
+  * Ditching the version tag matching upstream libsodium library since hex.pm requires semantic versioning :-( (which is really a good thing, I'm just whining that I can't break the rules just this once).
 
 ## 1.0.18 (2022-08-31)
 
