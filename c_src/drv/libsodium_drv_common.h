@@ -13,7 +13,10 @@
 #include <stdio.h>
 #include <sodium.h>
 
-extern int erts_fprintf(FILE *, const char *, ...);
+/* OTP 27 removed the internal erts_fprintf ERTS symbol from the exported ABI,
+ * so the driver no longer loads (dlopen: symbol not found '_erts_fprintf').
+ * It is only used for trace output; libc fprintf is signature-compatible. */
+#define erts_fprintf fprintf
 
 // #define TRACE	1
 #ifdef TRACE
