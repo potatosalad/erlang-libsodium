@@ -24,6 +24,7 @@
 #include "crypto_pwhash_scryptsalsa208sha256.h"
 #include "crypto_scrypt.h"
 #include "private/common.h"
+#include "randombytes.h"
 #include "runtime.h"
 #include "utils.h"
 
@@ -150,6 +151,10 @@ escrypt_r(escrypt_local_t *local, const uint8_t *passwd, size_t passwdlen,
     uint32_t       r;
     uint32_t       p;
 
+    if (buf != NULL) {
+        randombytes_buf(buf, buflen);
+    }
+
     src = escrypt_parse_setting(setting, &N_log2, &r, &p);
     if (!src) {
         return NULL;
@@ -166,7 +171,7 @@ escrypt_r(escrypt_local_t *local, const uint8_t *passwd, size_t passwdlen,
     }
     need = prefixlen + saltlen + 1 +
            crypto_pwhash_scryptsalsa208sha256_STRHASHBYTES_ENCODED + 1;
-    if (need > buflen || need < saltlen) {
+    if (buf == NULL || need > buflen || need < saltlen) {
         return NULL;
     }
 #ifdef HAVE_EMMINTRIN_H

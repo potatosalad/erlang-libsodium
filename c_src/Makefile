@@ -103,7 +103,7 @@ LDLIBS += -L"$(ERL_INTERFACE_LIB_DIR)" \
 
 # Dependencies.
 
-LIBSODIUM_VSN ?= 1.0.18
+LIBSODIUM_VSN ?= 1.0.22
 LIBSODIUM_GIT ?= https://github.com/jedisct1/libsodium.git
 LIBSODIUM_SRC_DIR ?= $(C_DEPS_DIR)/libsodium
 LIBSODIUM_INCLUDE_DIR ?= $(LIBSODIUM_SRC_DIR)/src/libsodium/include
@@ -189,7 +189,7 @@ $(LIBSODIUM_CONFIGURE_FILE): $(LIBSODIUM_SRC_DIR)
 	$(verbose) if [ ! -f $(LIBSODIUM_CONFIGURE_FILE) ]; then \
 		(cd $(LIBSODIUM_SRC_DIR) \
 			&& chmod +x $(LIBSODIUM_AUTOGEN_FILE) \
-			&& $(LIBSODIUM_AUTOGEN_FILE)); \
+			&& $(LIBSODIUM_AUTOGEN_FILE) -s); \
 	else \
 		true; \
 	fi

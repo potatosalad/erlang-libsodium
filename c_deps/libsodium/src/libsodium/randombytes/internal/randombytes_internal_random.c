@@ -5,10 +5,12 @@
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdlib.h>
 #include <string.h>
 #if !defined(_MSC_VER) && !defined(__BORLANDC__)
 # include <unistd.h>
+#endif
+#if !defined(__STDC_NO_THREADS__) && defined(HAVE_THREADS_H)
+# include <threads.h>
 #endif
 
 #include <sys/types.h>
@@ -43,10 +45,6 @@
 #endif
 #ifdef BLOCK_ON_DEV_RANDOM
 # include <poll.h>
-#endif
-#ifdef HAVE_RDRAND
-# pragma GCC target("rdrnd")
-# include <immintrin.h>
 #endif
 
 #include "core.h"
@@ -94,11 +92,23 @@ BOOLEAN NTAPI RtlGenRandom(PVOID RandomBuffer, ULONG RandomBufferLength);
 #endif
 
 #ifndef TLS
-# ifdef _WIN32
+# if !defined(CONFIGURED) && !defined(__STDC_NO_THREADS__) && \
+     defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#  define TLS _Thread_local
+# elif defined(_WIN32)
 #  define TLS __declspec(thread)
 # else
 #  define TLS
 # endif
+#endif
+
+#ifdef HAVE_RDRAND
+# ifdef __clang__
+#  pragma clang attribute push(__attribute__((target("rdrnd"))), apply_to = function)
+# elif defined(__GNUC__)
+#  pragma GCC target("rdrnd")
+# endif
+# include <immintrin.h>
 #endif
 
 typedef struct InternalRandomGlobal_ {
@@ -629,3 +639,9 @@ struct randombytes_implementation randombytes_internal_implementation = {
     SODIUM_C99(.buf =) randombytes_internal_random_buf,
     SODIUM_C99(.close =) randombytes_internal_random_close
 };
+
+#ifdef HAVE_RDRAND
+# ifdef __clang__
+#  pragma clang attribute pop
+# endif
+#endif

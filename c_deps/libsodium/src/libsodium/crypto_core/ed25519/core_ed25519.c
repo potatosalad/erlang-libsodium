@@ -70,6 +70,7 @@ crypto_core_ed25519_from_uniform(unsigned char *p, const unsigned char *r)
     return 0;
 }
 
+/* LCOV_EXCL_START */
 int
 crypto_core_ed25519_from_hash(unsigned char *p, const unsigned char *h)
 {
@@ -77,14 +78,15 @@ crypto_core_ed25519_from_hash(unsigned char *p, const unsigned char *h)
 
     return 0;
 }
+/* LCOV_EXCL_STOP */
 
 void
 crypto_core_ed25519_random(unsigned char *p)
 {
-    unsigned char h[crypto_core_ed25519_HASHBYTES];
+    unsigned char h[crypto_core_ed25519_UNIFORMBYTES];
 
     randombytes_buf(h, sizeof h);
-    (void) crypto_core_ed25519_from_hash(p, h);
+    (void) crypto_core_ed25519_from_uniform(p, h);
 }
 
 void
