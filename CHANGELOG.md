@@ -2,16 +2,44 @@
 
 ## Unreleased
 
+* Breaking changes
+  * Requires Erlang/OTP 27 or later (module documentation uses `-moduledoc`/`-doc`); CI covers OTP 28 and 29.
+  * The port driver, `libsodium_server`, and `include/libsodium.hrl` are gone. `libsodium:call/2,3` remains as a
+    deprecated shim over `libsodium_nif`; `libsodium:call/4`, `open/0`, and `close/1` are removed, as are the
+    internal `call/1,2` exports of each namespace module.
+  * Arguments that are not binaries or integers now raise `badarg` instead of `function_clause`.
+  * The `libsodium` application no longer depends on `crypto`, `asn1`, or `public_key`.
 * Enhancements
-  * Generate the native and Erlang sources from YAML definitions under `codegen/` with `just codegen`
-    (or `just docker-codegen`), mirroring `libdecaf`: generated files are formatted and carry a content signature.
-  * Replace the port driver with a NIF (`libsodium_nif`). Work over 64 KiB moves to a dirty CPU scheduler, and
-    streaming updates yield whenever their timeslice is exhausted.
+  * Generate the native and Erlang sources, the test suite, `ex_doc.config`, and `README.md` from YAML definitions
+    under `codegen/` with `just codegen` (or `just docker-codegen`), mirroring `libdecaf`: generated files are
+    formatted and carry a content signature, and README examples run against the built library.
+  * Replace the port driver with a NIF (`libsodium_nif`). Calls over 64 KiB of input or output move to a dirty CPU
+    scheduler, password hashing always runs on one, and streaming `update/2` functions yield whenever their
+    timeslice is exhausted.
+  * Every module has module and function documentation, specs, and multiline exports.
   * Modernize `c_src/Makefile`: build libsodium out of tree into `c_deps/libsodium-build`, track header
     dependencies, and add `format`, `lint-format`, and sanitizer (`SANITIZE=1`) support.
+  * New functions:
+    * `libsodium_crypto_box_curve25519xchacha20poly1305:seal/2`, `seal_open/3`, and `sealbytes/0`
+    * `libsodium_crypto_onetimeauth_poly1305:statebytes/0`
+    * `libsodium_randombytes:buf_deterministic/2`
+    * `libsodium_runtime:has_armcrypto/0`
+    * `libsodium_utils:sub/2` (implemented by the port driver but never exported), `memcmp/2`, `ip2bin/1`, and
+      `bin2ip/1`
+    * `libsodium_version:library_minimal/0`
+  * HMAC `init/1` functions accept keys of any length, as libsodium does.
 * Fixes
   * `libsodium_crypto_aead_aes256gcm:beforenm/1` and the `_afternm` functions are available again: states are
-    now copied into properly aligned memory instead of crashing the VM.
+    copied into properly aligned memory instead of crashing the VM.
+  * `libsodium_crypto_sign_ed25519:init/0`, `update/2`, `final_create/2`, and `final_verify/3` now work; the port
+    driver never implemented them.
+  * The NaCl-style `libsodium_crypto_secretbox:crypto_secretbox/3` and `open/3` (and their xsalsa20poly1305
+    equivalents) returned uninitialized memory and overflowed a stack buffer; they now follow NaCl's padded
+    format exactly.
+  * Opening a ciphertext shorter than the authentication tag (`open_easy` for boxes and secret boxes) returns `-1`
+    instead of overflowing the stack.
+  * Outputs are allocated as binaries instead of stack arrays sized by the input, so large messages can no longer
+    overflow the stack, and every output buffer is wiped before release. Several port driver memory leaks are gone.
   * libsodium is no longer configured with `--enable-opt`, which tuned the build for the compiling machine's CPU.
 
 ## 2.0.0 (2022-08-31)
