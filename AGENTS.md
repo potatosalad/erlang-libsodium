@@ -1,0 +1,13 @@
+# Maintenance
+
+- APIs: `src/`; native components: `c_src/nif/`; tests: `test/`. CI targets OTP 28/29.
+- Generated files: edit `codegen/` inputs (`config.yaml`, `namespaces/*.yaml`, templates), run `just codegen`, commit inputs and outputs. See `codegen/README.md`.
+- Hand-written sources: `c_src/nif/libsodium_nif.h`, `c_src/nif/core/`, `src/libsodium_app.erl`, `src/libsodium_sup.erl`, `test/libsodium_SUITE.erl`, `test/libsodium_ct.erl`.
+- Python dependencies: edit `codegen/pyproject.toml`, run `just lock`, include `poetry.lock` and `requirements.txt`.
+- Run `gmake format`, `gmake tests`, `gmake lint`, and `gmake docs`; generator checks: `cd codegen && poetry run pytest`.
+- Erlang: multiline exports, named specs, module docs and metadata. Keep generated functions sorted.
+- Preserve the public API: function names, arities, argument order, defaults, and integer failure results (`-1`).
+- Use `sodium_memzero` for sensitive memory; states are copied into aligned locals. Validate with published vectors.
+- Vendored libsodium is pinned in `c_src/Makefile` (`LIBSODIUM_VSN`); include native sources in package checks.
+- Release version: `Makefile` and `src/libsodium.app.src`; update README and changelog together. Check `rebar3 hex build` contents.
+- Make incremental signed commits (`git commit -S`).
