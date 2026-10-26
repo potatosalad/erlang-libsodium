@@ -4,11 +4,14 @@
 {warnings_as_errors, true}.
 {extras, [
     <<"README.md">>,
+    <<"guides/migrating-to-3.0.md">>,
+    <<"guides/development.md">>,
     <<"CHANGELOG.md">>,
     <<"LICENSE.md">>
 ]}.
 {source_url, <<"https://github.com/potatosalad/erlang-libsodium">>}.
-{source_ref, <<"main">>}.
+{source_ref, <<"~J< ctx.version >.">>}.
+{source_url_pattern, <<"https://github.com/potatosalad/erlang-libsodium/blob/~J< ctx.version >./%{path}#L%{line}">>}.
 {groups_for_modules, [
     {<<"Application">>, [libsodium]},
 ~J{ for group, namespaces in ctx.groups }.

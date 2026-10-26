@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 3.0.0 (2026-10-26)
+
+See the [migration guide](guides/migrating-to-3.0.md) for upgrading from 2.x.
+
 
 * Breaking changes
   * Requires Erlang/OTP 27 or later (module documentation uses `-moduledoc`/`-doc`); CI covers OTP 28 and 29.
@@ -24,6 +27,10 @@
   * Every module has module and function documentation, specs, and multiline exports. Specs use exact binary types
     for fixed-size keys, nonces, tags, and signatures (such as `libsodium_crypto_aead_aes256gcm:k()`, which is
     `<<_:256>>`), integer ranges for bounded arguments, and literal results for fixed constants.
+  * `just sanitizers` builds libsodium and the NIF with AddressSanitizer and UndefinedBehaviorSanitizer in Docker
+    and runs libsodium's tests, the Common Test suites, and a resource cleanup stress test against an ASan
+    emulator.
+  * Migration and development guides under `guides/`, included in the documentation.
   * Benchee benchmarks under `bench/` (`just bench`) compare libsodium's implementations with each other and with
     OTP `crypto` where it has an equivalent, after checking that both produce identical results.
   * Modernize `c_src/Makefile`: build libsodium out of tree into `c_deps/libsodium-build`, track header

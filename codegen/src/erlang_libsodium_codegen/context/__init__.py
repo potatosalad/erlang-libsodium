@@ -1,5 +1,6 @@
 """Template context for libsodium code generation."""
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from functools import cached_property
@@ -62,6 +63,20 @@ class Context:
     @property
     def test_cases(self) -> list[str]:
         return sorted(name for _, cases in self.test_groups for name, _ in cases)
+
+    @cached_property
+    def version(self) -> str:
+        """The release version, from `PROJECT_VERSION` in the Makefile."""
+        makefile = Path(self._output_path, "Makefile").read_text(encoding="utf-8")
+        match = re.search(r"^PROJECT_VERSION\s*=\s*(\S+)", makefile, re.MULTILINE)
+        if match is None:
+            raise ValueError("PROJECT_VERSION not found in the Makefile")
+        return match.group(1)
+
+    @property
+    def version_requirement(self) -> str:
+        major, minor, *_ = self.version.split(".")
+        return f"~> {major}.{minor}"
 
     @property
     def dirty_threshold(self) -> int:

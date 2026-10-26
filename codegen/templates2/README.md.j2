@@ -19,7 +19,8 @@ Work that processes more than ~J< ctx.dirty_threshold // 1024 >. KiB runs on a d
 password hashing always does, and streaming updates (`update/2` on hash, MAC, and
 signature states) yield whenever their timeslice is exhausted.
 
-[API reference](https://hexdocs.pm/libsodium) · [Changelog](CHANGELOG.md)
+[API reference](https://hexdocs.pm/libsodium) · [Migrating to 3.0](guides/migrating-to-3.0.md) ·
+[Development](guides/development.md) · [Changelog](CHANGELOG.md)
 
 ## Installation
 
@@ -28,7 +29,7 @@ Add `libsodium` to your project's dependencies in `mix.exs`:
 ```elixir
 defp deps do
   [
-    {:libsodium, "~> 2.0"}
+    {:libsodium, "~J< ctx.version_requirement >."}
   ]
 end
 ```
@@ -37,7 +38,7 @@ Or in `rebar.config`:
 
 ```erlang-config
 {deps, [
-    {libsodium, "~> 2.0"}
+    {libsodium, "~J< ctx.version_requirement >."}
 ]}.
 ```
 

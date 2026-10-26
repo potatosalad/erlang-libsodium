@@ -1,9 +1,9 @@
 PROJECT = libsodium
 PROJECT_DESCRIPTION = libsodium NIF for Erlang and Elixir
-PROJECT_VERSION = 2.0.0
+PROJECT_VERSION = 3.0.0
 
 HEX_TARBALL_FILES = Makefile erlang.mk rebar.config rebar.lock ex_doc.config README.md CHANGELOG.md LICENSE.md \
-	$(shell git ls-files c_src c_deps/libsodium src)
+	$(shell git ls-files c_src c_deps/libsodium src guides)
 
 include erlang.mk
 
