@@ -232,13 +232,14 @@ test-build:: $(C_SRC_ENV) $(C_SRC_OUTPUT_FILE)
 $(C_DEPS_DIR):
 	$(verbose) mkdir -p $(C_DEPS_DIR)
 
+# The vendored sources are a git checkout without the generated configure
+# script (Hex packages include it); generate it with autotools when missing.
 $(LIBSODIUM_CONFIGURE_FILE): | $(C_DEPS_DIR)
-	$(verbose) if [ ! -f $(LIBSODIUM_CONFIGURE_FILE) ]; then \
+	$(verbose) if [ ! -f $(LIBSODIUM_SRC_DIR)/autogen.sh ]; then \
 		git clone -n $(LIBSODIUM_GIT) $(LIBSODIUM_SRC_DIR) && \
-		(cd $(LIBSODIUM_SRC_DIR) && git checkout -q $(LIBSODIUM_VSN) && ./autogen.sh -s); \
-	else \
-		true; \
+		(cd $(LIBSODIUM_SRC_DIR) && git checkout -q $(LIBSODIUM_VSN)); \
 	fi
+	$(dep_verbose) cd $(LIBSODIUM_SRC_DIR) && ./autogen.sh -s >/dev/null
 
 # Configure out of tree so the vendored sources stay pristine. The build is
 # portable: libsodium selects optimized implementations at runtime.

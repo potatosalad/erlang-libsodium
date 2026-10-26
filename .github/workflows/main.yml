@@ -28,6 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Install autotools
+        # The vendored libsodium is a git checkout; its configure script is generated.
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends autoconf automake libtool
+
       - name: Set up Erlang and Rebar3
         id: beam
         uses: erlef/setup-beam@v1
@@ -114,6 +118,10 @@ jobs:
         working-directory: codegen
     steps:
       - uses: actions/checkout@v7
+
+      - name: Install autotools
+        # The vendored libsodium is a git checkout; its configure script is generated.
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends autoconf automake libtool
 
       - name: Set up Erlang and Rebar3
         uses: erlef/setup-beam@v1

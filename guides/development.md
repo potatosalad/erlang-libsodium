@@ -37,7 +37,11 @@ the lint targets, builds ExDoc, and checks the Hex package. A separate job check
 Python formatting, the generator tests, and that `README.md` is current.
 
 The upstream C source is vendored under `c_deps/libsodium` and pinned in
-`c_src/Makefile` (`LIBSODIUM_VSN`). If removed, it is cloned at that tag.
+`c_src/Makefile` (`LIBSODIUM_VSN`). If removed, it is cloned at that tag. The
+vendored copy is a git checkout without libsodium's generated `configure`
+script, so building from this repository also needs autoconf, automake, and
+libtool; the first build runs `autogen.sh`. Hex packages include the generated
+script, so their users need only a C compiler and `make`.
 
 ## Code generation
 
