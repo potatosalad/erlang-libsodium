@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+* Fixes
+  * Building from a git checkout no longer downloads `config.guess` and `config.sub` from GNU Savannah while
+    generating libsodium's `configure` script; it uses the copies installed with autotools, so the build works
+    offline. Hex packages, which include the generated script, were not affected.
+
 ## 3.0.0 (2026-10-26)
 
 See the [migration guide](guides/migrating-to-3.0.md) for upgrading from 2.x.

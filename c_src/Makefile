@@ -234,12 +234,14 @@ $(C_DEPS_DIR):
 
 # The vendored sources are a git checkout without the generated configure
 # script (Hex packages include it); generate it with autotools when missing.
+# `-b` keeps autotools' own config.guess/config.sub instead of downloading the
+# latest copies from GNU Savannah, which is flaky and unpinned.
 $(LIBSODIUM_CONFIGURE_FILE): | $(C_DEPS_DIR)
 	$(verbose) if [ ! -f $(LIBSODIUM_SRC_DIR)/autogen.sh ]; then \
 		git clone -n $(LIBSODIUM_GIT) $(LIBSODIUM_SRC_DIR) && \
 		(cd $(LIBSODIUM_SRC_DIR) && git checkout -q $(LIBSODIUM_VSN)); \
 	fi
-	$(dep_verbose) cd $(LIBSODIUM_SRC_DIR) && ./autogen.sh -s >/dev/null
+	$(dep_verbose) cd $(LIBSODIUM_SRC_DIR) && ./autogen.sh -s -b >/dev/null
 
 # Configure out of tree so the vendored sources stay pristine. The build is
 # portable: libsodium selects optimized implementations at runtime.
