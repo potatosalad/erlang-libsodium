@@ -49,3 +49,20 @@ bench script="all":
     else
         elixir "bench/{{script}}.exs"
     fi
+
+[group('test')]
+sanitizers: sanitizers-docker
+
+[group('test')]
+[linux]
+sanitizers-native:
+    bash "{{justfile_directory()}}/justfiles/sanitizers/run.sh" "{{justfile_directory()}}"
+
+[group('test')]
+sanitizers-docker: sanitizers-docker-build
+    mkdir -p "{{justfile_directory()}}/logs/sanitizers"
+    docker run --rm --volume "{{justfile_directory()}}/logs/sanitizers:/project/logs/sanitizers" --env SANITIZERS_CT_SUITES --env SANITIZERS_STRESS_ITERATIONS --env SANITIZERS_JOBS --env SANITIZERS_COLOR --env SANITIZERS_UPSTREAM_TESTS erlang-libsodium-sanitizers
+
+[group('docker')]
+sanitizers-docker-build:
+    docker build --file justfiles/sanitizers/Dockerfile --tag erlang-libsodium-sanitizers .
