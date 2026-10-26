@@ -1,0 +1,147 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_core_keccak1600:
+  title: Keccak-f[1600] permutation
+  doc: |
+    The Keccak-f[1600] permutation underlying SHA-3, SHAKE, and TurboSHAKE.
+    This is a low-level primitive for building sponge and duplex
+    constructions; prefer `m:libsodium_crypto_xof_shake128`,
+    `m:libsodium_crypto_xof_turboshake128`, or their 256-bit variants for
+    hashing.
+
+    The permutation acts on a 200-byte (1600-bit) state held in an opaque
+    `t:state/0`. `init/0` returns the all-zero state, `xor_bytes/3` XORs
+    bytes into it at an offset, `extract_bytes/3` reads bytes from it,
+    `permute_24/1` applies the full 24-round Keccak-f[1600], and
+    `permute_12/1` applies the 12-round Keccak-p[1600,12] used by
+    TurboSHAKE. Offsets and lengths must satisfy `Offset + Length =< 200`.
+
+    States are immutable values: every operation returns a new state and
+    leaves its argument unchanged.
+  example: |
+    State0 = libsodium_crypto_core_keccak1600:init(),
+    State1 = libsodium_crypto_core_keccak1600:xor_bytes(State0, <<"abc", 16#1F>>, 0),
+    State2 = libsodium_crypto_core_keccak1600:xor_bytes(State1, <<16#80>>, 167),
+    State3 = libsodium_crypto_core_keccak1600:permute_24(State2),
+    Out = libsodium_crypto_core_keccak1600:extract_bytes(State3, 0, 32),
+    Out = crypto:hash_xof(shake128, <<"abc">>, 256).
+  see_also: [libsodium_crypto_xof_shake128, libsodium_crypto_xof_shake256, libsodium_crypto_xof_turboshake128, libsodium_crypto_xof_turboshake256]
+  constants:
+    - name: statebytes
+      value: 224
+  functions:
+    - name: init
+      doc: Return the all-zero permutation state.
+      outputs:
+        - {type: state, name: state, c_type: crypto_core_keccak1600_state}
+      rc_type: void
+      check: none
+      returns: state
+    - name: xor_bytes
+      doc: |
+        XOR `Bytes` into `State` starting at byte `Offset` and return the
+        new state. `Offset + byte_size(Bytes)` must not exceed 200.
+      args:
+        - {type: state, name: state, c_type: crypto_core_keccak1600_state}
+        - {type: binary, name: bytes, len: length, len_type: size_t, work: false}
+        - {type: uint, name: offset, c_type: size_t}
+      prelude: |
+        if (offset > 200 || length > 200 - offset) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      call: crypto_core_keccak1600_xor_bytes(&state, bytes, offset, length)
+      rc_type: void
+      check: none
+      returns: state
+    - name: extract_bytes
+      doc: |
+        Return `Length` bytes of `State` starting at byte `Offset`.
+        `Offset + Length` must not exceed 200.
+      args:
+        - {type: state, name: state, c_type: crypto_core_keccak1600_state}
+        - {type: uint, name: offset, c_type: size_t}
+        - {type: uint, name: length, c_type: size_t}
+      prelude: |
+        if (offset > 200 || length > 200 - offset) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      outputs:
+        - {name: out, size: length}
+      call: crypto_core_keccak1600_extract_bytes(&state, out, offset, length)
+      rc_type: void
+      check: none
+      returns: out
+    - name: permute_24
+      doc: Apply the 24-round Keccak-f[1600] permutation to `State` and return the new state.
+      args:
+        - {type: state, name: state, c_type: crypto_core_keccak1600_state}
+      rc_type: void
+      check: none
+      returns: state
+    - name: permute_12
+      doc: |
+        Apply the 12-round Keccak-p[1600,12] permutation used by TurboSHAKE
+        to `State` and return the new state.
+      args:
+        - {type: state, name: state, c_type: crypto_core_keccak1600_state}
+      rc_type: void
+      check: none
+      returns: state
+  tests:
+    - name: known_answer
+      code: |
+        Mod = libsodium_crypto_core_keccak1600,
+        Zero = Mod:init(),
+        <<0:1600>> = Mod:extract_bytes(Zero, 0, 200),
+        F24 = binary:decode_hex(<<"e7dde140798f25f18a47c033f9ccd584eea95aa61e2698d54d49806f304715bd57d05362054e288bd46f8e7f2da497ffc44746a4a0e5fe90762e19d60cda5b8c9c05191bf7a630ad64fc8fd0b75a933035d617233fa95aeb0321710d26e6a6a95f55cfdb167ca58126c84703cd31b8439f56a5111a2ff20161aed9215a63e505f270c98cf2febe641166c47b95703661cb0ed04f555a7cb8c832cf1c8ae83e8c14263aae22790c94e409c5a224f94118c26504e72635f5163ba1307fe944f67549a2ec5c7bfff1ea">>),
+        F24 = Mod:extract_bytes(Mod:permute_24(Zero), 0, 200),
+        P12 = binary:decode_hex(<<"1786a7b938545e8e1ed059f2506acdd9351fa952c6e7b887c5e0e4cd67e09310455ad9f290ab33b0451adda8722fa7e09c2f6714aa8037c51d075100f547dd3ecc8a170c311da3b3a0aa5792a586b5799bf9b1b33d7c4abc93678ae66340876866250e2e33036c5cda30f0b90212aa9c9f7acf2b789a3b5f2379ae61e0c136e5ec873cb718b6e96dc28a9170f1d1be2ab724edda53bdab6a5ae12e2c6a41c1bfaf5209b936e0cfc6d76070dc17365045e47a9fc2b21156627a64302cdb7136d41ca02c22760dfdcf">>),
+        P12 = Mod:extract_bytes(Mod:permute_12(Zero), 0, 200),
+        <<0:1600>> = Mod:extract_bytes(Zero, 0, 200).
+    - name: sponge_matches_shake256
+      code: |
+        Mod = libsodium_crypto_core_keccak1600,
+        Rate = 136,
+        In = binary:copy(<<"keccak">>, 33),
+        Padded0 = <<In/binary, 16#1F, 0:((2 * Rate - byte_size(In) - 1) * 8)>>,
+        <<Head:(2 * Rate - 1)/binary, Last>> = Padded0,
+        Padded = <<Head/binary, (Last bor 16#80)>>,
+        <<Block1:Rate/binary, Block2:Rate/binary>> = Padded,
+        S1 = Mod:permute_24(Mod:xor_bytes(Mod:init(), Block1, 0)),
+        S2 = Mod:permute_24(Mod:xor_bytes(S1, Block2, 0)),
+        Out1 = Mod:extract_bytes(S2, 0, Rate),
+        Out2 = Mod:extract_bytes(Mod:permute_24(S2), 0, 64),
+        Expected = crypto:hash_xof(shake256, In, (Rate + 64) * 8),
+        Expected = <<Out1/binary, Out2/binary>>.
+    - name: xor_extract_round_trip
+      code: |
+        Mod = libsodium_crypto_core_keccak1600,
+        Zero = Mod:init(),
+        true = is_reference(Zero),
+        Data = <<"0123456789">>,
+        S1 = Mod:xor_bytes(Zero, Data, 5),
+        Data = Mod:extract_bytes(S1, 5, 10),
+        <<0:40, Data:10/binary, 0:1480>> = Mod:extract_bytes(S1, 0, 200),
+        S2 = Mod:xor_bytes(S1, Data, 5),
+        <<0:1600>> = Mod:extract_bytes(S2, 0, 200),
+        <<0:1600>> = Mod:extract_bytes(Zero, 0, 200),
+        Tail = <<16#AA, 16#55>>,
+        Tail = Mod:extract_bytes(Mod:xor_bytes(Zero, Tail, 198), 198, 2),
+        <<>> = Mod:extract_bytes(Zero, 200, 0),
+        Same = Mod:xor_bytes(Zero, <<>>, 200),
+        <<0:1600>> = Mod:extract_bytes(Same, 0, 200).
+    - name: badarg
+      code: |
+        Mod = libsodium_crypto_core_keccak1600,
+        Zero = Mod:init(),
+        badarg = try Mod:xor_bytes(Zero, <<1, 2>>, 199) catch error:badarg -> badarg end,
+        badarg = try Mod:xor_bytes(Zero, <<>>, 201) catch error:badarg -> badarg end,
+        badarg = try Mod:xor_bytes(Zero, <<0:1608>>, 0) catch error:badarg -> badarg end,
+        badarg = try Mod:xor_bytes(Zero, <<1>>, -1) catch error:badarg -> badarg end,
+        badarg = try Mod:extract_bytes(Zero, 0, 201) catch error:badarg -> badarg end,
+        badarg = try Mod:extract_bytes(Zero, 200, 1) catch error:badarg -> badarg end,
+        badarg = try Mod:extract_bytes(Zero, 201, 0) catch error:badarg -> badarg end,
+        badarg = try Mod:extract_bytes(Zero, 0, 18446744073709551615) catch error:badarg -> badarg end,
+        badarg = try Mod:permute_24(<<0:1600>>) catch error:badarg -> badarg end,
+        badarg = try Mod:permute_12(not_a_state) catch error:badarg -> badarg end.

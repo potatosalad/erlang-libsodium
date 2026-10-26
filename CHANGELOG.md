@@ -24,6 +24,16 @@
   * Every module has module and function documentation, specs, and multiline exports.
   * Modernize `c_src/Makefile`: build libsodium out of tree into `c_deps/libsodium-build`, track header
     dependencies, and add `format`, `lint-format`, and sanitizer (`SANITIZE=1`) support.
+  * New namespaces for algorithms added to libsodium since 1.0.18:
+    * AEGIS authenticated encryption: `libsodium_crypto_aead_aegis128l` and `libsodium_crypto_aead_aegis256`
+    * HKDF: `libsodium_crypto_kdf_hkdf_sha256` and `libsodium_crypto_kdf_hkdf_sha512`
+    * SHA-3: `libsodium_crypto_hash_sha3256` and `libsodium_crypto_hash_sha3512`
+    * Extendable-output functions: `libsodium_crypto_xof_shake128`, `libsodium_crypto_xof_shake256`,
+      `libsodium_crypto_xof_turboshake128`, and `libsodium_crypto_xof_turboshake256`
+    * Post-quantum key encapsulation: `libsodium_crypto_kem`, `libsodium_crypto_kem_mlkem768`, and
+      `libsodium_crypto_kem_xwing`
+    * IP address encryption: `libsodium_crypto_ipcrypt`
+    * The Keccak-f[1600] permutation: `libsodium_crypto_core_keccak1600`
   * New functions:
     * `libsodium_crypto_box_curve25519xchacha20poly1305:seal/2`, `seal_open/3`, and `sealbytes/0`
     * `libsodium_crypto_onetimeauth_poly1305:statebytes/0`

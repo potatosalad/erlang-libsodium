@@ -83,6 +83,17 @@ Sealed = libsodium_crypto_box:seal(<<"anonymous">>, BobPK),
 <<"anonymous">> = libsodium_crypto_box:seal_open(Sealed, BobPK, BobSK).
 ```
 
+### Post-quantum key encapsulation
+
+`libsodium_crypto_kem` uses the `~J< erlang("libsodium_crypto_kem:primitive()") >.` primitive (X-Wing), a hybrid of
+ML-KEM-768 and X25519 that stays secure if either one is broken.
+
+```erlang
+{PK, SK} = libsodium_crypto_kem:keypair(),
+{Ciphertext, SharedSecret} = libsodium_crypto_kem:enc(PK),
+SharedSecret = libsodium_crypto_kem:dec(Ciphertext, SK).
+```
+
 ### Signatures
 
 ```erlang
@@ -103,6 +114,18 @@ State1 = libsodium_crypto_generichash:update(State0, <<"a">>),
 State2 = libsodium_crypto_generichash:update(State1, <<"bc">>),
 Digest = libsodium_crypto_generichash:final(State2),
 Digest = libsodium_crypto_generichash:crypto_generichash(<<"abc">>).
+```
+
+### Extendable output
+
+```erlang
+<<"~J< erlang("libsodium_crypto_xof_shake256:crypto_xof_shake256(16, <<\"abc\">>)", "hex") >.">> =
+    binary:encode_hex(libsodium_crypto_xof_shake256:crypto_xof_shake256(16, <<"abc">>)),
+State0 = libsodium_crypto_xof_shake256:update(libsodium_crypto_xof_shake256:init(), <<"abc">>),
+{State1, First} = libsodium_crypto_xof_shake256:squeeze(State0, 8),
+{_State2, Second} = libsodium_crypto_xof_shake256:squeeze(State1, 8),
+Output = libsodium_crypto_xof_shake256:crypto_xof_shake256(16, <<"abc">>),
+Output = <<First/binary, Second/binary>>.
 ```
 
 ### Password hashing

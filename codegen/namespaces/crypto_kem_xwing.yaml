@@ -1,0 +1,133 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_kem_xwing:
+  title: X-Wing key encapsulation
+  doc: |
+    Post-quantum hybrid key encapsulation with X-Wing, which combines
+    ML-KEM-768 and X25519 so that the shared secret stays secure as long as
+    either component does. It is the primitive behind `m:libsodium_crypto_kem`,
+    the recommended default.
+
+    `enc/1` encapsulates a `sharedsecretbytes/0` byte shared secret `SS` to a
+    `publickeybytes/0` byte public key `PK`, producing a `ciphertextbytes/0`
+    byte ciphertext `CT`; `dec/2` recovers `SS` from `CT` with the
+    `secretkeybytes/0` byte secret key `SK`, which is itself the key
+    generation seed.
+
+    The `seedbytes/0` byte key generation seed and the 64-byte encapsulation
+    seed of `enc_deterministic/2` must be secret and uniformly random; they
+    exist for known-answer tests and deterministic derivation.
+  example: |
+    {PK, SK} = libsodium_crypto_kem_xwing:keypair(),
+    {CT, SS} = libsodium_crypto_kem_xwing:enc(PK),
+    SS = libsodium_crypto_kem_xwing:dec(CT, SK).
+  constants:
+    - name: publickeybytes
+      value: 1216
+    - name: secretkeybytes
+      value: 32
+    - name: ciphertextbytes
+      value: 1120
+    - name: sharedsecretbytes
+      value: 32
+    - name: seedbytes
+      value: 32
+  functions:
+    - name: seed_keypair
+      doc: |
+        Deterministically derive a key pair from the `seedbytes/0` byte `Seed`,
+        which must be secret and uniformly random. Returns `{PK, SK}`.
+      args:
+        - {type: fixed, name: seed, size: crypto_kem_xwing_SEEDBYTES}
+      outputs:
+        - {name: pk, size: crypto_kem_xwing_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_kem_xwing_SECRETKEYBYTES}
+      returns: [pk, sk]
+      erlang:
+        - params: [Seed]
+    - name: keypair
+      doc: Generate a random key pair. Returns `{PK, SK}`.
+      outputs:
+        - {name: pk, size: crypto_kem_xwing_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_kem_xwing_SECRETKEYBYTES}
+      returns: [pk, sk]
+    - name: enc
+      doc: |
+        Encapsulate a fresh random shared secret to the public key `PK`.
+        Returns `{CT, SS}`, or `-1` when `PK` is invalid.
+      args:
+        - {type: fixed, name: pk, size: crypto_kem_xwing_PUBLICKEYBYTES}
+      outputs:
+        - {name: ct, size: crypto_kem_xwing_CIPHERTEXTBYTES}
+        - {name: ss, size: crypto_kem_xwing_SHAREDSECRETBYTES}
+      returns: [ct, ss]
+      erlang:
+        - params: [PK]
+    - name: enc_deterministic
+      doc: |
+        Encapsulate to the public key `PK` using the 64-byte `Seed` (the
+        ML-KEM-768 encapsulation seed followed by the ephemeral X25519 secret
+        key) instead of fresh randomness. `Seed` must be secret, uniformly
+        random, and never reused. Returns `{CT, SS}`, or `-1` when `PK` is
+        invalid.
+      args:
+        - {type: fixed, name: pk, size: crypto_kem_xwing_PUBLICKEYBYTES}
+        # The header declares `seed[64]`; libsodium has no macro for it.
+        - {type: fixed, name: seed, size: "64"}
+      outputs:
+        - {name: ct, size: crypto_kem_xwing_CIPHERTEXTBYTES}
+        - {name: ss, size: crypto_kem_xwing_SHAREDSECRETBYTES}
+      returns: [ct, ss]
+      erlang:
+        - params: [PK, Seed]
+    - name: dec
+      doc: |
+        Decapsulate the ciphertext `CT` with the secret key `SK` and return the
+        shared secret `SS`.
+
+        A tampered or mismatched `CT` does not fail: implicit rejection returns
+        a pseudorandom secret unrelated to the sender's, so the mismatch only
+        surfaces when the secrets are used. Returns `-1` only when the X25519
+        part of `CT` is a low-order point.
+      args:
+        - {type: fixed, name: ct, size: crypto_kem_xwing_CIPHERTEXTBYTES}
+        - {type: fixed, name: sk, size: crypto_kem_xwing_SECRETKEYBYTES}
+      outputs:
+        - {name: ss, size: crypto_kem_xwing_SHAREDSECRETBYTES}
+      returns: ss
+      erlang:
+        - params: [CT, SK]
+  tests:
+    - name: known_answer
+      code: |
+        % IETF KAT vector 0 (libsodium test/default/kem_xwing.c).
+        {PK, SK} = libsodium_crypto_kem_xwing:seed_keypair(<<0:256>>),
+        <<0:256>> = SK,
+        <<PKPrefix:32/binary, _/binary>> = PK,
+        PKPrefix = binary:decode_hex(<<"3d209f716752f6408e7f89bceef97ac388530045377927644ef046c0a7cae978">>),
+        {CT, SS} = libsodium_crypto_kem_xwing:enc_deterministic(PK, binary:copy(<<16#64>>, 64)),
+        <<CTPrefix:26/binary, _/binary>> = CT,
+        CTPrefix = binary:decode_hex(<<"d81018a94f8078e02105beaa814e003390befa4589bb614f7739">>),
+        SS = binary:decode_hex(<<"e5ba94031ea6efd69c09c254f6d9783136ba6037e2d4c43bcccf19d6f3f4343a">>),
+        SS = libsodium_crypto_kem_xwing:dec(CT, SK).
+    - name: implicit_rejection
+      code: |
+        {PK, SK} = libsodium_crypto_kem_xwing:keypair(),
+        {<<Byte, Rest/binary>>, SS} = libsodium_crypto_kem_xwing:enc(PK),
+        Tampered = <<(Byte bxor 1), Rest/binary>>,
+        Other = libsodium_crypto_kem_xwing:dec(Tampered, SK),
+        32 = byte_size(Other),
+        true = Other =/= SS,
+        Other = libsodium_crypto_kem_xwing:dec(Tampered, SK).
+    - name: errors
+      code: |
+        {PK, SK} = libsodium_crypto_kem_xwing:keypair(),
+        {CT, _} = libsodium_crypto_kem_xwing:enc(PK),
+        BadPK = binary:copy(<<255>>, libsodium_crypto_kem_xwing:publickeybytes()),
+        -1 = libsodium_crypto_kem_xwing:enc(BadPK),
+        -1 = libsodium_crypto_kem_xwing:enc_deterministic(BadPK, <<0:512>>),
+        <<CTMLKEM:1088/binary, _:32/binary>> = CT,
+        -1 = libsodium_crypto_kem_xwing:dec(<<CTMLKEM/binary, 0:256>>, SK),
+        badarg = try libsodium_crypto_kem_xwing:seed_keypair(<<0:264>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kem_xwing:enc(<<PK/binary, 0>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kem_xwing:enc_deterministic(PK, <<0:256>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kem_xwing:dec(CT, <<>>) catch error:badarg -> badarg end.

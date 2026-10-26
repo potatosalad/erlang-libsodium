@@ -1,0 +1,110 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_kem:
+  title: Key encapsulation
+  doc: |
+    Post-quantum key encapsulation. This is the recommended default KEM; it
+    currently uses X-Wing (`m:libsodium_crypto_kem_xwing`), a hybrid of
+    ML-KEM-768 and X25519 that stays secure if either component is broken.
+
+    A recipient publishes a `publickeybytes/0` byte public key `PK`. A sender
+    calls `enc/1` to obtain a `ciphertextbytes/0` byte ciphertext `CT` and a
+    `sharedsecretbytes/0` byte shared secret `SS`, and sends `CT` to the
+    recipient, who recovers the same `SS` with `dec/2` and their secret key.
+
+    Seeds passed to `seed_keypair/1` must be secret and uniformly random.
+  example: |
+    {PK, SK} = libsodium_crypto_kem:keypair(),
+    {CT, SS} = libsodium_crypto_kem:enc(PK),
+    SS = libsodium_crypto_kem:dec(CT, SK).
+  constants:
+    - name: publickeybytes
+      value: 1216
+    - name: secretkeybytes
+      value: 32
+    - name: ciphertextbytes
+      value: 1120
+    - name: sharedsecretbytes
+      value: 32
+    - name: seedbytes
+      value: 32
+    - name: primitive
+      type: atom
+      value: xwing
+  functions:
+    - name: seed_keypair
+      doc: |
+        Deterministically derive a key pair from the `seedbytes/0` byte `Seed`,
+        which must be secret and uniformly random. Returns `{PK, SK}`.
+      args:
+        - {type: fixed, name: seed, size: crypto_kem_SEEDBYTES}
+      outputs:
+        - {name: pk, size: crypto_kem_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_kem_SECRETKEYBYTES}
+      returns: [pk, sk]
+      erlang:
+        - params: [Seed]
+    - name: keypair
+      doc: Generate a random key pair. Returns `{PK, SK}`.
+      outputs:
+        - {name: pk, size: crypto_kem_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_kem_SECRETKEYBYTES}
+      returns: [pk, sk]
+    - name: enc
+      doc: |
+        Encapsulate a fresh random shared secret to the public key `PK`.
+        Returns `{CT, SS}`, where `CT` is sent to the holder of the secret
+        key, or `-1` when `PK` is invalid.
+      args:
+        - {type: fixed, name: pk, size: crypto_kem_PUBLICKEYBYTES}
+      outputs:
+        - {name: ct, size: crypto_kem_CIPHERTEXTBYTES}
+        - {name: ss, size: crypto_kem_SHAREDSECRETBYTES}
+      returns: [ct, ss]
+      erlang:
+        - params: [PK]
+    - name: dec
+      doc: |
+        Decapsulate the ciphertext `CT` with the secret key `SK` and return the
+        shared secret `SS`.
+
+        A tampered or mismatched `CT` does not fail: implicit rejection returns
+        a pseudorandom secret unrelated to the sender's, so the mismatch only
+        surfaces when the secrets are used. Returns `-1` only when the X25519
+        part of `CT` is a low-order point.
+      args:
+        - {type: fixed, name: ct, size: crypto_kem_CIPHERTEXTBYTES}
+        - {type: fixed, name: sk, size: crypto_kem_SECRETKEYBYTES}
+      outputs:
+        - {name: ss, size: crypto_kem_SHAREDSECRETBYTES}
+      returns: ss
+      erlang:
+        - params: [CT, SK]
+  tests:
+    - name: known_answer
+      code: |
+        % X-Wing IETF test vector 0 (libsodium test/default/kem_xwing.c).
+        {PK, SK} = libsodium_crypto_kem:seed_keypair(<<0:256>>),
+        <<0:256>> = SK,
+        <<PKPrefix:32/binary, _/binary>> = PK,
+        PKPrefix = binary:decode_hex(<<"3d209f716752f6408e7f89bceef97ac388530045377927644ef046c0a7cae978">>),
+        {PK, SK} = libsodium_crypto_kem:seed_keypair(<<0:256>>),
+        {CT, SS} = libsodium_crypto_kem:enc(PK),
+        SS = libsodium_crypto_kem:dec(CT, SK).
+    - name: implicit_rejection
+      code: |
+        {PK, SK} = libsodium_crypto_kem:keypair(),
+        {<<Byte, Rest/binary>>, SS} = libsodium_crypto_kem:enc(PK),
+        Other = libsodium_crypto_kem:dec(<<(Byte bxor 1), Rest/binary>>, SK),
+        32 = byte_size(Other),
+        true = Other =/= SS.
+    - name: errors
+      code: |
+        {PK, SK} = libsodium_crypto_kem:keypair(),
+        {CT, _} = libsodium_crypto_kem:enc(PK),
+        -1 = libsodium_crypto_kem:enc(binary:copy(<<255>>, libsodium_crypto_kem:publickeybytes())),
+        <<CTMLKEM:1088/binary, _:32/binary>> = CT,
+        -1 = libsodium_crypto_kem:dec(<<CTMLKEM/binary, 0:256>>, SK),
+        badarg = try libsodium_crypto_kem:seed_keypair(<<0:248>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kem:enc(<<PK/binary, 0>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kem:dec(CT, <<SK/binary, 0>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kem:dec(<<>>, SK) catch error:badarg -> badarg end.

@@ -1,0 +1,163 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_aead_aegis128l:
+  title: AEGIS-128L
+  doc: |
+    AEGIS-128L authenticated encryption with additional data. AEGIS is very
+    fast on CPUs with AES instructions (libsodium falls back to a portable
+    implementation elsewhere) and produces `abytes/0` (32) byte tags.
+
+    Keys are `keybytes/0` (16) bytes and nonces `npubbytes/0` (16) bytes. A
+    nonce must never be reused with the same key; random nonces (for example
+    from `libsodium_randombytes:buf/1`) are safe for a large number of
+    messages, but `m:libsodium_crypto_aead_aegis256` has a longer nonce and
+    is the better choice when many messages are encrypted under one key.
+  example: |
+    Key = libsodium_crypto_aead_aegis128l:keygen(),
+    Nonce = libsodium_randombytes:buf(libsodium_crypto_aead_aegis128l:npubbytes()),
+    Ciphertext = libsodium_crypto_aead_aegis128l:encrypt(<<"message">>, <<"header">>, Nonce, Key),
+    <<"message">> = libsodium_crypto_aead_aegis128l:decrypt(Ciphertext, <<"header">>, Nonce, Key).
+  constants:
+    - name: keybytes
+      value: 16
+    - name: nsecbytes
+      value: 0
+    - name: npubbytes
+      value: 16
+    - name: abytes
+      value: 32
+    - name: messagebytes_max
+  functions:
+    - name: encrypt
+      doc: |
+        Encrypt and authenticate `M` together with the additional data `AD`
+        (default empty) using the `npubbytes/0` byte nonce `NPub` and the
+        `keybytes/0` byte key `K`.
+
+        Returns the ciphertext followed by an `abytes/0` byte authentication
+        tag, or `-1` on failure.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_aegis128l_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aegis128l_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_aegis128l_KEYBYTES}
+      outputs:
+        - {name: c, size: "mlen + crypto_aead_aegis128l_ABYTES", len: clen}
+      returns: c
+      erlang:
+        - params: [M, NPub, K]
+          args: [M, "<<>>", "<<>>", NPub, K]
+        - params: [M, AD, NPub, K]
+          args: [M, AD, "<<>>", NPub, K]
+    - name: decrypt
+      doc: |
+        Verify and decrypt the ciphertext `C` with the additional data `AD`
+        (default empty), nonce `NPub`, and key `K`.
+
+        Returns the plaintext, or `-1` when verification fails.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_aegis128l_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aegis128l_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_aegis128l_KEYBYTES}
+      outputs:
+        - name: m
+          size: "(clen < crypto_aead_aegis128l_ABYTES) ? 0 : clen - crypto_aead_aegis128l_ABYTES"
+          len: mlen
+      call: crypto_aead_aegis128l_decrypt(m, &mlen, (unsigned char *)nsec, c, clen, ad, adlen, npub, k)
+      returns: m
+      erlang:
+        - params: [C, NPub, K]
+          args: ["<<>>", C, "<<>>", NPub, K]
+        - params: [C, AD, NPub, K]
+          args: ["<<>>", C, AD, NPub, K]
+    - name: encrypt_detached
+      doc: |
+        Encrypt and authenticate `M` with the additional data `AD` (default
+        empty), nonce `NPub`, and key `K`, returning the ciphertext and the
+        `abytes/0` byte authentication tag separately as `{C, MAC}`, or `-1`
+        on failure.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_aegis128l_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aegis128l_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_aegis128l_KEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+        - {name: mac, size: crypto_aead_aegis128l_ABYTES, len: maclen}
+      returns: [c, mac]
+      erlang:
+        - params: [M, NPub, K]
+          args: [M, "<<>>", "<<>>", NPub, K]
+        - params: [M, AD, NPub, K]
+          args: [M, AD, "<<>>", NPub, K]
+    - name: decrypt_detached
+      doc: |
+        Verify the detached `abytes/0` byte tag `MAC` and decrypt `C` with the
+        additional data `AD` (default empty), nonce `NPub`, and key `K`.
+        Returns the plaintext, or `-1` when verification fails.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_aegis128l_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: fixed, name: mac, size: crypto_aead_aegis128l_ABYTES}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aegis128l_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_aegis128l_KEYBYTES}
+      outputs:
+        - {name: m, size: clen}
+      call: crypto_aead_aegis128l_decrypt_detached(m, (unsigned char *)nsec, c, clen, mac, ad, adlen, npub, k)
+      returns: m
+      erlang:
+        - params: [C, MAC, NPub, K]
+          args: ["<<>>", C, MAC, "<<>>", NPub, K]
+        - params: [C, MAC, AD, NPub, K]
+          args: ["<<>>", C, MAC, AD, NPub, K]
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_aead_aegis128l_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: known_answer
+      code: |
+        K = binary:decode_hex(<<"e343d75de99e6d73543968437d3dcf6a">>),
+        N = binary:decode_hex(<<"317a5808ed5debf6f527a780e0896b2d">>),
+        M = binary:decode_hex(<<"247045cb40dea9c514a885444c526ac867b1b80e4728a23b63f596">>),
+        AD = binary:decode_hex(<<"323094c01e">>),
+        C = binary:decode_hex(<<"18cb5d2fc5e27bdda5ba16f1320da42049759368548e5bd96f2dbc">>),
+        MAC = binary:decode_hex(<<"5d3e88816daf20f11018456b58b2614050b93b222f03be079b39a9bb2de49f47">>),
+        {C, MAC} = libsodium_crypto_aead_aegis128l:encrypt_detached(M, AD, N, K),
+        CT = <<C/binary, MAC/binary>>,
+        CT = libsodium_crypto_aead_aegis128l:encrypt(M, AD, N, K),
+        M = libsodium_crypto_aead_aegis128l:decrypt(CT, AD, N, K),
+        M = libsodium_crypto_aead_aegis128l:decrypt_detached(C, MAC, AD, N, K).
+    - name: round_trip_without_ad
+      code: |
+        K = libsodium_crypto_aead_aegis128l:keygen(),
+        16 = byte_size(K),
+        N = libsodium_randombytes:buf(16),
+        M = libsodium_randombytes:buf(1000),
+        CT = libsodium_crypto_aead_aegis128l:encrypt(M, N, K),
+        1032 = byte_size(CT),
+        CT = libsodium_crypto_aead_aegis128l:encrypt(M, <<>>, N, K),
+        {C, MAC} = libsodium_crypto_aead_aegis128l:encrypt_detached(M, N, K),
+        CT = <<C/binary, MAC/binary>>,
+        M = libsodium_crypto_aead_aegis128l:decrypt(CT, N, K),
+        M = libsodium_crypto_aead_aegis128l:decrypt_detached(C, MAC, N, K),
+        <<>> = libsodium_crypto_aead_aegis128l:decrypt(libsodium_crypto_aead_aegis128l:encrypt(<<>>, N, K), N, K).
+    - name: tamper_and_badarg
+      code: |
+        K = libsodium_crypto_aead_aegis128l:keygen(),
+        N = libsodium_randombytes:buf(16),
+        <<B, Rest/binary>> = libsodium_crypto_aead_aegis128l:encrypt(<<"message">>, <<"ad">>, N, K),
+        -1 = libsodium_crypto_aead_aegis128l:decrypt(<<(B bxor 1), Rest/binary>>, <<"ad">>, N, K),
+        -1 = libsodium_crypto_aead_aegis128l:decrypt(<<B, Rest/binary>>, <<"other">>, N, K),
+        -1 = libsodium_crypto_aead_aegis128l:decrypt(<<"short">>, N, K),
+        -1 = libsodium_crypto_aead_aegis128l:decrypt_detached(<<"message">>, <<0:256>>, N, K),
+        badarg = try libsodium_crypto_aead_aegis128l:encrypt(<<"m">>, <<0:96>>, K) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_aead_aegis128l:decrypt_detached(<<"m">>, <<0:128>>, N, K) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_aead_aegis128l:decrypt(not_a_binary, N, K) catch error:badarg -> badarg end.

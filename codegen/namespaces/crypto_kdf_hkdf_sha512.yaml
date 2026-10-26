@@ -1,0 +1,153 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_kdf_hkdf_sha512:
+  title: HKDF-SHA-512
+  doc: |
+    HKDF ([RFC 5869](https://www.rfc-editor.org/rfc/rfc5869)) with
+    HMAC-SHA-512. `extract/2` condenses input keying material, such as a
+    Diffie-Hellman shared secret, and an optional salt into a `keybytes/0`
+    byte pseudorandom key (PRK); `expand/3` then derives up to `bytes_max/0`
+    bytes from the PRK for each context. A uniformly random key, such as one
+    from `keygen/0`, can be used as the PRK directly.
+
+    The extraction can also be streamed: `extract_init/1`,
+    `extract_update/2`, and `extract_final/1` thread an opaque `t:state/0`,
+    and each call returns a new state and leaves its argument unchanged.
+
+    HKDF is mainly useful for interoperability with existing protocols. To
+    derive subkeys from a uniformly random key, `m:libsodium_crypto_kdf` is
+    simpler; to derive keys from passwords, use `m:libsodium_crypto_pwhash`.
+  example: |
+    PRK = libsodium_crypto_kdf_hkdf_sha512:extract(<<"salt">>, <<"input keying material">>),
+    64 = byte_size(PRK),
+    Key1 = libsodium_crypto_kdf_hkdf_sha512:expand(32, <<"encryption key">>, PRK),
+    Key2 = libsodium_crypto_kdf_hkdf_sha512:expand(32, <<"authentication key">>, PRK),
+    true = Key1 =/= Key2,
+    State0 = libsodium_crypto_kdf_hkdf_sha512:extract_init(<<"salt">>),
+    State1 = libsodium_crypto_kdf_hkdf_sha512:extract_update(State0, <<"input keying ">>),
+    State2 = libsodium_crypto_kdf_hkdf_sha512:extract_update(State1, <<"material">>),
+    PRK = libsodium_crypto_kdf_hkdf_sha512:extract_final(State2).
+  see_also: [libsodium_crypto_kdf_hkdf_sha256, libsodium_crypto_kdf, libsodium_crypto_auth_hmacsha512]
+  constants:
+    - name: keybytes
+      value: 64
+    - name: bytes_min
+      value: 0
+    - name: bytes_max
+      value: 16320
+    - name: statebytes
+      value: 416
+  functions:
+    - name: extract
+      doc: |
+        Extract a `keybytes/0` byte pseudorandom key from the input keying
+        material `IKM` and the optional `Salt` (default empty).
+      args:
+        - {type: binary, name: salt, len_type: size_t, nullable: true}
+        - {type: binary, name: ikm, len_type: size_t}
+      outputs:
+        - {name: prk, size: crypto_kdf_hkdf_sha512_KEYBYTES}
+      returns: prk
+      erlang:
+        - params: [IKM]
+          args: ["<<>>", IKM]
+        - params: [Salt, IKM]
+    - name: expand
+      doc: |
+        Derive `OutLen` bytes from the `keybytes/0` byte pseudorandom key `PRK`
+        for the context `Ctx` (default empty).
+
+        Returns `-1` when `OutLen` is greater than `bytes_max/0`.
+      args:
+        - {type: uint, name: out_len, c_type: size_t}
+        - {type: binary, name: ctx, len_type: size_t}
+        - {type: fixed, name: prk, size: crypto_kdf_hkdf_sha512_KEYBYTES}
+      prelude: |
+        if (out_len > crypto_kdf_hkdf_sha512_BYTES_MAX) {
+            result = enif_make_int(env, -1);
+            goto cleanup;
+        }
+      outputs:
+        - {name: out, size: out_len}
+      call: crypto_kdf_hkdf_sha512_expand(out, out_len, (const char *)ctx, ctxlen, prk)
+      returns: out
+      erlang:
+        - params: [OutLen, PRK]
+          args: [OutLen, "<<>>", PRK]
+        - params: [OutLen, Ctx, PRK]
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte pseudorandom key.
+      outputs:
+        - {name: prk, size: crypto_kdf_hkdf_sha512_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: prk
+    - name: extract_init
+      doc: Start a streaming extraction with the optional `Salt` (default empty) and return its state.
+      args:
+        - {type: binary, name: salt, len_type: size_t, nullable: true}
+      outputs:
+        - {type: state, name: state, c_type: crypto_kdf_hkdf_sha512_state}
+      returns: state
+      erlang:
+        - params: []
+          args: ["<<>>"]
+        - params: [Salt]
+    - name: extract_update
+      doc: Absorb the input keying material `IKM` into `State` and return the updated state.
+      args:
+        - {type: state, name: state, c_type: crypto_kdf_hkdf_sha512_state}
+        - {type: binary, name: ikm}
+      update: true
+      returns: state
+    - name: extract_final
+      doc: Finish the streaming extraction in `State`, returning a `keybytes/0` byte pseudorandom key.
+      args:
+        - {type: state, name: state, c_type: crypto_kdf_hkdf_sha512_state}
+      outputs:
+        - {name: prk, size: crypto_kdf_hkdf_sha512_KEYBYTES}
+      call: crypto_kdf_hkdf_sha512_extract_final(&state, prk)
+      returns: prk
+  tests:
+    - name: matches_hmac
+      code: |
+        IKM = binary:copy(<<16#0b>>, 22),
+        Salt = binary:decode_hex(<<"000102030405060708090a0b0c">>),
+        Info = binary:decode_hex(<<"f0f1f2f3f4f5f6f7f8f9">>),
+        PRK = crypto:mac(hmac, sha512, Salt, IKM),
+        PRK = libsodium_crypto_kdf_hkdf_sha512:extract(Salt, IKM),
+        T1 = crypto:mac(hmac, sha512, PRK, <<Info/binary, 1>>),
+        T2 = crypto:mac(hmac, sha512, PRK, <<T1/binary, Info/binary, 2>>),
+        <<Okm:100/binary, _/binary>> = <<T1/binary, T2/binary>>,
+        Okm = libsodium_crypto_kdf_hkdf_sha512:expand(100, Info, PRK),
+        EmptySaltPrk = crypto:mac(hmac, sha512, <<>>, IKM),
+        EmptySaltPrk = libsodium_crypto_kdf_hkdf_sha512:extract(IKM),
+        EmptySaltPrk = libsodium_crypto_kdf_hkdf_sha512:extract(<<>>, IKM),
+        <<EmptyCtx:32/binary, _/binary>> = crypto:mac(hmac, sha512, PRK, <<1>>),
+        EmptyCtx = libsodium_crypto_kdf_hkdf_sha512:expand(32, PRK),
+        <<>> = libsodium_crypto_kdf_hkdf_sha512:expand(0, PRK).
+    - name: streaming_matches_one_shot
+      code: |
+        Salt = <<"salt">>,
+        Large = binary:copy(<<"0123456789abcdef">>, 20000),
+        PRK = libsodium_crypto_kdf_hkdf_sha512:extract(Salt, <<Large/binary, Large/binary>>),
+        State0 = libsodium_crypto_kdf_hkdf_sha512:extract_init(Salt),
+        true = is_reference(State0),
+        State1 = libsodium_crypto_kdf_hkdf_sha512:extract_update(State0, Large),
+        State2 = libsodium_crypto_kdf_hkdf_sha512:extract_update(State1, Large),
+        PRK = libsodium_crypto_kdf_hkdf_sha512:extract_final(State2),
+        PRK = libsodium_crypto_kdf_hkdf_sha512:extract_final(State2),
+        EmptySaltPrk = libsodium_crypto_kdf_hkdf_sha512:extract(Large),
+        EmptySaltPrk = libsodium_crypto_kdf_hkdf_sha512:extract_final(libsodium_crypto_kdf_hkdf_sha512:extract_update(libsodium_crypto_kdf_hkdf_sha512:extract_init(), Large)).
+    - name: invalid_arguments
+      code: |
+        PRK = libsodium_crypto_kdf_hkdf_sha512:keygen(),
+        64 = byte_size(PRK),
+        Max = libsodium_crypto_kdf_hkdf_sha512:bytes_max(),
+        Max = byte_size(libsodium_crypto_kdf_hkdf_sha512:expand(Max, <<"ctx">>, PRK)),
+        -1 = libsodium_crypto_kdf_hkdf_sha512:expand(Max + 1, <<"ctx">>, PRK),
+        -1 = libsodium_crypto_kdf_hkdf_sha512:expand(1 bsl 62, <<"ctx">>, PRK),
+        badarg = try libsodium_crypto_kdf_hkdf_sha512:expand(-1, <<"ctx">>, PRK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kdf_hkdf_sha512:expand(32, <<"ctx">>, <<PRK/binary, 0>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kdf_hkdf_sha512:extract(not_a_binary, <<"ikm">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kdf_hkdf_sha512:extract_update(<<0:8>>, <<"ikm">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kdf_hkdf_sha512:extract_final(<<>>) catch error:badarg -> badarg end.

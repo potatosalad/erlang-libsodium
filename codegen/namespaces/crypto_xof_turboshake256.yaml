@@ -1,0 +1,141 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_xof_turboshake256:
+  title: TurboSHAKE256 extendable-output function
+  doc: |
+    TurboSHAKE256 (RFC 9861) is an extendable-output function (XOF) with
+    the same sponge and rate as SHAKE256 but using the Keccak-p[1600]
+    permutation reduced to 12 rounds, roughly doubling its speed. It
+    hashes an input of any length into an output of any requested length
+    and targets 256-bit security.
+
+    `init/0` and the one-shot function use the standard domain byte
+    `domain_standard/0` (`16#1F`). `init_with_domain/1` selects another
+    domain byte so that different uses of TurboSHAKE256 produce
+    independent outputs; RFC 9861 defines domain bytes from `16#01` to
+    `16#7F`.
+
+    The streaming functions thread an opaque `t:state/0` through `init/0`,
+    `update/2`, and `squeeze/2`. Every call returns a new state and leaves its
+    argument unchanged. Squeezing continues the output stream: consecutive
+    `squeeze/2` calls on the returned states produce the same bytes as one
+    longer squeeze, so output can be read incrementally. Updates over large
+    inputs yield to other processes between chunks.
+  example: |
+    Out = libsodium_crypto_xof_turboshake256:crypto_xof_turboshake256(32, <<"hello world">>),
+    32 = byte_size(Out),
+    State0 = libsodium_crypto_xof_turboshake256:init(),
+    State1 = libsodium_crypto_xof_turboshake256:update(State0, <<"hello ">>),
+    State2 = libsodium_crypto_xof_turboshake256:update(State1, <<"world">>),
+    {State3, First} = libsodium_crypto_xof_turboshake256:squeeze(State2, 16),
+    {_State4, Second} = libsodium_crypto_xof_turboshake256:squeeze(State3, 16),
+    Out = <<First/binary, Second/binary>>.
+  see_also: [libsodium_crypto_xof_turboshake128, libsodium_crypto_xof_shake256, libsodium_crypto_core_keccak1600]
+  constants:
+    - name: blockbytes
+      value: 136
+    - name: statebytes
+      value: 256
+    - name: domain_standard
+      type: uint
+      value: 31
+  functions:
+    - name: crypto_xof_turboshake256
+      c: crypto_xof_turboshake256
+      doc: |
+        Hash `In` with TurboSHAKE256 and the standard domain byte, returning
+        `Outlen` bytes of output.
+      args:
+        - {type: uint, name: outlen, c_type: size_t, work: true}
+        - {type: binary, name: in}
+      outputs:
+        - {name: out, size: outlen}
+      returns: out
+    - name: init
+      doc: Start a streaming TurboSHAKE256 hash with the standard domain byte `domain_standard/0`.
+      outputs:
+        - {type: state, name: state, c_type: crypto_xof_turboshake256_state}
+      returns: state
+    - name: init_with_domain
+      doc: |
+        Start a streaming TurboSHAKE256 hash with the domain separation byte
+        `Domain` (an integer from `0` to `255`).
+      args:
+        - {type: uint, name: domain, c_type: "unsigned char"}
+      outputs:
+        - {type: state, name: state, c_type: crypto_xof_turboshake256_state}
+      returns: state
+    - name: update
+      doc: |
+        Absorb `In` into `State` and return the updated state.
+
+        Returns `-1` if `State` has already been squeezed; absorbing after
+        squeezing is not supported.
+      args:
+        - {type: state, name: state, c_type: crypto_xof_turboshake256_state}
+        - {type: binary, name: in}
+      update: true
+      returns: state
+    - name: squeeze
+      doc: |
+        Read the next `Outlen` bytes of output from `State`.
+
+        Returns `{NewState, Out}`. Squeezing `NewState` again continues the
+        output stream where `Out` ended, so successive squeezes produce the
+        same bytes as a single longer one. `State` itself is unchanged and
+        squeezing it again repeats `Out`.
+      args:
+        - {type: state, name: state, c_type: crypto_xof_turboshake256_state}
+        - {type: uint, name: outlen, c_type: size_t, work: true}
+      outputs:
+        - {name: out, size: outlen}
+      call: crypto_xof_turboshake256_squeeze(&state, out, outlen)
+      returns: [state, out]
+  tests:
+    - name: known_answer
+      code: |
+        Mod = libsodium_crypto_xof_turboshake256,
+        Expected0 = binary:decode_hex(<<"367a329dafea871c7802ec67f905ae13c57695dc2c6663c61035f59a18f8e7db11edc0e12e91ea60eb6b32df06dd7f002fbafabb6e13ec1cc20d995547600db0">>),
+        Expected0 = Mod:crypto_xof_turboshake256(64, <<>>),
+        Expected1 = binary:decode_hex(<<"63824b1431a7372e85edc022c9d7afdd027472fcfa33c887d6f5aaf8dc5d4db6">>),
+        Expected1 = Mod:crypto_xof_turboshake256(32, <<"abc">>),
+        Expected2 = binary:decode_hex(<<"b6e91a412c262c7936b069f67bd21c2f8ecc48bda8dc6eebfbaf6fcaa82191c3">>),
+        Expected2 = Mod:crypto_xof_turboshake256(32, <<"The quick brown fox jumps over the lazy dog">>),
+        <<>> = Mod:crypto_xof_turboshake256(0, <<"abc">>).
+    - name: squeeze_continues_stream
+      code: |
+        Mod = libsodium_crypto_xof_turboshake256,
+        In = <<"squeeze me">>,
+        Full = Mod:crypto_xof_turboshake256(1000, In),
+        S0 = Mod:update(Mod:init(), In),
+        {S1, A} = Mod:squeeze(S0, 100),
+        {S2, B} = Mod:squeeze(S1, 272),
+        {_, C} = Mod:squeeze(S2, 628),
+        Full = <<A/binary, B/binary, C/binary>>,
+        {_, A} = Mod:squeeze(S0, 100),
+        {_, <<>>} = Mod:squeeze(S0, 0),
+        true = is_reference(S1),
+        -1 = Mod:update(S1, <<"more">>).
+    - name: streaming_matches_one_shot
+      code: |
+        Mod = libsodium_crypto_xof_turboshake256,
+        Large = binary:copy(<<"0123456789abcdef">>, 20000),
+        Expected = Mod:crypto_xof_turboshake256(64, <<Large/binary, Large/binary>>),
+        S0 = Mod:init(),
+        S1 = Mod:update(S0, Large),
+        S2 = Mod:update(S1, Large),
+        {_, Expected} = Mod:squeeze(S2, 64),
+        {_, Expected} = Mod:squeeze(Mod:update(Mod:init_with_domain(Mod:domain_standard()), <<Large/binary, Large/binary>>), 64),
+        {_, Other} = Mod:squeeze(Mod:update(Mod:init_with_domain(16#01), <<Large/binary, Large/binary>>), 64),
+        true = Other =/= Expected.
+    - name: badarg
+      code: |
+        Mod = libsodium_crypto_xof_turboshake256,
+        S0 = Mod:init(),
+        badarg = try Mod:crypto_xof_turboshake256(-1, <<"x">>) catch error:badarg -> badarg end,
+        badarg = try Mod:crypto_xof_turboshake256(32, not_a_binary) catch error:badarg -> badarg end,
+        badarg = try Mod:init_with_domain(256) catch error:badarg -> badarg end,
+        badarg = try Mod:init_with_domain(-1) catch error:badarg -> badarg end,
+        badarg = try Mod:update(<<0:2048>>, <<"x">>) catch error:badarg -> badarg end,
+        badarg = try Mod:update(S0, not_a_binary) catch error:badarg -> badarg end,
+        badarg = try Mod:squeeze(<<0:2048>>, 32) catch error:badarg -> badarg end,
+        badarg = try Mod:squeeze(S0, -1) catch error:badarg -> badarg end.

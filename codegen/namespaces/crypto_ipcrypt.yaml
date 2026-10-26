@@ -1,0 +1,262 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_ipcrypt:
+  title: IP address encryption
+  doc: |
+    IP address encryption (ipcrypt) for pseudonymizing addresses in logs and
+    telemetry. Every mode works on the 16-byte IPv6 representation of an
+    address, in which IPv4 addresses are IPv4-mapped; use
+    `libsodium_utils:ip2bin/1` and `libsodium_utils:bin2ip/1` to convert
+    between textual addresses and these binaries.
+
+    The deterministic mode (`encrypt/2`) maps an address to another 16-byte
+    address, so equal inputs give equal outputs. The non-deterministic modes
+    add a random tweak and produce longer outputs that hide repeated
+    addresses: `nd_encrypt/2` (8-byte tweak, 24-byte output) and
+    `ndx_encrypt/2` (16-byte tweak, 32-byte output, a larger tweak space for
+    more encryptions per key). The prefix-preserving mode (`pfx_encrypt/2`)
+    keeps addresses that share a network prefix sharing an encrypted prefix,
+    and keeps IPv4 addresses IPv4.
+
+    Each mode has its own key size and `keygen` function. Encryption hides
+    addresses but does not authenticate them: decryption never fails.
+  example: |
+    K = libsodium_crypto_ipcrypt:keygen(),
+    Ip = libsodium_utils:ip2bin(<<"192.0.2.1">>),
+    Encrypted = libsodium_crypto_ipcrypt:encrypt(Ip, K),
+    Encrypted = libsodium_crypto_ipcrypt:encrypt(Ip, K),
+    <<"192.0.2.1">> = libsodium_utils:bin2ip(libsodium_crypto_ipcrypt:decrypt(Encrypted, K)),
+    NdK = libsodium_crypto_ipcrypt:nd_keygen(),
+    Nd = libsodium_crypto_ipcrypt:nd_encrypt(Ip, NdK),
+    24 = byte_size(Nd),
+    Ip = libsodium_crypto_ipcrypt:nd_decrypt(Nd, NdK).
+  constants:
+    - name: bytes
+      value: 16
+    - name: keybytes
+      value: 16
+    - name: nd_keybytes
+      value: 16
+    - name: nd_tweakbytes
+      value: 8
+    - name: nd_inputbytes
+      value: 16
+    - name: nd_outputbytes
+      value: 24
+    - name: ndx_keybytes
+      value: 32
+    - name: ndx_tweakbytes
+      value: 16
+    - name: ndx_inputbytes
+      value: 16
+    - name: ndx_outputbytes
+      value: 32
+    - name: pfx_keybytes
+      value: 32
+    - name: pfx_bytes
+      value: 16
+  functions:
+    - name: encrypt
+      doc: |
+        Deterministically encrypt the `bytes/0` byte address `In` with the
+        `keybytes/0` byte key `K`, returning another `bytes/0` byte address.
+      args:
+        - {type: fixed, name: in, size: crypto_ipcrypt_BYTES}
+        - {type: fixed, name: k, size: crypto_ipcrypt_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_ipcrypt_BYTES}
+      rc_type: void
+      check: none
+      returns: out
+    - name: decrypt
+      doc: Decrypt the `bytes/0` byte address `In` produced by `encrypt/2` with the key `K`.
+      args:
+        - {type: fixed, name: in, size: crypto_ipcrypt_BYTES}
+        - {type: fixed, name: k, size: crypto_ipcrypt_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_ipcrypt_BYTES}
+      rc_type: void
+      check: none
+      returns: out
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key for `encrypt/2`.
+      outputs:
+        - {name: k, size: crypto_ipcrypt_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+    - name: nd_encrypt
+      doc: |
+        Encrypt the `nd_inputbytes/0` byte address `In` with the
+        `nd_keybytes/0` byte key `K` and the `nd_tweakbytes/0` byte tweak `T`.
+        Returns `nd_outputbytes/0` bytes: the tweak followed by the encrypted
+        address. The tweak must be random and should not repeat for a key.
+      args:
+        - {type: fixed, name: in, size: crypto_ipcrypt_ND_INPUTBYTES}
+        - {type: fixed, name: t, size: crypto_ipcrypt_ND_TWEAKBYTES}
+        - {type: fixed, name: k, size: crypto_ipcrypt_ND_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_ipcrypt_ND_OUTPUTBYTES}
+      rc_type: void
+      check: none
+      returns: out
+      erlang:
+        - params: [In, K]
+          args: [In, "libsodium_randombytes:buf(nd_tweakbytes())", K]
+          doc: |
+            Encrypt the `nd_inputbytes/0` byte address `In` with the
+            `nd_keybytes/0` byte key `K` and a fresh random tweak. Returns
+            `nd_outputbytes/0` bytes: the tweak followed by the encrypted
+            address.
+        - params: [In, T, K]
+    - name: nd_decrypt
+      doc: |
+        Decrypt the `nd_outputbytes/0` byte output `In` of `nd_encrypt/2` with
+        the key `K`, returning the `nd_inputbytes/0` byte address.
+      args:
+        - {type: fixed, name: in, size: crypto_ipcrypt_ND_OUTPUTBYTES}
+        - {type: fixed, name: k, size: crypto_ipcrypt_ND_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_ipcrypt_ND_INPUTBYTES}
+      rc_type: void
+      check: none
+      returns: out
+    - name: nd_keygen
+      doc: Generate a random `nd_keybytes/0` byte key for `nd_encrypt/2`.
+      outputs:
+        - {name: k, size: crypto_ipcrypt_ND_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+    - name: ndx_encrypt
+      doc: |
+        Encrypt the `ndx_inputbytes/0` byte address `In` with the
+        `ndx_keybytes/0` byte key `K` and the `ndx_tweakbytes/0` byte tweak
+        `T`. Returns `ndx_outputbytes/0` bytes: the tweak followed by the
+        encrypted address. The tweak must be random and should not repeat for
+        a key.
+      args:
+        - {type: fixed, name: in, size: crypto_ipcrypt_NDX_INPUTBYTES}
+        - {type: fixed, name: t, size: crypto_ipcrypt_NDX_TWEAKBYTES}
+        - {type: fixed, name: k, size: crypto_ipcrypt_NDX_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_ipcrypt_NDX_OUTPUTBYTES}
+      rc_type: void
+      check: none
+      returns: out
+      erlang:
+        - params: [In, K]
+          args: [In, "libsodium_randombytes:buf(ndx_tweakbytes())", K]
+          doc: |
+            Encrypt the `ndx_inputbytes/0` byte address `In` with the
+            `ndx_keybytes/0` byte key `K` and a fresh random tweak. Returns
+            `ndx_outputbytes/0` bytes: the tweak followed by the encrypted
+            address.
+        - params: [In, T, K]
+    - name: ndx_decrypt
+      doc: |
+        Decrypt the `ndx_outputbytes/0` byte output `In` of `ndx_encrypt/2`
+        with the key `K`, returning the `ndx_inputbytes/0` byte address.
+      args:
+        - {type: fixed, name: in, size: crypto_ipcrypt_NDX_OUTPUTBYTES}
+        - {type: fixed, name: k, size: crypto_ipcrypt_NDX_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_ipcrypt_NDX_INPUTBYTES}
+      rc_type: void
+      check: none
+      returns: out
+    - name: ndx_keygen
+      doc: Generate a random `ndx_keybytes/0` byte key for `ndx_encrypt/2`.
+      outputs:
+        - {name: k, size: crypto_ipcrypt_NDX_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+    - name: pfx_encrypt
+      doc: |
+        Encrypt the `pfx_bytes/0` byte address `In` with the `pfx_keybytes/0`
+        byte key `K`, preserving prefixes: addresses that share their first
+        bits share the first bits of their encryptions, and IPv4 addresses
+        stay IPv4-mapped.
+      args:
+        - {type: fixed, name: in, size: crypto_ipcrypt_PFX_BYTES}
+        - {type: fixed, name: k, size: crypto_ipcrypt_PFX_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_ipcrypt_PFX_BYTES}
+      rc_type: void
+      check: none
+      returns: out
+    - name: pfx_decrypt
+      doc: Decrypt the `pfx_bytes/0` byte address `In` produced by `pfx_encrypt/2` with the key `K`.
+      args:
+        - {type: fixed, name: in, size: crypto_ipcrypt_PFX_BYTES}
+        - {type: fixed, name: k, size: crypto_ipcrypt_PFX_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_ipcrypt_PFX_BYTES}
+      rc_type: void
+      check: none
+      returns: out
+    - name: pfx_keygen
+      doc: Generate a random `pfx_keybytes/0` byte key for `pfx_encrypt/2`.
+      outputs:
+        - {name: k, size: crypto_ipcrypt_PFX_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: deterministic_and_pfx_known_answer
+      code: |
+        Ip0 = libsodium_utils:ip2bin(<<"0.0.0.0">>),
+        Ip1 = libsodium_utils:ip2bin(<<"192.0.2.1">>),
+        Ip2 = libsodium_utils:ip2bin(<<"2001:db8::1">>),
+        K1 = binary:decode_hex(<<"0123456789abcdeffedcba9876543210">>),
+        E1 = binary:decode_hex(<<"bde96789d353824cd7c6f58a6bd226eb">>),
+        E1 = libsodium_crypto_ipcrypt:encrypt(Ip0, K1),
+        Ip0 = libsodium_crypto_ipcrypt:decrypt(E1, K1),
+        K2 = binary:decode_hex(<<"2b7e151628aed2a6abf7158809cf4f3c">>),
+        E2 = binary:decode_hex(<<"1dbdc1b9fff175867d0b67b4e76e4777">>),
+        E2 = libsodium_crypto_ipcrypt:encrypt(Ip1, K2),
+        Ip1 = libsodium_crypto_ipcrypt:decrypt(E2, K2),
+        PK = binary:decode_hex(<<"0123456789abcdeffedcba98765432101032547698badcfeefcdab8967452301">>),
+        P1 = libsodium_crypto_ipcrypt:pfx_encrypt(Ip1, PK),
+        P1 = binary:decode_hex(<<"00000000000000000000ffff64734883">>),
+        <<"100.115.72.131">> = libsodium_utils:bin2ip(P1),
+        Ip1 = libsodium_crypto_ipcrypt:pfx_decrypt(P1, PK),
+        P2 = binary:decode_hex(<<"c1805dd42587352430abfa656ab60f88">>),
+        P2 = libsodium_crypto_ipcrypt:pfx_encrypt(Ip2, PK),
+        Ip2 = libsodium_crypto_ipcrypt:pfx_decrypt(P2, PK).
+    - name: nd_and_ndx_known_answer
+      code: |
+        Ip1 = libsodium_utils:ip2bin(<<"192.0.2.1">>),
+        Ip2 = libsodium_utils:ip2bin(<<"2001:db8::1">>),
+        NdK = binary:decode_hex(<<"1032547698badcfeefcdab8967452301">>),
+        NdT = binary:decode_hex(<<"21bd1834bc088cd2">>),
+        Nd = binary:decode_hex(<<"21bd1834bc088cd2e5e1fe55f95876e639faae2594a0caad">>),
+        Nd = libsodium_crypto_ipcrypt:nd_encrypt(Ip1, NdT, NdK),
+        Ip1 = libsodium_crypto_ipcrypt:nd_decrypt(Nd, NdK),
+        NdxK = binary:decode_hex(<<"2b7e151628aed2a6abf7158809cf4f3c3c4fcf098815f7aba6d2ae2816157e2b">>),
+        NdxT = binary:decode_hex(<<"21bd1834bc088cd2b4ecbe30b70898d7">>),
+        Ndx = binary:decode_hex(<<"21bd1834bc088cd2b4ecbe30b70898d76089c7e05ae30c2d10ca149870a263e4">>),
+        Ndx = libsodium_crypto_ipcrypt:ndx_encrypt(Ip2, NdxT, NdxK),
+        Ip2 = libsodium_crypto_ipcrypt:ndx_decrypt(Ndx, NdxK).
+    - name: random_tweaks_and_badarg
+      code: |
+        Ip = libsodium_utils:ip2bin(<<"10.0.0.47">>),
+        NdK = libsodium_crypto_ipcrypt:nd_keygen(),
+        <<_:8/binary, _/binary>> = Nd1 = libsodium_crypto_ipcrypt:nd_encrypt(Ip, NdK),
+        Nd2 = libsodium_crypto_ipcrypt:nd_encrypt(Ip, NdK),
+        true = Nd1 =/= Nd2,
+        Ip = libsodium_crypto_ipcrypt:nd_decrypt(Nd1, NdK),
+        Ip = libsodium_crypto_ipcrypt:nd_decrypt(Nd2, NdK),
+        NdxK = libsodium_crypto_ipcrypt:ndx_keygen(),
+        32 = byte_size(NdxK),
+        Ndx = libsodium_crypto_ipcrypt:ndx_encrypt(Ip, NdxK),
+        32 = byte_size(Ndx),
+        Ip = libsodium_crypto_ipcrypt:ndx_decrypt(Ndx, NdxK),
+        PK = libsodium_crypto_ipcrypt:pfx_keygen(),
+        <<0:80, 16#ffff:16, Prefix:3/binary, _>> = libsodium_crypto_ipcrypt:pfx_encrypt(Ip, PK),
+        <<0:80, 16#ffff:16, Prefix:3/binary, _>> = libsodium_crypto_ipcrypt:pfx_encrypt(libsodium_utils:ip2bin(<<"10.0.0.129">>), PK),
+        16 = byte_size(libsodium_crypto_ipcrypt:keygen()),
+        badarg = try libsodium_crypto_ipcrypt:encrypt(<<192, 0, 2, 1>>, libsodium_crypto_ipcrypt:keygen()) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_ipcrypt:pfx_encrypt(Ip, libsodium_crypto_ipcrypt:keygen()) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_ipcrypt:nd_encrypt(Ip, <<0:64>>, NdxK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_ipcrypt:ndx_decrypt(Nd1, NdxK) catch error:badarg -> badarg end.

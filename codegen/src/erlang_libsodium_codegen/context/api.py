@@ -58,9 +58,9 @@ CONSTANT_DOCS = {
 
 # Categories follow the structure of the libsodium documentation.
 GROUPS = (
-    ("Secret-key cryptography", ("crypto_aead_", "crypto_auth", "crypto_secretbox", "crypto_secretstream_")),
-    ("Public-key cryptography", ("crypto_box", "crypto_kx", "crypto_sign")),
-    ("Hashing", ("crypto_generichash", "crypto_hash", "crypto_shorthash")),
+    ("Secret-key cryptography", ("crypto_aead_", "crypto_auth", "crypto_ipcrypt", "crypto_secretbox", "crypto_secretstream_")),
+    ("Public-key cryptography", ("crypto_box", "crypto_kem", "crypto_kx", "crypto_sign")),
+    ("Hashing", ("crypto_generichash", "crypto_hash", "crypto_shorthash", "crypto_xof_")),
     ("Password hashing", ("crypto_pwhash",)),
     ("Key derivation", ("crypto_kdf",)),
     ("Advanced", ("crypto_core_", "crypto_onetimeauth", "crypto_scalarmult", "crypto_stream", "crypto_verify_")),
