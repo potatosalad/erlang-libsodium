@@ -42,7 +42,7 @@ crypto_sign_ed25519ph:
         - {type: state, name: state, c_type: crypto_sign_ed25519ph_state}
         - {type: fixed, name: sk, size: crypto_sign_ed25519_SECRETKEYBYTES}
       outputs:
-        - {name: sig, size: crypto_sign_ed25519_BYTES, len: siglen}
+        - {name: sig, size: crypto_sign_ed25519_BYTES, len: siglen, exact: true}
       call: crypto_sign_ed25519ph_final_create(&state, sig, &siglen, sk)
       returns: sig
       erlang:

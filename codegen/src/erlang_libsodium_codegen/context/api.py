@@ -27,6 +27,21 @@ SIGNED_LIMITS = {
     "int64_t": ("INT64_MIN", "INT64_MAX"),
     "int32_t": ("INT32_MIN", "INT32_MAX"),
 }
+# Value ranges of unsigned argument types; None means unbounded in Erlang types.
+UNSIGNED_RANGES = {
+    "unsigned char": (0, 255),
+    "uint8_t": (0, 255),
+    "uint16_t": (0, 65535),
+    "uint32_t": (0, 4294967295),
+}
+
+# Erlang's predefined types cannot be redefined by a module.
+BUILTIN_TYPES = frozenset(
+    "any arity atom binary bitstring boolean byte char dynamic float fun function identifier integer iodata iolist "
+    "list map mfa module neg_integer nil no_return node non_neg_integer none nonempty_list nonempty_string number "
+    "pid port pos_integer reference string term timeout tuple".split()
+)
+
 DIRTY_FLAGS = {
     "normal": "ERL_NIF_NORMAL_JOB_BOUND",
     "auto": "ERL_NIF_NORMAL_JOB_BOUND",
@@ -141,7 +156,12 @@ class ConstantCtx:
 
     @property
     def result_type(self) -> str:
-        return self.schema.spec or CONSTANT_SPECS[self.schema.type]
+        if self.schema.spec:
+            return self.schema.spec
+        value = self.schema.value
+        if value is not None and self.schema.type in ("size", "uint", "int", "atom"):
+            return str(value)
+        return CONSTANT_SPECS[self.schema.type]
 
     @property
     def is_native(self) -> bool:
@@ -585,10 +605,13 @@ class FunctionCtx:
         match arg:
             case schema.StateArg():
                 return "state()" if local else f"{arg.c_type}()"
+            case schema.FixedArg():
+                return self.namespace.binary_type(arg, local)
             case schema.UIntArg():
-                return "non_neg_integer()"
+                low, high = UNSIGNED_RANGES.get(arg.c_type, (0, None))
+                return self.namespace.range_type(arg.min, arg.max, low, high, "non_neg_integer()")
             case schema.IntArg():
-                return "integer()"
+                return self.namespace.range_type(arg.min, arg.max, None, None, "integer()")
             case schema.EnumArg():
                 return " | ".join([*arg.values, *(["integer()"] if arg.integers else [])])
             case _:
@@ -604,6 +627,8 @@ class FunctionCtx:
             item = self._named(expr)
             if isinstance(item, (schema.StateArg, schema.StateOutput)):
                 return "state()" if local else f"{item.c_type}()"
+            if isinstance(item, (schema.FixedArg, schema.BufferOutput)):
+                return self.namespace.binary_type(item, local)
         return {
             "binary": "binary()",
             "uint": "non_neg_integer()",
@@ -713,6 +738,72 @@ class NamespaceCtx:
     @property
     def group(self) -> str:
         return namespace_group(self.name)
+
+    def size(self, item: schema.FixedArg | schema.BufferOutput) -> int | None:
+        """The constant length of a fixed argument or output, if libsodium defines one."""
+        if isinstance(item, schema.BufferOutput) and (item.len or item.length) and not item.exact:
+            return None
+        return self.ctx.macros.value(item.size)
+
+    def binary_type(self, item: schema.FixedArg | schema.BufferOutput, local: bool) -> str:
+        size = self.size(item)
+        if size is None:
+            return "binary()"
+        if local:
+            return f"{erlang_atom(item.erlang_type or item.name)}()"
+        return f"<<_:{size * 8}>>"
+
+    def range_type(self, low: str | None, high: str | None, default_low, default_high, fallback: str) -> str:
+        low_value = self.ctx.macros.value(low) if low else default_low
+        high_value = self.ctx.macros.value(high) if high else default_high
+        if low_value is None or high_value is None:
+            if low_value is not None and low_value > 0:
+                return "pos_integer()" if low_value == 1 else fallback
+            return fallback
+        return f"{low_value}..{high_value}"
+
+    @cached_property
+    def binary_types(self) -> list[tuple[str, int, str]]:
+        """Named binary types for every constant-length argument and output: (name, bytes, C size)."""
+        types: dict[str, tuple[int, str]] = {}
+        for function in self.functions:
+            for item in [*function.args, *function.outputs]:
+                if not isinstance(item, (schema.FixedArg, schema.BufferOutput)):
+                    continue
+                size = self.size(item)
+                if size is None:
+                    continue
+                name = item.erlang_type or item.name
+                if name in BUILTIN_TYPES or name == "state":
+                    raise ValueError(f"{self.name}.{function.name}: {name}() is reserved; set `erlang_type`")
+                if name in types and types[name][0] != size:
+                    raise ValueError(
+                        f"{self.name}.{function.name}: {name} is {size} bytes here but {types[name][0]} bytes "
+                        f"elsewhere ({types[name][1]}); set `erlang_type` to tell them apart"
+                    )
+                types.setdefault(name, (size, item.size))
+        # Only types that appear in a public signature are worth naming.
+        specs = " ".join(function.spec for function in self.public_functions)
+        return sorted((name, size, c_size) for name, (size, c_size) in types.items() if f"{erlang_atom(name)}()" in specs)
+
+    @property
+    def exported_types(self) -> list[str]:
+        names = [name for name, _, _ in self.binary_types]
+        if self.state_c_type:
+            names.append("state")
+        return sorted(names)
+
+    @property
+    def size_assertions(self) -> list[tuple[str, int]]:
+        """Every resolved size macro, checked by the C compiler against the generated types."""
+        expressions = set()
+        for function in self.functions:
+            for item in [*function.args, *function.outputs]:
+                if isinstance(item, (schema.FixedArg, schema.BufferOutput)) and self.size(item) is not None:
+                    expressions.add(item.size)
+                if isinstance(item, (schema.UIntArg, schema.IntArg)):
+                    expressions |= {bound for bound in (item.min, item.max) if bound and self.ctx.macros.value(bound) is not None}
+        return sorted((expression, self.ctx.macros.value(expression)) for expression in expressions if not expression.isdigit())
 
     @property
     def state_c_type(self) -> str | None:

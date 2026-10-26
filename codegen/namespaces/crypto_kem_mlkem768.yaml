@@ -70,7 +70,7 @@ crypto_kem_mlkem768:
       args:
         - {type: fixed, name: pk, size: crypto_kem_mlkem768_PUBLICKEYBYTES}
         # The header declares `seed[32]`; libsodium has no macro for it.
-        - {type: fixed, name: seed, size: "32"}
+        - {type: fixed, name: seed, size: "32", erlang_type: enc_seed}
       outputs:
         - {name: ct, size: crypto_kem_mlkem768_CIPHERTEXTBYTES}
         - {name: ss, size: crypto_kem_mlkem768_SHAREDSECRETBYTES}

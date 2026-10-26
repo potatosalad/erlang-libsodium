@@ -12,7 +12,7 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined, Template
 from jinja2.ext import Extension
 
 from .context import Context, NamespaceCtx
-from .context.api import indent
+from .context.api import erlang_atom, indent
 from .schema import Root as RootSchema
 
 TOKEN: str = "".join(["<<", "SignedSource", "::", "*O*zOeWoEQle#+L!plEphiEmie@IsG", ">>"])
@@ -154,6 +154,7 @@ class Stage:
         )
         self.erl_env.add_extension("jinja2.ext.debug")
         self.erl_env.add_extension(SignedSourceErl)
+        self.erl_env.filters["erlang_atom"] = erlang_atom
         self.markdown_env = Environment(
             loader=FileSystemLoader(self.templates_path, encoding="utf-8"),
             block_start_string="~J{",
@@ -258,7 +259,9 @@ class CodeGenerator:
     stage2: Optional[Stage] = field(init=False)
 
     def __post_init__(self) -> None:
-        self.ctx = Context(_output_path=self.output_path, schema=load_config(self.config_file))
+        schema = load_config(self.config_file)
+        include_dir = Path(self.config_file).parent / schema.nif.libsodium_include
+        self.ctx = Context(_output_path=self.output_path, schema=schema, include_dir=include_dir)
         self.stage0 = Stage(codegen=self, templates_path=self.templates0_path)
         self.stage1 = Stage(codegen=self, templates_path=self.templates1_path)
         self.stage2 = Stage(codegen=self, templates_path=self.templates2_path) if self.templates2_path else None

@@ -28,9 +28,15 @@
 ~J{ endfor }.
 ]).
 ~J{ endif }.
-~J{ if namespace.state_c_type }.
+~J{ if namespace.binary_types or namespace.state_c_type }.
 
 %% Types
+~J{ for name, size, c_size in namespace.binary_types }.
+
+-doc "A `~J< c_size >.` (~J< size >.-byte) binary.".
+-type ~J< name | erlang_atom >.() :: <<_:~J< size * 8 >.>>.
+~J{ endfor }.
+~J{ if namespace.state_c_type }.
 
 -doc """
 An opaque native `~J< namespace.state_c_type >.`.
@@ -40,9 +46,12 @@ remain valid and can be reused or shared between processes. States cannot be
 serialized; they exist only within the running VM.
 """.
 -type state() :: libsodium_nif:~J< namespace.state_c_type >.().
+~J{ endif }.
 
 -export_type([
-    state/0
+~J{ for name in namespace.exported_types }.
+    ~J< name | erlang_atom >./0~J< ',' if not loop.last else '' >.
+~J{ endfor }.
 ]).
 ~J{ endif }.
 

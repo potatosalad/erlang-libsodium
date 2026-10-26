@@ -71,6 +71,9 @@ class FixedArg(Model):
     name: CIdentifier
     size: str = Field(description="C expression for the required length, such as `crypto_box_SEEDBYTES`.")
     nullable: bool = Field(default=False, description="Pass NULL when the required length is zero.")
+    erlang_type: ErlangAtom | None = Field(
+        default=None, description="Name of the module's binary type for this size; defaults to the argument name."
+    )
 
 
 class CStringArg(Model):
@@ -134,6 +137,10 @@ class BufferOutput(Model):
     copy_from: CIdentifier | None = Field(
         default=None, description="Copy this argument's bytes to the start of the buffer, which must be large enough."
     )
+    erlang_type: ErlangAtom | None = Field(
+        default=None, description="Name of the module's binary type when the size is constant; defaults to the output name."
+    )
+    exact: bool = Field(default=False, description="The call always produces exactly `size` bytes, even though it reports `len`.")
 
 
 class StateOutput(Model):
@@ -269,6 +276,10 @@ class Namespace(Model):
 
 class NIF(Model):
     atoms: list[CIdentifier] = Field(default_factory=list)
+    libsodium_include: str = Field(
+        default="../c_deps/libsodium/src/libsodium/include/sodium",
+        description="libsodium's public headers, relative to config.yaml, used to resolve size macros.",
+    )
     dirty_threshold: int = Field(default=65536, gt=0, description="Work bytes above which `auto` runs dirty.")
     update_chunk: int = Field(default=65536, gt=0, description="Bytes absorbed between timeslice checks.")
 

@@ -67,7 +67,7 @@ def test_default_call_places_outputs_first():
     assert function.call_expr == "crypto_example_easy(c, &clen, m, mlen, k)"
     assert function.schedule == "auto"
     assert function.result_type() == "binary() | -1"
-    assert function.nif_spec == "crypto_example_easy(M, K) -> Result when M :: binary(), K :: binary(), Result :: binary() | -1"
+    assert function.nif_spec == "crypto_example_easy(M, K) -> Result when M :: binary(), K :: <<_:256>>, Result :: binary() | -1"
 
 
 def test_enum_atoms_are_registered():
@@ -198,3 +198,111 @@ def test_namespaces_use_one_state_type():
                 ],
             }
         )
+
+
+def write_header(tmp_path, text):
+    (tmp_path / "example.h").write_text(text)
+    return tmp_path
+
+
+def test_macros_resolve_constant_sizes(tmp_path):
+    from erlang_libsodium_codegen.context.macros import Macros
+
+    macros = Macros(
+        write_header(
+            tmp_path,
+            "#define crypto_example_KEYBYTES 32U\n"
+            "#define crypto_example_ALIAS crypto_example_KEYBYTES\n"
+            "#define crypto_example_MAX (0xff * crypto_example_ALIAS)\n"
+            "#define crypto_example_MESSAGEBYTES_MAX \\\n    SODIUM_MIN(SODIUM_SIZE_MAX, 64U)\n",
+        )
+    )
+    assert macros.value("crypto_example_ALIAS") == 32
+    assert macros.value("crypto_example_MAX") == 8160
+    assert macros.value("(size_t) crypto_example_KEYBYTES + 1U") == 33
+    assert macros.value("crypto_example_MESSAGEBYTES_MAX") is None
+    assert macros.value("mlen + crypto_example_KEYBYTES") is None
+
+
+def typed_context(tmp_path, functions, constants=()):
+    header = write_header(tmp_path, "#define crypto_example_KEYBYTES 32U\n#define crypto_example_NPUBBYTES 12U\n")
+    return Context(
+        _output_path=".",
+        schema=Root.model_validate(
+            {
+                "namespaces": {
+                    "crypto_example": {
+                        "title": "Example",
+                        "doc": "Example.",
+                        "functions": functions,
+                        "constants": list(constants),
+                    }
+                }
+            }
+        ),
+        include_dir=header,
+    )
+
+
+def test_fixed_sizes_become_named_binary_types(tmp_path):
+    ctx = typed_context(
+        tmp_path,
+        [
+            {
+                "name": "encrypt",
+                "doc": "Encrypt.",
+                "args": [
+                    {"type": "binary", "name": "m"},
+                    {"type": "fixed", "name": "npub", "size": "crypto_example_NPUBBYTES"},
+                    {"type": "fixed", "name": "k", "size": "crypto_example_KEYBYTES"},
+                    {"type": "uint", "name": "domain", "c_type": "unsigned char"},
+                ],
+                "outputs": [{"name": "c", "size": "mlen + 16", "len": "clen"}],
+                "returns": "c",
+            },
+            {
+                "name": "keygen",
+                "doc": "Keygen.",
+                "outputs": [{"name": "k", "size": "crypto_example_KEYBYTES"}],
+                "rc_type": "void",
+                "check": "none",
+                "returns": "k",
+            },
+        ],
+        constants=[{"name": "keybytes", "value": 32}, {"name": "messagebytes_max"}],
+    )
+    namespace_ctx = ctx.namespaces[0]
+    assert namespace_ctx.binary_types == [
+        ("k", 32, "crypto_example_KEYBYTES"),
+        ("npub", 12, "crypto_example_NPUBBYTES"),
+    ]
+    specs = {f.name: f.spec for f in namespace_ctx.public_functions}
+    assert specs["encrypt"].endswith("M :: binary(), Npub :: npub(), K :: k(), Domain :: 0..255, Result :: binary() | -1")
+    assert specs["keygen"] == "keygen() -> Result when Result :: k()"
+    assert specs["keybytes"] == "keybytes() -> Result when Result :: 32"
+    assert specs["messagebytes_max"] == "messagebytes_max() -> Result when Result :: non_neg_integer()"
+    encrypt = namespace_ctx.functions[0]
+    assert "Npub :: <<_:96>>, K :: <<_:256>>" in encrypt.nif_spec
+    assert ("crypto_example_KEYBYTES", 32) in namespace_ctx.size_assertions
+
+
+def test_conflicting_type_sizes_need_names(tmp_path):
+    def keygen(name, size, **extra):
+        return {
+            "name": name,
+            "doc": "Keygen.",
+            "outputs": [{"name": "k", "size": size, **extra}],
+            "rc_type": "void",
+            "check": "none",
+            "returns": "k",
+        }
+
+    ctx = typed_context(tmp_path, [keygen("keygen", "crypto_example_KEYBYTES"), keygen("short_keygen", "16")])
+    with pytest.raises(ValueError, match="set `erlang_type`"):
+        _ = ctx.namespaces[0].binary_types
+
+    ctx = typed_context(
+        tmp_path,
+        [keygen("keygen", "crypto_example_KEYBYTES"), keygen("short_keygen", "16", erlang_type="short_k")],
+    )
+    assert [name for name, _, _ in ctx.namespaces[0].binary_types] == ["k", "short_k"]

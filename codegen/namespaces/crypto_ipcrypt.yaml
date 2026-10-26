@@ -60,27 +60,27 @@ crypto_ipcrypt:
         Deterministically encrypt the `bytes/0` byte address `In` with the
         `keybytes/0` byte key `K`, returning another `bytes/0` byte address.
       args:
-        - {type: fixed, name: in, size: crypto_ipcrypt_BYTES}
-        - {type: fixed, name: k, size: crypto_ipcrypt_KEYBYTES}
+        - {type: fixed, name: in, size: crypto_ipcrypt_BYTES, erlang_type: ip}
+        - {type: fixed, name: k, size: crypto_ipcrypt_KEYBYTES, erlang_type: key}
       outputs:
-        - {name: out, size: crypto_ipcrypt_BYTES}
+        - {name: out, size: crypto_ipcrypt_BYTES, erlang_type: ip}
       rc_type: void
       check: none
       returns: out
     - name: decrypt
       doc: Decrypt the `bytes/0` byte address `In` produced by `encrypt/2` with the key `K`.
       args:
-        - {type: fixed, name: in, size: crypto_ipcrypt_BYTES}
-        - {type: fixed, name: k, size: crypto_ipcrypt_KEYBYTES}
+        - {type: fixed, name: in, size: crypto_ipcrypt_BYTES, erlang_type: ip}
+        - {type: fixed, name: k, size: crypto_ipcrypt_KEYBYTES, erlang_type: key}
       outputs:
-        - {name: out, size: crypto_ipcrypt_BYTES}
+        - {name: out, size: crypto_ipcrypt_BYTES, erlang_type: ip}
       rc_type: void
       check: none
       returns: out
     - name: keygen
       doc: Generate a random `keybytes/0` byte key for `encrypt/2`.
       outputs:
-        - {name: k, size: crypto_ipcrypt_KEYBYTES}
+        - {name: k, size: crypto_ipcrypt_KEYBYTES, erlang_type: key}
       rc_type: void
       check: none
       returns: k
@@ -91,11 +91,11 @@ crypto_ipcrypt:
         Returns `nd_outputbytes/0` bytes: the tweak followed by the encrypted
         address. The tweak must be random and should not repeat for a key.
       args:
-        - {type: fixed, name: in, size: crypto_ipcrypt_ND_INPUTBYTES}
-        - {type: fixed, name: t, size: crypto_ipcrypt_ND_TWEAKBYTES}
-        - {type: fixed, name: k, size: crypto_ipcrypt_ND_KEYBYTES}
+        - {type: fixed, name: in, size: crypto_ipcrypt_ND_INPUTBYTES, erlang_type: ip}
+        - {type: fixed, name: t, size: crypto_ipcrypt_ND_TWEAKBYTES, erlang_type: nd_tweak}
+        - {type: fixed, name: k, size: crypto_ipcrypt_ND_KEYBYTES, erlang_type: nd_key}
       outputs:
-        - {name: out, size: crypto_ipcrypt_ND_OUTPUTBYTES}
+        - {name: out, size: crypto_ipcrypt_ND_OUTPUTBYTES, erlang_type: nd_ciphertext}
       rc_type: void
       check: none
       returns: out
@@ -113,17 +113,17 @@ crypto_ipcrypt:
         Decrypt the `nd_outputbytes/0` byte output `In` of `nd_encrypt/2` with
         the key `K`, returning the `nd_inputbytes/0` byte address.
       args:
-        - {type: fixed, name: in, size: crypto_ipcrypt_ND_OUTPUTBYTES}
-        - {type: fixed, name: k, size: crypto_ipcrypt_ND_KEYBYTES}
+        - {type: fixed, name: in, size: crypto_ipcrypt_ND_OUTPUTBYTES, erlang_type: nd_ciphertext}
+        - {type: fixed, name: k, size: crypto_ipcrypt_ND_KEYBYTES, erlang_type: nd_key}
       outputs:
-        - {name: out, size: crypto_ipcrypt_ND_INPUTBYTES}
+        - {name: out, size: crypto_ipcrypt_ND_INPUTBYTES, erlang_type: ip}
       rc_type: void
       check: none
       returns: out
     - name: nd_keygen
       doc: Generate a random `nd_keybytes/0` byte key for `nd_encrypt/2`.
       outputs:
-        - {name: k, size: crypto_ipcrypt_ND_KEYBYTES}
+        - {name: k, size: crypto_ipcrypt_ND_KEYBYTES, erlang_type: nd_key}
       rc_type: void
       check: none
       returns: k
@@ -135,11 +135,11 @@ crypto_ipcrypt:
         encrypted address. The tweak must be random and should not repeat for
         a key.
       args:
-        - {type: fixed, name: in, size: crypto_ipcrypt_NDX_INPUTBYTES}
-        - {type: fixed, name: t, size: crypto_ipcrypt_NDX_TWEAKBYTES}
-        - {type: fixed, name: k, size: crypto_ipcrypt_NDX_KEYBYTES}
+        - {type: fixed, name: in, size: crypto_ipcrypt_NDX_INPUTBYTES, erlang_type: ip}
+        - {type: fixed, name: t, size: crypto_ipcrypt_NDX_TWEAKBYTES, erlang_type: ndx_tweak}
+        - {type: fixed, name: k, size: crypto_ipcrypt_NDX_KEYBYTES, erlang_type: ndx_key}
       outputs:
-        - {name: out, size: crypto_ipcrypt_NDX_OUTPUTBYTES}
+        - {name: out, size: crypto_ipcrypt_NDX_OUTPUTBYTES, erlang_type: ndx_ciphertext}
       rc_type: void
       check: none
       returns: out
@@ -157,17 +157,17 @@ crypto_ipcrypt:
         Decrypt the `ndx_outputbytes/0` byte output `In` of `ndx_encrypt/2`
         with the key `K`, returning the `ndx_inputbytes/0` byte address.
       args:
-        - {type: fixed, name: in, size: crypto_ipcrypt_NDX_OUTPUTBYTES}
-        - {type: fixed, name: k, size: crypto_ipcrypt_NDX_KEYBYTES}
+        - {type: fixed, name: in, size: crypto_ipcrypt_NDX_OUTPUTBYTES, erlang_type: ndx_ciphertext}
+        - {type: fixed, name: k, size: crypto_ipcrypt_NDX_KEYBYTES, erlang_type: ndx_key}
       outputs:
-        - {name: out, size: crypto_ipcrypt_NDX_INPUTBYTES}
+        - {name: out, size: crypto_ipcrypt_NDX_INPUTBYTES, erlang_type: ip}
       rc_type: void
       check: none
       returns: out
     - name: ndx_keygen
       doc: Generate a random `ndx_keybytes/0` byte key for `ndx_encrypt/2`.
       outputs:
-        - {name: k, size: crypto_ipcrypt_NDX_KEYBYTES}
+        - {name: k, size: crypto_ipcrypt_NDX_KEYBYTES, erlang_type: ndx_key}
       rc_type: void
       check: none
       returns: k
@@ -178,27 +178,27 @@ crypto_ipcrypt:
         bits share the first bits of their encryptions, and IPv4 addresses
         stay IPv4-mapped.
       args:
-        - {type: fixed, name: in, size: crypto_ipcrypt_PFX_BYTES}
-        - {type: fixed, name: k, size: crypto_ipcrypt_PFX_KEYBYTES}
+        - {type: fixed, name: in, size: crypto_ipcrypt_PFX_BYTES, erlang_type: ip}
+        - {type: fixed, name: k, size: crypto_ipcrypt_PFX_KEYBYTES, erlang_type: pfx_key}
       outputs:
-        - {name: out, size: crypto_ipcrypt_PFX_BYTES}
+        - {name: out, size: crypto_ipcrypt_PFX_BYTES, erlang_type: ip}
       rc_type: void
       check: none
       returns: out
     - name: pfx_decrypt
       doc: Decrypt the `pfx_bytes/0` byte address `In` produced by `pfx_encrypt/2` with the key `K`.
       args:
-        - {type: fixed, name: in, size: crypto_ipcrypt_PFX_BYTES}
-        - {type: fixed, name: k, size: crypto_ipcrypt_PFX_KEYBYTES}
+        - {type: fixed, name: in, size: crypto_ipcrypt_PFX_BYTES, erlang_type: ip}
+        - {type: fixed, name: k, size: crypto_ipcrypt_PFX_KEYBYTES, erlang_type: pfx_key}
       outputs:
-        - {name: out, size: crypto_ipcrypt_PFX_BYTES}
+        - {name: out, size: crypto_ipcrypt_PFX_BYTES, erlang_type: ip}
       rc_type: void
       check: none
       returns: out
     - name: pfx_keygen
       doc: Generate a random `pfx_keybytes/0` byte key for `pfx_encrypt/2`.
       outputs:
-        - {name: k, size: crypto_ipcrypt_PFX_KEYBYTES}
+        - {name: k, size: crypto_ipcrypt_PFX_KEYBYTES, erlang_type: pfx_key}
       rc_type: void
       check: none
       returns: k

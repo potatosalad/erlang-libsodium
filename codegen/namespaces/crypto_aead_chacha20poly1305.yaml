@@ -49,7 +49,7 @@ crypto_aead_chacha20poly1305:
         - {type: binary, name: m}
         - {type: binary, name: ad, nullable: true}
         - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_ietf_NSECBYTES, nullable: true}
-        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES, erlang_type: ietf_npub}
         - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_ietf_KEYBYTES}
       outputs:
         - {name: c, size: "mlen + crypto_aead_chacha20poly1305_ietf_ABYTES", len: clen}
@@ -69,7 +69,7 @@ crypto_aead_chacha20poly1305:
         - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_ietf_NSECBYTES, nullable: true}
         - {type: binary, name: c}
         - {type: binary, name: ad, nullable: true}
-        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES, erlang_type: ietf_npub}
         - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_ietf_KEYBYTES}
       outputs:
         - name: m
@@ -91,11 +91,11 @@ crypto_aead_chacha20poly1305:
         - {type: binary, name: m}
         - {type: binary, name: ad, nullable: true}
         - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_ietf_NSECBYTES, nullable: true}
-        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES, erlang_type: ietf_npub}
         - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_ietf_KEYBYTES}
       outputs:
         - {name: c, size: mlen}
-        - {name: mac, size: crypto_aead_chacha20poly1305_ietf_ABYTES, len: maclen}
+        - {name: mac, size: crypto_aead_chacha20poly1305_ietf_ABYTES, len: maclen, exact: true}
       returns: [c, mac]
       erlang:
         - params: [M, NPub, K]
@@ -112,7 +112,7 @@ crypto_aead_chacha20poly1305:
         - {type: binary, name: c}
         - {type: fixed, name: mac, size: crypto_aead_chacha20poly1305_ietf_ABYTES}
         - {type: binary, name: ad, nullable: true}
-        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES, erlang_type: ietf_npub}
         - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_ietf_KEYBYTES}
       outputs:
         - {name: m, size: clen}
@@ -188,7 +188,7 @@ crypto_aead_chacha20poly1305:
         - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_KEYBYTES}
       outputs:
         - {name: c, size: mlen}
-        - {name: mac, size: crypto_aead_chacha20poly1305_ABYTES, len: maclen}
+        - {name: mac, size: crypto_aead_chacha20poly1305_ABYTES, len: maclen, exact: true}
       returns: [c, mac]
       erlang:
         - params: [M, NPub, K]

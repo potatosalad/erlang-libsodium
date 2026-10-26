@@ -87,7 +87,7 @@ crypto_stream_chacha20:
         `K`. `CLen` must not exceed `ietf_messagebytes_max/0`.
       args:
         - {type: uint, name: clen, c_type: size_t, max: crypto_stream_chacha20_ietf_MESSAGEBYTES_MAX, work: true}
-        - {type: fixed, name: n, size: crypto_stream_chacha20_ietf_NONCEBYTES}
+        - {type: fixed, name: n, size: crypto_stream_chacha20_ietf_NONCEBYTES, erlang_type: ietf_n}
         - {type: fixed, name: k, size: crypto_stream_chacha20_ietf_KEYBYTES}
       outputs:
         - {name: c, size: clen}
@@ -101,7 +101,7 @@ crypto_stream_chacha20:
         `K`, starting at block counter `0`.
       args:
         - {type: binary, name: m, max: crypto_stream_chacha20_ietf_MESSAGEBYTES_MAX}
-        - {type: fixed, name: n, size: crypto_stream_chacha20_ietf_NONCEBYTES}
+        - {type: fixed, name: n, size: crypto_stream_chacha20_ietf_NONCEBYTES, erlang_type: ietf_n}
         - {type: fixed, name: k, size: crypto_stream_chacha20_ietf_KEYBYTES}
       outputs:
         - {name: c, size: mlen}
@@ -113,7 +113,7 @@ crypto_stream_chacha20:
         `badarg` when the message would overflow the block counter.
       args:
         - {type: binary, name: m, max: crypto_stream_chacha20_ietf_MESSAGEBYTES_MAX}
-        - {type: fixed, name: n, size: crypto_stream_chacha20_ietf_NONCEBYTES}
+        - {type: fixed, name: n, size: crypto_stream_chacha20_ietf_NONCEBYTES, erlang_type: ietf_n}
         - {type: uint, name: ic, c_type: uint32_t}
         - {type: fixed, name: k, size: crypto_stream_chacha20_ietf_KEYBYTES}
       prelude: |

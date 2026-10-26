@@ -6,6 +6,13 @@
 {% if namespace.update_functions %}
 #include "../core/libsodium_nif_update.h"
 {% endif %}
+{% if namespace.size_assertions %}
+
+/* Sizes assumed by the generated Erlang types. */
+{% for expression, size in namespace.size_assertions %}
+_Static_assert((size_t)({{ expression }}) == (size_t)({{ size }}), "{{ expression }} is not {{ size }}");
+{% endfor %}
+{% endif %}
 {% for constant in namespace.constants %}
 
 /* {{ constant.nif_name }}/0 */

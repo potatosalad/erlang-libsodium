@@ -85,7 +85,7 @@ crypto_aead_aegis256:
         - {type: fixed, name: k, size: crypto_aead_aegis256_KEYBYTES}
       outputs:
         - {name: c, size: mlen}
-        - {name: mac, size: crypto_aead_aegis256_ABYTES, len: maclen}
+        - {name: mac, size: crypto_aead_aegis256_ABYTES, len: maclen, exact: true}
       returns: [c, mac]
       erlang:
         - params: [M, NPub, K]

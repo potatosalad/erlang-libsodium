@@ -90,7 +90,7 @@ crypto_aead_aes256gcm:
         - {type: fixed, name: k, size: crypto_aead_aes256gcm_KEYBYTES}
       outputs:
         - {name: c, size: mlen}
-        - {name: mac, size: crypto_aead_aes256gcm_ABYTES, len: maclen}
+        - {name: mac, size: crypto_aead_aes256gcm_ABYTES, len: maclen, exact: true}
       returns: [c, mac]
       erlang:
         - params: [M, NPub, K]
@@ -168,7 +168,7 @@ crypto_aead_aes256gcm:
         - {type: state, name: ctx, c_type: crypto_aead_aes256gcm_state}
       outputs:
         - {name: c, size: mlen}
-        - {name: mac, size: crypto_aead_aes256gcm_ABYTES, len: maclen}
+        - {name: mac, size: crypto_aead_aes256gcm_ABYTES, len: maclen, exact: true}
       returns: [c, mac]
       erlang:
         - params: [M, NPub, Ctx]

@@ -84,7 +84,7 @@ crypto_sign:
         - {type: binary, name: m}
         - {type: fixed, name: sk, size: crypto_sign_SECRETKEYBYTES}
       outputs:
-        - {name: sig, size: crypto_sign_BYTES, len: siglen}
+        - {name: sig, size: crypto_sign_BYTES, len: siglen, exact: true}
       returns: sig
       erlang:
         - params: [M, SK]
@@ -121,7 +121,7 @@ crypto_sign:
         - {type: state, name: state, c_type: crypto_sign_state}
         - {type: fixed, name: sk, size: crypto_sign_SECRETKEYBYTES}
       outputs:
-        - {name: sig, size: crypto_sign_BYTES, len: siglen}
+        - {name: sig, size: crypto_sign_BYTES, len: siglen, exact: true}
       call: crypto_sign_final_create(&state, sig, &siglen, sk)
       returns: sig
       erlang:

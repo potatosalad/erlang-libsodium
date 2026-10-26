@@ -113,6 +113,25 @@ module; a namespace may use only one state type. A call copies an argument
 state into an aligned local and returns any resulting state as a new resource,
 so states are never modified once Erlang can see them.
 
+## Erlang types
+
+The generator evaluates libsodium's size macros from the vendored headers
+(`nif.libsodium_include`), so constant-length arguments and outputs get exact
+binary types. Each namespace module defines a named type per argument or output
+name, such as `-type k() :: <<_:256>>.` and `-type npub() :: <<_:96>>.`, and
+exports the ones its public specs use; `libsodium_nif` uses the inline
+`<<_:N>>` forms. When one name has different sizes within a namespace (such as
+ChaCha20-Poly1305's original and IETF nonces), the generator stops and asks for
+an `erlang_type` to tell them apart. Outputs that report their length (`len`)
+stay `binary()` unless they set `exact: true`, meaning libsodium always fills
+them completely, as with MACs and signatures.
+
+Integer arguments become ranges when their bounds are known (`Outlen :: 16..64`,
+`Domain :: 0..255`), and constants with a recorded `value` return that literal
+(`keybytes() -> 32`). Every size the generator assumed is checked by a
+`_Static_assert` in the namespace's C source, so a wrong evaluation fails the
+build.
+
 Invalid arguments raise `badarg`. With the default `check: zero`, a non-zero
 libsodium result is returned to Erlang as that integer, as the port driver did.
 Buffers are wiped before release, and argument states and C strings are wiped

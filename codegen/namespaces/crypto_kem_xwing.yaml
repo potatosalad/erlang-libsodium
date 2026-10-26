@@ -72,7 +72,7 @@ crypto_kem_xwing:
       args:
         - {type: fixed, name: pk, size: crypto_kem_xwing_PUBLICKEYBYTES}
         # The header declares `seed[64]`; libsodium has no macro for it.
-        - {type: fixed, name: seed, size: "64"}
+        - {type: fixed, name: seed, size: "64", erlang_type: enc_seed}
       outputs:
         - {name: ct, size: crypto_kem_xwing_CIPHERTEXTBYTES}
         - {name: ss, size: crypto_kem_xwing_SHAREDSECRETBYTES}

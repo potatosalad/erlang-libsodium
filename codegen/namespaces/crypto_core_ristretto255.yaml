@@ -154,7 +154,7 @@ crypto_core_ristretto255:
         modulo L. `S` should be sampled from at least 317 bits (such as a
         64-byte hash) for the result to be close to uniform.
       args:
-        - {type: fixed, name: s, size: crypto_core_ristretto255_NONREDUCEDSCALARBYTES}
+        - {type: fixed, name: s, size: crypto_core_ristretto255_NONREDUCEDSCALARBYTES, erlang_type: nonreduced_scalar}
       outputs:
         - {name: r, size: crypto_core_ristretto255_SCALARBYTES}
       rc_type: void

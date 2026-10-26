@@ -21,7 +21,9 @@
   * Replace the port driver with a NIF (`libsodium_nif`). Calls over 64 KiB of input or output move to a dirty CPU
     scheduler, password hashing always runs on one, and streaming `update/2` functions yield whenever their
     timeslice is exhausted.
-  * Every module has module and function documentation, specs, and multiline exports.
+  * Every module has module and function documentation, specs, and multiline exports. Specs use exact binary types
+    for fixed-size keys, nonces, tags, and signatures (such as `libsodium_crypto_aead_aes256gcm:k()`, which is
+    `<<_:256>>`), integer ranges for bounded arguments, and literal results for fixed constants.
   * Benchee benchmarks under `bench/` (`just bench`) compare libsodium's implementations with each other and with
     OTP `crypto` where it has an equivalent, after checking that both produce identical results.
   * Modernize `c_src/Makefile`: build libsodium out of tree into `c_deps/libsodium-build`, track header

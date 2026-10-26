@@ -152,6 +152,26 @@
           "default": null,
           "description": "Copy this argument's bytes to the start of the buffer, which must be large enough.",
           "title": "Copy From"
+        },
+        "erlang_type": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-zA-Z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the module's binary type when the size is constant; defaults to the output name.",
+          "title": "Erlang Type"
+        },
+        "exact": {
+          "default": false,
+          "description": "The call always produces exactly `size` bytes, even though it reports `len`.",
+          "title": "Exact",
+          "type": "boolean"
         }
       },
       "required": [
@@ -411,6 +431,20 @@
           "description": "Pass NULL when the required length is zero.",
           "title": "Nullable",
           "type": "boolean"
+        },
+        "erlang_type": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-zA-Z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the module's binary type for this size; defaults to the argument name.",
+          "title": "Erlang Type"
         }
       },
       "required": [

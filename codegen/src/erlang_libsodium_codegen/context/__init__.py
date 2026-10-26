@@ -1,10 +1,12 @@
 """Template context for libsodium code generation."""
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from functools import cached_property
 
 from ..schema import Root
 from .api import GROUPS, ConstantCtx, FunctionCtx, NamespaceCtx, PublicFunction
+from .macros import Macros
 from .nif import NIF
 
 __all__ = ["ConstantCtx", "Context", "FunctionCtx", "NamespaceCtx", "PublicFunction"]
@@ -14,9 +16,12 @@ __all__ = ["ConstantCtx", "Context", "FunctionCtx", "NamespaceCtx", "PublicFunct
 class Context:
     _output_path: str = field(repr=False)
     schema: Root = field(repr=False)
+    include_dir: Path | None = field(default=None, repr=False)
     nif: NIF = field(init=False)
+    macros: Macros = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
+        self.macros = Macros(self.include_dir)
         self.reset_atoms()
 
     def reset_atoms(self) -> None:
