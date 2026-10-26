@@ -1,25 +1,30 @@
-%% -*- mode: erlang; tab-width: 4; indent-tabs-mode: 1; st-rulers: [70] -*-
-%% vim: ts=4 sw=4 ft=erlang noet
+%%% % @format
 {application, libsodium, [
-	{description, "libsodium Port Driver"},
-	{vsn, "2.0.0"},
-	{id, "git"},
-	{mod, {'libsodium_app', []}},
-	{registered, []},
-	{applications, [
-		kernel,
-		stdlib,
-		crypto,
-		asn1,
-		public_key
-	]},
-	{modules, []},
-	{licenses, ["MIT"]},
-	{links, [{"Github", "https://github.com/potatosalad/erlang-libsodium"}]},
-	{include_paths, [
-		"build.config",
-		"erlang.mk",
-		"Makefile",
-		"c_deps/libsodium/"
-	]}
+    {description, "libsodium NIF for Erlang and Elixir"},
+    {vsn, "2.0.0"},
+    {id, "git"},
+    {registered, [libsodium_sup]},
+    {mod, {libsodium_app, []}},
+    {applications, [
+        kernel,
+        stdlib
+    ]},
+    {modules, []},
+    {licenses, ["MIT"]},
+    {links, [{"GitHub", "https://github.com/potatosalad/erlang-libsodium"}]},
+    {exclude_paths, ["c_src/env.mk", "c_deps/libsodium/.git"]},
+    {exclude_patterns, ["\\.d$", "\\.o$", "\\.pyc$", "(^|/)__pycache__(/|$)"]},
+    {files, [
+        "src",
+        "c_src",
+        "c_deps/libsodium",
+        "Makefile",
+        "erlang.mk",
+        "rebar.config",
+        "rebar.lock",
+        "ex_doc.config",
+        "README.md",
+        "CHANGELOG.md",
+        "LICENSE.md"
+    ]}
 ]}.

@@ -191,9 +191,7 @@ class Function(Model):
     returns: Return = Field(description="Output names, `kind:expression`, or a list for a tuple.")
     spec: str | None = Field(default=None, description="Erlang result type; derived from `returns` when omitted.")
     schedule: Literal["auto", "normal", "dirty_cpu", "dirty_io"] = "auto"
-    update: bool = Field(
-        default=False, description="Streaming update over (state, binary) that yields on timeslice exhaustion."
-    )
+    update: bool = Field(default=False, description="Streaming update over (state, binary) that yields on timeslice exhaustion.")
     erlang: list[ErlangVariant] | None = None
     deprecated: str | None = None
 

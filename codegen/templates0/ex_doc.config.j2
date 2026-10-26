@@ -1,0 +1,22 @@
+%%% % @format
+{main, <<"readme">>}.
+{proglang, erlang}.
+{warnings_as_errors, true}.
+{extras, [
+    <<"README.md">>,
+    <<"CHANGELOG.md">>,
+    <<"LICENSE.md">>
+]}.
+{source_url, <<"https://github.com/potatosalad/erlang-libsodium">>}.
+{source_ref, <<"main">>}.
+{groups_for_modules, [
+    {<<"Application">>, [libsodium]},
+~J{ for group, namespaces in ctx.groups }.
+    {<<"~J< group >.">>, [
+~J{ for namespace in namespaces }.
+        ~J< namespace.module >.~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+    ]},
+~J{ endfor }.
+    {<<"Native API">>, [libsodium_nif]}
+]}.

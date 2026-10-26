@@ -7,6 +7,11 @@ HEX_TARBALL_FILES = Makefile erlang.mk rebar.config rebar.lock ex_doc.config REA
 
 include erlang.mk
 
+# Common Test excludes failed cleanup callbacks from its exit status counters.
+CT_RUN := rm -f "$(CT_LOGS_DIR)/junit_report.xml" && $(CT_RUN) \
+	-ct_hooks cth_surefire '[{path,"$(CT_LOGS_DIR)/junit_report.xml"}]' \
+	-halt_with libsodium_ct halt
+
 .PHONY: ex-doc
 
 docs:: ex-doc

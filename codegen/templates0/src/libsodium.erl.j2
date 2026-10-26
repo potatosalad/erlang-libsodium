@@ -1,0 +1,100 @@
+%%% % @format
+-module(libsodium).
+-moduledoc """
+[libsodium](https://libsodium.org) bindings for Erlang and Elixir.
+
+Each libsodium namespace is exposed by its own module, named after the C
+prefix: `crypto_box_easy()` is `libsodium_crypto_box:easy/4`. Functions accept
+and return binaries and integers, raise `badarg` for invalid argument types or
+lengths, and return libsodium's integer status (usually `-1`) when an
+operation such as decryption or verification fails.
+
+All modules call `m:libsodium_nif` directly; starting the application is not
+required. Long-running operations move to dirty schedulers and streaming
+updates yield, so calls never block a normal scheduler for long.
+
+~J{ for group, namespaces in ctx.groups }.
+## ~J< group >.
+
+| Module | Description |
+| ------ | ----------- |
+~J{ for namespace in namespaces }.
+| `m:~J< namespace.module >.` | ~J< namespace.title >. |
+~J{ endfor }.
+~J{ if not loop.last }.
+
+~J{ endif }.
+~J{ endfor }.
+""".
+-moduledoc #{author => ["Andrew Bennett <potatosaladx@gmail.com>"]}.
+-moduledoc #{created => "2015-12-28", modified => "2026-10-26"}.
+-moduledoc #{copyright => "Andrew Bennett"}.
+-compile(warn_missing_spec_all).
+
+%% Application API
+-export([
+    start/0
+]).
+%% Deprecated API
+-export([
+    call/2,
+    call/3
+]).
+
+-deprecated([
+    {call, 2, "call the namespace module, such as libsodium_crypto_box, instead"},
+    {call, 3, "call the namespace module, such as libsodium_crypto_box, instead"}
+]).
+
+%%%=============================================================================
+%%% Application API functions
+%%%=============================================================================
+
+-doc """
+Start the `libsodium` application and its dependencies.
+
+The native library loads on first use, so this is optional.
+
+```erlang
+{ok, _Started} = libsodium:start().
+```
+""".
+-doc #{group => "Application API"}.
+-spec start() -> Result when Result :: {ok, [atom()]} | {error, term()}.
+start() ->
+    application:ensure_all_started(?MODULE).
+
+%%%=============================================================================
+%%% Deprecated API functions
+%%%=============================================================================
+
+-doc """
+Equivalent to `call(Namespace, Function, {})`.
+""".
+-doc #{group => "Deprecated API"}.
+-spec call(Namespace, Function) -> Result when
+    Namespace :: atom(), Function :: atom(), Result :: dynamic().
+call(Namespace, Function) ->
+    call(Namespace, Function, {}).
+
+-doc """
+Call the native function for `Namespace` and `Function` with the elements of
+`Arguments`, as the port driver did. For example,
+`call(crypto_box, keypair, {})` calls `libsodium_nif:crypto_box_keypair/0`.
+
+Unknown functions raise `undef`.
+""".
+-doc #{group => "Deprecated API"}.
+-spec call(Namespace, Function, Arguments) -> Result when
+    Namespace :: atom(), Function :: atom(), Arguments :: tuple(), Result :: dynamic().
+call(Namespace, Function, Arguments) when is_atom(Namespace), is_atom(Function), is_tuple(Arguments) ->
+    Name = <<(atom_to_binary(Namespace))/binary, $_, (atom_to_binary(Function))/binary>>,
+    Args = tuple_to_list(Arguments),
+    {module, libsodium_nif} = code:ensure_loaded(libsodium_nif),
+    try binary_to_existing_atom(Name) of
+        Native ->
+            erlang:apply(libsodium_nif, Native, Args)
+    catch
+        error:badarg ->
+            erlang:error(undef, [Namespace, Function, Arguments])
+    end.

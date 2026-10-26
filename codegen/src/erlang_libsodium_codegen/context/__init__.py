@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from functools import cached_property
 
 from ..schema import Root
-from .api import ConstantCtx, FunctionCtx, NamespaceCtx, PublicFunction
+from .api import GROUPS, ConstantCtx, FunctionCtx, NamespaceCtx, PublicFunction
 from .nif import NIF
 
 __all__ = ["ConstantCtx", "Context", "FunctionCtx", "NamespaceCtx", "PublicFunction"]
@@ -27,6 +27,15 @@ class Context:
     @cached_property
     def namespaces(self) -> list[NamespaceCtx]:
         return [NamespaceCtx(self, name, namespace) for name, namespace in sorted(self.schema.namespaces.items())]
+
+    @property
+    def groups(self) -> list[tuple[str, list[NamespaceCtx]]]:
+        groups = []
+        for group, _ in GROUPS:
+            members = [namespace for namespace in self.namespaces if namespace.group == group]
+            if members:
+                groups.append((group, members))
+        return groups
 
     @property
     def nif_functions(self) -> list[ConstantCtx | FunctionCtx]:

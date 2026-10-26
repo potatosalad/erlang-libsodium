@@ -36,6 +36,7 @@ evaluate([Request | Rest], Index, Results) ->
             case maps:get(<<"format">>, Request) of
                 <<"check">> -> <<"ok">>;
                 <<"hex">> when is_binary(Value) -> binary:encode_hex(Value);
+                <<"text">> when is_binary(Value) -> Value;
                 <<"term">> -> unicode:characters_to_binary(io_lib:format("~0tp", [Value]))
             end,
         evaluate(Rest, Index + 1, [Formatted | Results])

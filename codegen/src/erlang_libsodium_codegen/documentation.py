@@ -16,7 +16,7 @@ class ErlangExamples:
         self.requests.clear()
 
     def expression(self, source: str, format: str = "term") -> str:
-        if format not in ("term", "hex"):
+        if format not in ("term", "hex", "text"):
             raise ValueError(f"Unsupported Erlang output format: {format}")
         token = f"@@LIBSODIUM_ERLANG_RESULT_{len(self.requests)}@@"
         self.requests.append({"source": source, "format": format})

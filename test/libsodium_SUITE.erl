@@ -1,432 +1,379 @@
-%% -*- mode: erlang; tab-width: 4; indent-tabs-mode: 1; st-rulers: [70] -*-
-%% vim: ts=4 sw=4 ft=erlang noet
-%%%-------------------------------------------------------------------
-%%% @author Andrew Bennett <potatosaladx@gmail.com>
-%%% @copyright 2015-2022, Andrew Bennett
-%%% @doc
-%%%
-%%% @end
-%%% Created :  14 Jan 2016 by Andrew Bennett <potatosaladx@gmail.com>
-%%%-------------------------------------------------------------------
+%%% % @format
 -module(libsodium_SUITE).
+-compile(warn_missing_spec_all).
+-moduledoc """
+Common Test coverage for libsodium's published test vectors.
+
+Covers AEAD constructions, sealed boxes, password hashing, and Ed25519
+signatures, including truncated inputs and invalid parameters.
+""".
+-moduledoc #{author => ["Andrew Bennett <potatosaladx@gmail.com>"]}.
+-moduledoc #{created => "2016-01-14", modified => "2026-10-26"}.
+-moduledoc #{copyright => "Andrew Bennett"}.
 
 -include_lib("common_test/include/ct.hrl").
 
 %% ct.
--export([all/0]).
--export([groups/0]).
--export([init_per_suite/1]).
--export([end_per_suite/1]).
--export([init_per_group/2]).
--export([end_per_group/2]).
+-export([
+    all/0,
+    groups/0,
+    init_per_suite/1,
+    end_per_suite/1,
+    init_per_group/2,
+    end_per_group/2
+]).
 
 %% Tests.
--export([aead_aes256gcm/1]).
--export([aead_aes256gcm_check/1]).
--export([aead_chacha20poly1305/1]).
--export([aead_chacha20poly1305_check/1]).
--export([aead_chacha20poly1305_ietf/1]).
--export([box_check/1]).
--export([box_seal/1]).
--export([pwhash_argon2i_key_derivation/1]).
--export([pwhash_argon2i_password_storage/1]).
--export([pwhash_argon2id_key_derivation/1]).
--export([pwhash_argon2id_password_storage/1]).
--export([pwhash_scrypt_key_derivation/1]).
--export([pwhash_scrypt_password_storage/1]).
--export([sign/1]).
+-export([
+    aead_aes256gcm/1,
+    aead_aes256gcm_check/1,
+    aead_chacha20poly1305/1,
+    aead_chacha20poly1305_check/1,
+    aead_chacha20poly1305_ietf/1,
+    box_check/1,
+    box_seal/1,
+    pwhash_argon2i_key_derivation/1,
+    pwhash_argon2i_password_storage/1,
+    pwhash_argon2id_key_derivation/1,
+    pwhash_argon2id_password_storage/1,
+    pwhash_scrypt_key_derivation/1,
+    pwhash_scrypt_password_storage/1,
+    sign/1
+]).
 
 %% Macros.
--define(tv_badarg(T, M, F, A),
-	try erlang:apply(M, F, A) of
-		T ->
-			ct:fail({{M, F, A}, badarg_expected, {got, T}})
-	catch
-		error:badarg ->
-			ok
-	end).
--define(tv_not(T, M, F, A, E),
-	case erlang:apply(M, F, A) of
-		E ->
-			ct:fail({{M, F, A}, {not_expected, E}});
-		T ->
-			T
-	end).
--define(tv_ok(T, M, F, A, E),
-	case erlang:apply(M, F, A) of
-		E ->
-			ok;
-		T ->
-			ct:fail({{M, F, A}, {expected, E}, {got, T}})
-	end).
+-define(tv_badarg(M, F, A), libsodium_ct:assert_badarg(M, F, A)).
+-define(tv_not(M, F, A, E),
+    case libsodium_ct:call(M, F, A) of
+        E ->
+            ct:fail({{M, F, A}, {not_expected, E}});
+        Result ->
+            Result
+    end
+).
+-define(tv_ok(M, F, A, E),
+    case libsodium_ct:call(M, F, A) of
+        E ->
+            ok;
+        Result ->
+            ct:fail({{M, F, A}, {expected, E}, {got, Result}})
+    end
+).
 
+-spec all() -> Result when Result :: [ct_suite:ct_test_def()].
 all() ->
-	[
-		{group, aead_aes256gcm},
-		{group, aead_chacha20poly1305},
-		{group, box},
-		{group, pwhash_argon2i},
-		% {group, pwhash_argon2id},
-		{group, pwhash_scrypt},
-		{group, sign}
-	].
+    [
+        {group, aead_aes256gcm},
+        {group, aead_chacha20poly1305},
+        {group, box},
+        {group, pwhash_argon2i},
+        {group, pwhash_argon2id},
+        {group, pwhash_scrypt},
+        {group, sign}
+    ].
 
+-spec groups() -> Result when Result :: [ct_suite:ct_group_def()].
 groups() ->
-	[
-		{aead_aes256gcm, [parallel], [
-			aead_aes256gcm,
-			aead_aes256gcm_check
-		]},
-		{aead_chacha20poly1305, [parallel], [
-			aead_chacha20poly1305,
-			aead_chacha20poly1305_check,
-			aead_chacha20poly1305_ietf
-		]},
-		{box, [parallel], [
-			box_check,
-			box_seal
-		]},
-		{pwhash_argon2i, [parallel], [
-			pwhash_argon2i_key_derivation,
-			pwhash_argon2i_password_storage
-		]},
-		{pwhash_argon2id, [parallel], [
-			pwhash_argon2id_key_derivation,
-			pwhash_argon2id_password_storage
-		]},
-		{pwhash_scrypt, [parallel], [
-			pwhash_scrypt_key_derivation,
-			pwhash_scrypt_password_storage
-		]},
-		{sign, [parallel], [
-			sign
-		]}
-	].
+    [
+        {aead_aes256gcm, [parallel], [
+            aead_aes256gcm,
+            aead_aes256gcm_check
+        ]},
+        {aead_chacha20poly1305, [parallel], [
+            aead_chacha20poly1305,
+            aead_chacha20poly1305_check,
+            aead_chacha20poly1305_ietf
+        ]},
+        {box, [parallel], [
+            box_check,
+            box_seal
+        ]},
+        {pwhash_argon2i, [parallel], [
+            pwhash_argon2i_key_derivation,
+            pwhash_argon2i_password_storage
+        ]},
+        {pwhash_argon2id, [parallel], [
+            pwhash_argon2id_key_derivation,
+            pwhash_argon2id_password_storage
+        ]},
+        {pwhash_scrypt, [parallel], [
+            pwhash_scrypt_key_derivation,
+            pwhash_scrypt_password_storage
+        ]},
+        {sign, [parallel], [
+            sign
+        ]}
+    ].
 
+-spec init_per_suite(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ct_suite:ct_config().
 init_per_suite(Config) ->
-	_ = application:ensure_all_started(libsodium),
-	Config.
+    {ok, _} = application:ensure_all_started(libsodium),
+    Config.
 
+-spec end_per_suite(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 end_per_suite(_Config) ->
-	_ = application:stop(libsodium),
-	ok.
+    _ = application:stop(libsodium),
+    ok.
 
+-spec init_per_group(Group, Config) -> Result when
+    Group :: atom(), Config :: ct_suite:ct_config(), Result :: ct_suite:ct_config().
 init_per_group(Group, Config) ->
-	init_group(Group, libsodium_ct:start(Group, Config)).
+    init_group(Group, libsodium_ct:start(Group, Config)).
 
-%% @private
+-spec init_group(Group, Config) -> Result when
+    Group :: atom(), Config :: ct_suite:ct_config(), Result :: ct_suite:ct_config().
 init_group(aead_aes256gcm, Config) ->
-	tv_file_hex("aead_aes256gcm.config", Config) ++ Config;
+    tv_file_hex("aead_aes256gcm.config", Config) ++ Config;
 init_group(aead_chacha20poly1305, Config) ->
-	tv_file("aead_chacha20poly1305.config", Config) ++ Config;
+    tv_file("aead_chacha20poly1305.config", Config) ++ Config;
 init_group(pwhash_argon2i, Config) ->
-	tv_file_hex("pwhash_argon2i.config", Config) ++ Config;
+    tv_file_hex("pwhash_argon2i.config", Config) ++ Config;
 init_group(pwhash_argon2id, Config) ->
-	tv_file_hex("pwhash_argon2id.config", Config) ++ Config;
+    tv_file_hex("pwhash_argon2id.config", Config) ++ Config;
 init_group(pwhash_scrypt, Config) ->
-	tv_file_hex("pwhash_scrypt.config", Config) ++ Config;
+    tv_file_hex("pwhash_scrypt.config", Config) ++ Config;
 init_group(sign, Config) ->
-	tv_file_hex("sign.config", Config) ++ Config;
+    tv_file_hex("sign.config", Config) ++ Config;
 init_group(_, Config) ->
-	Config.
+    Config.
 
+-spec end_per_group(Group, Config) -> Result when Group :: atom(), Config :: ct_suite:ct_config(), Result :: ok.
 end_per_group(_Group, Config) ->
-	libsodium_ct:stop(Config),
-	ok.
+    libsodium_ct:stop(Config).
 
-%%====================================================================
-%% Tests
-%%====================================================================
+%%%=============================================================================
+%%% Tests
+%%%=============================================================================
 
+-spec aead_aes256gcm(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok | {skip, string()}.
 aead_aes256gcm(Config) ->
-	case libsodium_crypto_aead_aes256gcm:is_available() of
-		1 ->
-			Vectors = ?config(vectors, Config),
-			aead_aes256gcm(Vectors, Config);
-		_ ->
-			ct:log("aead_aes256gcm is not available, skipping..."),
-			ok
-	end.
+    case libsodium_crypto_aead_aes256gcm:is_available() of
+        1 ->
+            aead_aes256gcm_vectors(?config(vectors, Config));
+        _ ->
+            {skip, "AES256-GCM is not available on this CPU"}
+    end.
 
+-spec aead_aes256gcm_check(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 aead_aes256gcm_check(_Config) ->
-	case libsodium_crypto_aead_aes256gcm:is_available() of
-		1 ->
-			check(libsodium_crypto_aead_aes256gcm, [
-				{keybytes,    32},
-				{nsecbytes,    0},
-				{npubbytes,   12},
-				{abytes,      16},
-				{statebytes, 512}
-			]);
-		_ ->
-			ct:log("aead_aes256gcm is not available, skipping..."),
-			ok
-	end.
+    check(libsodium_crypto_aead_aes256gcm, [
+        {keybytes, 32},
+        {nsecbytes, 0},
+        {npubbytes, 12},
+        {abytes, 16},
+        {statebytes, 512}
+    ]).
 
+-spec aead_chacha20poly1305(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 aead_chacha20poly1305(Config) ->
-	TV = ?config(tv, Config),
-	aead_chacha20poly1305(TV, Config).
+    aead_chacha20poly1305_vectors(?config(tv, Config), "").
 
+-spec aead_chacha20poly1305_check(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 aead_chacha20poly1305_check(_Config) ->
-	check(libsodium_crypto_aead_chacha20poly1305, [
-		{keybytes,       32},
-		{nsecbytes,       0},
-		{npubbytes,       8},
-		{abytes,         16},
-		{ietf_npubbytes, 12}
-	]).
+    check(libsodium_crypto_aead_chacha20poly1305, [
+        {keybytes, 32},
+        {nsecbytes, 0},
+        {npubbytes, 8},
+        {abytes, 16},
+        {ietf_npubbytes, 12}
+    ]).
 
+-spec aead_chacha20poly1305_ietf(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 aead_chacha20poly1305_ietf(Config) ->
-	TVIETF = ?config(tv_ietf, Config),
-	aead_chacha20poly1305_ietf(TVIETF, Config).
+    aead_chacha20poly1305_vectors(?config(tv_ietf, Config), "ietf_").
 
+-spec box_check(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 box_check(_Config) ->
-	check(libsodium_crypto_box, [
-		{seedbytes,      32},
-		{publickeybytes, 32},
-		{secretkeybytes, 32},
-		{noncebytes,     24},
-		{macbytes,       16},
-		{primitive,      curve25519xsalsa20poly1305},
-		{beforenmbytes,  32},
-		{sealbytes,      48},
-		{zerobytes,      32},
-		{boxzerobytes,   16}
-	]).
+    check(libsodium_crypto_box, [
+        {seedbytes, 32},
+        {publickeybytes, 32},
+        {secretkeybytes, 32},
+        {noncebytes, 24},
+        {macbytes, 16},
+        {primitive, curve25519xsalsa20poly1305},
+        {beforenmbytes, 32},
+        {sealbytes, 48},
+        {zerobytes, 32},
+        {boxzerobytes, 16}
+    ]).
 
+-spec box_seal(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 box_seal(_Config) ->
-	{PK, SK} = libsodium_crypto_box:keypair(),
-	MLen = libsodium_randombytes:uniform(1000),
-	_CLen = libsodium_crypto_box:sealbytes() + MLen,
-	M = libsodium_randombytes:buf(MLen),
-	C = ?tv_not(T0, libsodium_crypto_box, seal, [M, PK], -1),
-	?tv_ok(T1, libsodium_crypto_box, seal_open, [C, PK, SK], M),
-	?tv_badarg(T2, libsodium_crypto_box, seal_open, [<<>>, PK, SK]),
-	?tv_ok(T3, libsodium_crypto_box, seal_open, [binary:part(C, 0, byte_size(C) - 1), PK, SK], -1),
-	ok.
+    {PK, SK} = libsodium_crypto_box:keypair(),
+    MLen = libsodium_randombytes:uniform(1000),
+    M = libsodium_randombytes:buf(MLen),
+    C = ?tv_not(libsodium_crypto_box, seal, [M, PK], -1),
+    CLen = libsodium_crypto_box:sealbytes() + MLen,
+    CLen = byte_size(C),
+    ok = ?tv_ok(libsodium_crypto_box, seal_open, [C, PK, SK], M),
+    ok = ?tv_badarg(libsodium_crypto_box, seal_open, [<<>>, PK, SK]),
+    ?tv_ok(libsodium_crypto_box, seal_open, [binary:part(C, 0, CLen - 1), PK, SK], -1).
 
+-spec pwhash_argon2i_key_derivation(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 pwhash_argon2i_key_derivation(Config) ->
-	TV = ?config(tv, Config),
-	pwhash_argon2i_key_derivation(TV, Config).
+    pwhash_argon2_key_derivation(libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, ?config(tv, Config)).
 
+-spec pwhash_argon2i_password_storage(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 pwhash_argon2i_password_storage(Config) ->
-	TV = ?config(tv3, Config),
-	pwhash_argon2i_password_storage(TV, Config).
+    pwhash_password_storage(libsodium_crypto_pwhash_argon2i, ?config(tv3, Config), 3, 5000000).
 
+-spec pwhash_argon2id_key_derivation(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 pwhash_argon2id_key_derivation(Config) ->
-	TV = ?config(tv, Config),
-	pwhash_argon2id_key_derivation(TV, Config).
+    pwhash_argon2_key_derivation(libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, ?config(tv, Config)).
 
+-spec pwhash_argon2id_password_storage(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 pwhash_argon2id_password_storage(Config) ->
-	TV = ?config(tv3, Config),
-	pwhash_argon2id_password_storage(TV, Config).
+    pwhash_password_storage(libsodium_crypto_pwhash_argon2id, ?config(tv3, Config), 3, 5000000).
 
+-spec pwhash_scrypt_key_derivation(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 pwhash_scrypt_key_derivation(Config) ->
-	TV = ?config(tv, Config),
-	pwhash_scrypt_key_derivation(TV, Config).
+    lists:foreach(
+        fun({Passwd, _Passwdlen, Salt, Outlen, Opslimit, Memlimit, Out}) ->
+            ok = ?tv_ok(
+                libsodium_crypto_pwhash_scryptsalsa208sha256,
+                crypto_pwhash_scryptsalsa208sha256,
+                [Outlen, Passwd, Salt, Opslimit, Memlimit],
+                Out
+            )
+        end,
+        ?config(tv, Config)
+    ).
 
+-spec pwhash_scrypt_password_storage(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 pwhash_scrypt_password_storage(Config) ->
-	TV = ?config(tv3, Config),
-	pwhash_scrypt_password_storage(TV, Config).
+    pwhash_password_storage(libsodium_crypto_pwhash_scryptsalsa208sha256, ?config(tv3, Config), 1000000, 10000000).
 
+-spec sign(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 sign(Config) ->
-	TV = ?config(tv, Config),
-	sign(TV, Config).
+    lists:foreach(
+        fun({Seed, PK, Sig, M}) ->
+            SK = <<Seed/binary, PK/binary>>,
+            SM = <<Sig/binary, M/binary>>,
+            ok = ?tv_ok(libsodium_crypto_sign, crypto_sign, [M, SK], SM),
+            ok = ?tv_ok(libsodium_crypto_sign, open, [SM, PK], M),
+            ok = ?tv_ok(libsodium_crypto_sign, detached, [M, SK], Sig),
+            ok = ?tv_ok(libsodium_crypto_sign, verify_detached, [Sig, M, PK], 0)
+        end,
+        ?config(tv, Config)
+    ).
 
-%%%-------------------------------------------------------------------
-%%% Internal Vector functions
-%%%-------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
+%%% Internal vector functions
+%%%-----------------------------------------------------------------------------
 
-%% @private
-aead_aes256gcm([{Key, Nonce, Message, Ad, Ciphertext, Mac} | Vectors], Config) ->
-	ExpectedCiphertext = << Ciphertext/binary, Mac/binary >>,
-	TruncatedCiphertext = binary:part(ExpectedCiphertext, 0, libsodium_randombytes:uniform(byte_size(ExpectedCiphertext))),
-	TruncatedTag = binary:part(ExpectedCiphertext, 0, libsodium_randombytes:uniform(libsodium_crypto_aead_aes256gcm:abytes())),
-	TruncatedDetachedMac = binary:part(Mac, 0, libsodium_randombytes:uniform(byte_size(Mac))),
-	?tv_ok(T0, libsodium_crypto_aead_aes256gcm, encrypt, [Message, Ad, Nonce, Key], ExpectedCiphertext),
-	?tv_ok(T1, libsodium_crypto_aead_aes256gcm, decrypt, [TruncatedCiphertext, Ad, Nonce, Key], -1),
-	?tv_ok(T2, libsodium_crypto_aead_aes256gcm, decrypt, [TruncatedTag, Ad, Nonce, Key], -1),
-	?tv_ok(T3, libsodium_crypto_aead_aes256gcm, decrypt, [ExpectedCiphertext, Ad, Nonce, Key], Message),
-	?tv_ok(T4, libsodium_crypto_aead_aes256gcm, encrypt_detached, [Message, Ad, Nonce, Key], {Ciphertext, Mac}),
-	?tv_badarg(T6, libsodium_crypto_aead_aes256gcm, decrypt_detached, [Ciphertext, TruncatedDetachedMac, Ad, Nonce, Key]),
-	?tv_ok(T7, libsodium_crypto_aead_aes256gcm, decrypt_detached, [Ciphertext, Mac, Ad, Nonce, Key], Message),
-	aead_aes256gcm(Vectors, Config);
-aead_aes256gcm([], _Config) ->
-	ok.
+-spec aead_aes256gcm_vectors(Vectors) -> Result when Vectors :: [tuple()], Result :: ok.
+aead_aes256gcm_vectors(Vectors) ->
+    M = libsodium_crypto_aead_aes256gcm,
+    lists:foreach(
+        fun({Key, Nonce, Message, Ad, Ciphertext, Mac}) ->
+            Expected = <<Ciphertext/binary, Mac/binary>>,
+            TruncatedCiphertext = truncate(Expected),
+            TruncatedTag = binary:part(Expected, 0, libsodium_randombytes:uniform(M:abytes())),
+            TruncatedMac = truncate(Mac),
+            ok = ?tv_ok(M, encrypt, [Message, Ad, Nonce, Key], Expected),
+            ok = ?tv_ok(M, decrypt, [TruncatedCiphertext, Ad, Nonce, Key], -1),
+            ok = ?tv_ok(M, decrypt, [TruncatedTag, Ad, Nonce, Key], -1),
+            ok = ?tv_ok(M, decrypt, [Expected, Ad, Nonce, Key], Message),
+            ok = ?tv_ok(M, encrypt_detached, [Message, Ad, Nonce, Key], {Ciphertext, Mac}),
+            ok = ?tv_badarg(M, decrypt_detached, [Ciphertext, TruncatedMac, Ad, Nonce, Key]),
+            ok = ?tv_ok(M, decrypt_detached, [Ciphertext, Mac, Ad, Nonce, Key], Message)
+        end,
+        Vectors
+    ).
 
-%% @private
-aead_chacha20poly1305([{K, M, NPub, AD, C, CNoAD} | Vectors], Config) ->
-	MLen = byte_size(M),
-	<< CD:MLen/binary, MAC/binary >> = C,
-	TruncatedMAC = binary:part(MAC, 0, libsodium_randombytes:uniform(byte_size(MAC))),
-	?tv_ok(T0, libsodium_crypto_aead_chacha20poly1305, encrypt, [M, AD, NPub, K], C),
-	?tv_ok(T1, libsodium_crypto_aead_chacha20poly1305, encrypt, [M, NPub, K], CNoAD),
-	?tv_ok(T2, libsodium_crypto_aead_chacha20poly1305, decrypt, [C, AD, NPub, K], M),
-	?tv_ok(T3, libsodium_crypto_aead_chacha20poly1305, decrypt, [CNoAD, NPub, K], M),
-	?tv_ok(T4, libsodium_crypto_aead_chacha20poly1305, encrypt_detached, [M, AD, NPub, K], {CD, MAC}),
-	?tv_badarg(T5, libsodium_crypto_aead_chacha20poly1305, decrypt_detached, [CD, TruncatedMAC, AD, NPub, K]),
-	?tv_ok(T6, libsodium_crypto_aead_chacha20poly1305, decrypt_detached, [CD, MAC, AD, NPub, K], M),
-	aead_chacha20poly1305(Vectors, Config);
-aead_chacha20poly1305([], _Config) ->
-	ok.
+-spec aead_chacha20poly1305_vectors(Vectors, Prefix) -> Result when
+    Vectors :: [tuple()], Prefix :: string(), Result :: ok.
+aead_chacha20poly1305_vectors(Vectors, Prefix) ->
+    M = libsodium_crypto_aead_chacha20poly1305,
+    F = fun(Name) -> list_to_existing_atom(Prefix ++ Name) end,
+    lists:foreach(
+        fun({K, Message, NPub, AD, C, CNoAD}) ->
+            MLen = byte_size(Message),
+            <<CD:MLen/binary, MAC/binary>> = C,
+            ok = ?tv_ok(M, F("encrypt"), [Message, AD, NPub, K], C),
+            ok = ?tv_ok(M, F("encrypt"), [Message, NPub, K], CNoAD),
+            ok = ?tv_ok(M, F("decrypt"), [C, AD, NPub, K], Message),
+            ok = ?tv_ok(M, F("decrypt"), [CNoAD, NPub, K], Message),
+            ok = ?tv_ok(M, F("decrypt"), [truncate(C), AD, NPub, K], -1),
+            ok = ?tv_ok(M, F("encrypt_detached"), [Message, AD, NPub, K], {CD, MAC}),
+            ok = ?tv_badarg(M, F("decrypt_detached"), [CD, truncate(MAC), AD, NPub, K]),
+            ok = ?tv_ok(M, F("decrypt_detached"), [CD, MAC, AD, NPub, K], Message)
+        end,
+        Vectors
+    ).
 
-%% @private
-aead_chacha20poly1305_ietf([{K, M, NPub, AD, C, CNoAD} | Vectors], Config) ->
-	MLen = byte_size(M),
-	<< CD:MLen/binary, MAC/binary >> = C,
-	TruncatedMAC = binary:part(MAC, 0, libsodium_randombytes:uniform(byte_size(MAC))),
-	?tv_ok(T0, libsodium_crypto_aead_chacha20poly1305, ietf_encrypt, [M, AD, NPub, K], C),
-	?tv_ok(T1, libsodium_crypto_aead_chacha20poly1305, ietf_encrypt, [M, NPub, K], CNoAD),
-	?tv_ok(T2, libsodium_crypto_aead_chacha20poly1305, ietf_decrypt, [C, AD, NPub, K], M),
-	?tv_ok(T3, libsodium_crypto_aead_chacha20poly1305, ietf_decrypt, [CNoAD, NPub, K], M),
-	?tv_ok(T4, libsodium_crypto_aead_chacha20poly1305, ietf_encrypt_detached, [M, AD, NPub, K], {CD, MAC}),
-	?tv_badarg(T5, libsodium_crypto_aead_chacha20poly1305, ietf_decrypt_detached, [CD, TruncatedMAC, AD, NPub, K]),
-	?tv_ok(T6, libsodium_crypto_aead_chacha20poly1305, ietf_decrypt_detached, [CD, MAC, AD, NPub, K], M),
-	aead_chacha20poly1305_ietf(Vectors, Config);
-aead_chacha20poly1305_ietf([], _Config) ->
-	ok.
+-spec pwhash_argon2_key_derivation(Module, Function, Vectors) -> Result when
+    Module :: module(), Function :: atom(), Vectors :: [tuple()], Result :: ok.
+pwhash_argon2_key_derivation(Module, Function, Vectors) ->
+    Default = libsodium_crypto_pwhash:alg_default(),
+    lists:foreach(
+        fun
+            ({Passwd, _Passwdlen, Salt, Outlen, Opslimit, Memlimit, Alg, Out}) ->
+                ok = ?tv_ok(Module, Function, [Outlen, Passwd, Salt, Opslimit, Memlimit, Alg], Out);
+            ({Passwd, _Passwdlen, Salt, Outlen}) ->
+                ok = ?tv_ok(Module, Function, [Outlen, Passwd, Salt, 3, 1 bsl 12, 0], -1),
+                ok = ?tv_ok(Module, Function, [Outlen, Passwd, Salt, 3, 1, Default], -1),
+                ok = ?tv_ok(Module, Function, [Outlen, Passwd, Salt, 3, 1 bsl 12, Default], -1),
+                ok = ?tv_ok(Module, Function, [Outlen, Passwd, Salt, 2, 1 bsl 12, Default], -1)
+        end,
+        Vectors
+    ).
 
-%% @private
-pwhash_argon2i_key_derivation([{Passwd, _Passwdlen, Salt, Outlen, Opslimit, Memlimit, Alg, Out} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, Opslimit, Memlimit, Alg], Out),
-	pwhash_argon2i_key_derivation(Vectors, Config);
-pwhash_argon2i_key_derivation([{Passwd, _Passwdlen, Salt, Outlen} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 3, 1 bsl 12, 0], -1),
-	?tv_ok(T1, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 3, 1, libsodium_crypto_pwhash:alg_default()], -1),
-	?tv_ok(T2, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 3, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
-	?tv_ok(T3, libsodium_crypto_pwhash_argon2i, crypto_pwhash_argon2i, [Outlen, Passwd, Salt, 2, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
-	pwhash_argon2i_key_derivation(Vectors, Config);
-pwhash_argon2i_key_derivation([], _Config) ->
-	ok.
+-spec pwhash_password_storage(Module, Vectors, Opslimit, Memlimit) -> Result when
+    Module :: module(), Vectors :: [tuple()], Opslimit :: pos_integer(), Memlimit :: pos_integer(), Result :: ok.
+pwhash_password_storage(Module, Vectors, Opslimit, Memlimit) ->
+    lists:foreach(
+        fun({Passwd, Out, Verified}) ->
+            ok = ?tv_ok(Module, str_verify, [Out, Passwd], Verified)
+        end,
+        Vectors
+    ),
+    Passwd = <<"Correct Horse Battery Staple">>,
+    Hash1 = ?tv_not(Module, str, [Passwd, Opslimit, Memlimit], -1),
+    Hash2 = ?tv_not(Module, str, [Passwd, Opslimit, Memlimit], Hash1),
+    ok = ?tv_ok(Module, str_verify, [Hash1, Passwd], 0),
+    ?tv_ok(Module, str_verify, [Hash2, Passwd], 0).
 
-%% @private
-pwhash_argon2i_password_storage([{Passwd, Out, Verified} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash_argon2i, str_verify, [Out, Passwd], Verified),
-	pwhash_argon2i_password_storage(Vectors, Config);
-pwhash_argon2i_password_storage([], _Config) ->
-	Passwd = <<"Correct Horse Battery Staple">>,
-	Opslimit = 3,
-	Memlimit = 5000000,
-	T1 = ?tv_not(T0, libsodium_crypto_pwhash_argon2i, str, [Passwd, Opslimit, Memlimit], -1),
-	T3 = ?tv_not(T2, libsodium_crypto_pwhash_argon2i, str, [Passwd, Opslimit, Memlimit], T1),
-	_T5 = ?tv_not(T4, libsodium_crypto_pwhash_argon2i, str, [Passwd, Opslimit, Memlimit], T3),
-	?tv_ok(T6, libsodium_crypto_pwhash_argon2i, str_verify, [T1, Passwd], 0),
-	?tv_ok(T7, libsodium_crypto_pwhash_argon2i, str_verify, [T3, Passwd], 0),
-	ok.
-
-%% @private
-pwhash_argon2id_key_derivation([{Passwd, _Passwdlen, Salt, Outlen, Opslimit, Memlimit, Alg, Out} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, [Outlen, Passwd, Salt, Opslimit, Memlimit, Alg], Out),
-	pwhash_argon2id_key_derivation(Vectors, Config);
-pwhash_argon2id_key_derivation([{Passwd, _Passwdlen, Salt, Outlen} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, [Outlen, Passwd, Salt, 3, 1 bsl 12, 0], -1),
-	?tv_ok(T1, libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, [Outlen, Passwd, Salt, 3, 1, libsodium_crypto_pwhash:alg_default()], -1),
-	?tv_ok(T2, libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, [Outlen, Passwd, Salt, 3, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
-	?tv_ok(T3, libsodium_crypto_pwhash_argon2id, crypto_pwhash_argon2id, [Outlen, Passwd, Salt, 2, 1 bsl 12, libsodium_crypto_pwhash:alg_default()], -1),
-	pwhash_argon2id_key_derivation(Vectors, Config);
-pwhash_argon2id_key_derivation([], _Config) ->
-	ok.
-
-%% @private
-pwhash_argon2id_password_storage([{Passwd, Out, Verified} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash_argon2id, str_verify, [Out, Passwd], Verified),
-	pwhash_argon2id_password_storage(Vectors, Config);
-pwhash_argon2id_password_storage([], _Config) ->
-	Passwd = <<"Correct Horse Battery Staple">>,
-	Opslimit = 3,
-	Memlimit = 5000000,
-	T1 = ?tv_not(T0, libsodium_crypto_pwhash_argon2id, str, [Passwd, Opslimit, Memlimit], -1),
-	T3 = ?tv_not(T2, libsodium_crypto_pwhash_argon2id, str, [Passwd, Opslimit, Memlimit], T1),
-	_T5 = ?tv_not(T4, libsodium_crypto_pwhash_argon2id, str, [Passwd, Opslimit, Memlimit], T3),
-	?tv_ok(T6, libsodium_crypto_pwhash_argon2id, str_verify, [T1, Passwd], 0),
-	?tv_ok(T7, libsodium_crypto_pwhash_argon2id, str_verify, [T3, Passwd], 0),
-	ok.
-
-%% @private
-pwhash_scrypt_key_derivation([{Passwd, _Passwdlen, Salt, Outlen, Opslimit, Memlimit, Out} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash_scryptsalsa208sha256, crypto_pwhash_scryptsalsa208sha256, [Outlen, Passwd, Salt, Opslimit, Memlimit], Out),
-	pwhash_scrypt_key_derivation(Vectors, Config);
-pwhash_scrypt_key_derivation([], _Config) ->
-	ok.
-
-%% @private
-pwhash_scrypt_password_storage([{Passwd, Out, Verified} | Vectors], Config) ->
-	?tv_ok(T0, libsodium_crypto_pwhash_scryptsalsa208sha256, str_verify, [Out, Passwd], Verified),
-	pwhash_scrypt_password_storage(Vectors, Config);
-pwhash_scrypt_password_storage([], _Config) ->
-	Passwd = <<"Correct Horse Battery Staple">>,
-	Opslimit = 1000000,
-	Memlimit = 10000000,
-	T1 = ?tv_not(T0, libsodium_crypto_pwhash_scryptsalsa208sha256, str, [Passwd, Opslimit, Memlimit], -1),
-	T3 = ?tv_not(T2, libsodium_crypto_pwhash_scryptsalsa208sha256, str, [Passwd, Opslimit, Memlimit], T1),
-	?tv_ok(T4, libsodium_crypto_pwhash_scryptsalsa208sha256, str_verify, [T1, Passwd], 0),
-	?tv_ok(T5, libsodium_crypto_pwhash_scryptsalsa208sha256, str_verify, [T3, Passwd], 0),
-	ok.
-
-%% @private
-sign([{Seed, PK, Sig, M} | Vectors], Config) ->
-	SK = << Seed/binary, PK/binary >>,
-	SM = << Sig/binary, M/binary >>,
-	?tv_ok(T0, libsodium_crypto_sign, crypto_sign, [M, SK], SM),
-	?tv_ok(T1, libsodium_crypto_sign, open, [SM, PK], M),
-	?tv_ok(T2, libsodium_crypto_sign, detached, [M, SK], Sig),
-	?tv_ok(T3, libsodium_crypto_sign, verify_detached, [Sig, M, PK], 0),
-	sign(Vectors, Config);
-sign([], _Config) ->
-	ok.
-
-%%%-------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
 %%% Internal functions
-%%%-------------------------------------------------------------------
+%%%-----------------------------------------------------------------------------
 
-%% @private
-check(Module, [{Function, Value} | Checks]) ->
-	case Module:Function() of
-		Value ->
-			check(Module, Checks);
-		Other ->
-			ct:fail({{Module, Function, []}, {expected, Value}, {got, Other}})
-	end;
-check(_Module, []) ->
-	ok.
+-spec check(Module, Checks) -> Result when Module :: module(), Checks :: [{atom(), term()}], Result :: ok.
+check(Module, Checks) ->
+    lists:foreach(fun({Function, Value}) -> ok = ?tv_ok(Module, Function, [], Value) end, Checks).
 
-%% @private
-data_file(File, Config) ->
-	filename:join([?config(data_dir, Config), File]).
+-spec truncate(Binary) -> Truncated when Binary :: binary(), Truncated :: binary().
+truncate(Binary) ->
+    binary:part(Binary, 0, libsodium_randombytes:uniform(byte_size(Binary))).
 
-%% @private
+-spec tv_file(Name, Config) -> Result when
+    Name :: file:filename(), Config :: ct_suite:ct_config(), Result :: [{atom(), [tuple()]}].
 tv_file(Name, Config) ->
-	File = data_file(Name, Config),
-	case file:consult(File) of
-		{ok, Terms} ->
-			Terms;
-		ConsultError ->
-			erlang:error(ConsultError)
-	end.
+    File = filename:join([?config(data_dir, Config), Name]),
+    case file:consult(File) of
+        {ok, Terms} ->
+            Terms;
+        ConsultError ->
+            erlang:error(ConsultError)
+    end.
 
-%% @private
+-spec tv_file_hex(Name, Config) -> Result when
+    Name :: file:filename(), Config :: ct_suite:ct_config(), Result :: [{atom(), [tuple()]}].
 tv_file_hex(Name, Config) ->
-	[begin
-		{Key, [begin
-			list_to_tuple([begin
-				case Val of
-					_ when is_binary(Val) ->
-						try
-							hex:hex_to_bin(Val)
-						catch
-							_:_ ->
-								Val
-						end;
-					_ when is_list(Val) ->
-						try
-							hex:hex_to_bin(Val)
-						catch
-							_:_ ->
-								list_to_binary(Val)
-						end;
-					_ ->
-						Val
-				end
-			end || Val <- tuple_to_list(Tuple)])
-		end || Tuple <- List, is_tuple(Tuple)]}
-	end || {Key, List} <- tv_file(Name, Config), is_list(List)].
+    [
+        {Key, [list_to_tuple([hex_value(Value) || Value <- tuple_to_list(Tuple)]) || Tuple <- List, is_tuple(Tuple)]}
+     || {Key, List} <- tv_file(Name, Config), is_list(List)
+    ].
+
+-spec hex_value(Value) -> Result when Value :: term(), Result :: term().
+hex_value(Value) when is_list(Value) ->
+    hex_value(list_to_binary(Value));
+hex_value(Value) when is_binary(Value) ->
+    try
+        binary:decode_hex(Value)
+    catch
+        error:badarg ->
+            Value
+    end;
+hex_value(Value) ->
+    Value.

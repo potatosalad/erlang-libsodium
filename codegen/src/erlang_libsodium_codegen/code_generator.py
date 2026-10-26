@@ -197,7 +197,7 @@ class StageTarget:
 
     def __post_init__(self) -> None:
         _, output_ext = os.path.splitext(self.output_name)
-        if output_ext in (".erl", ".hrl", ".xrl", ".yrl"):
+        if output_ext in (".erl", ".hrl", ".xrl", ".yrl", ".config", ".src"):
             self.is_erl = True
         else:
             self.is_erl = False

@@ -1,0 +1,163 @@
+# libsodium
+
+[![CI](https://github.com/potatosalad/erlang-libsodium/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/potatosalad/erlang-libsodium/actions)
+[![Hex.pm](https://img.shields.io/hexpm/v/libsodium.svg)](https://hex.pm/packages/libsodium)
+[![HexDocs](https://img.shields.io/badge/docs-hexdocs-blue.svg)](https://hexdocs.pm/libsodium)
+
+[libsodium](https://libsodium.org) ~J< erlang("libsodium_version:version_string()", "text") >. bindings for Erlang and Elixir,
+implemented as a NIF.
+
+Every libsodium namespace has its own module, named after its C prefix:
+`crypto_secretbox_easy()` is `libsodium_crypto_secretbox:easy/3`. Functions
+take and return binaries and integers, raise `badarg` for arguments of the wrong
+type or length, and return libsodium's status code (`-1`) when decryption or
+verification fails.
+
+Work that processes more than ~J< ctx.dirty_threshold // 1024 >. KiB runs on a dirty CPU scheduler,
+password hashing always does, and streaming updates (`update/2` on hash, MAC, and
+signature states) yield whenever their timeslice is exhausted.
+
+[API reference](https://hexdocs.pm/libsodium) · [Changelog](CHANGELOG.md)
+
+## Installation
+
+Add `libsodium` to your project's dependencies in `mix.exs`:
+
+```elixir
+defp deps do
+  [
+    {:libsodium, "~> 2.0"}
+  ]
+end
+```
+
+Or in `rebar.config`:
+
+```erlang-config
+{deps, [
+    {libsodium, "~> 2.0"}
+]}.
+```
+
+Building requires a C compiler, `make`, and Erlang/OTP 27 or later. The
+vendored libsodium sources are compiled into the NIF; no system library is
+needed.
+
+## Examples
+
+Keys and nonces below are fixed so the outputs are reproducible; real
+applications should use each module's `keygen/0` or `keypair/0` and
+`libsodium_randombytes:buf/1` for nonces.
+
+### Secret-key authenticated encryption
+
+```erlang
+Key = binary:copy(<<1>>, libsodium_crypto_secretbox:keybytes()),
+Nonce = binary:copy(<<2>>, libsodium_crypto_secretbox:noncebytes()),
+Ciphertext = libsodium_crypto_secretbox:easy(<<"hello">>, Nonce, Key),
+<<"~J< erlang("Key = binary:copy(<<1>>, 32),\nNonce = binary:copy(<<2>>, 24),\nlibsodium_crypto_secretbox:easy(<<\"hello\">>, Nonce, Key)", "hex") >.">> = binary:encode_hex(Ciphertext),
+<<"hello">> = libsodium_crypto_secretbox:open_easy(Ciphertext, Nonce, Key),
+-1 = libsodium_crypto_secretbox:open_easy(<<Ciphertext/binary, 0>>, Nonce, Key).
+```
+
+### Authenticated encryption with additional data
+
+```erlang
+Key = binary:copy(<<3>>, libsodium_crypto_aead_xchacha20poly1305:ietf_keybytes()),
+Nonce = binary:copy(<<4>>, libsodium_crypto_aead_xchacha20poly1305:ietf_npubbytes()),
+Ciphertext = libsodium_crypto_aead_xchacha20poly1305:ietf_encrypt(<<"hello">>, <<"header">>, Nonce, Key),
+<<"hello">> = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt(Ciphertext, <<"header">>, Nonce, Key).
+```
+
+### Public-key authenticated encryption
+
+```erlang
+{AlicePK, AliceSK} = libsodium_crypto_box:seed_keypair(binary:copy(<<5>>, 32)),
+{BobPK, BobSK} = libsodium_crypto_box:seed_keypair(binary:copy(<<6>>, 32)),
+Nonce = binary:copy(<<7>>, libsodium_crypto_box:noncebytes()),
+Ciphertext = libsodium_crypto_box:easy(<<"hello">>, Nonce, BobPK, AliceSK),
+<<"hello">> = libsodium_crypto_box:open_easy(Ciphertext, Nonce, AlicePK, BobSK),
+Sealed = libsodium_crypto_box:seal(<<"anonymous">>, BobPK),
+<<"anonymous">> = libsodium_crypto_box:seal_open(Sealed, BobPK, BobSK).
+```
+
+### Signatures
+
+```erlang
+{PK, SK} = libsodium_crypto_sign_ed25519:seed_keypair(binary:copy(<<8>>, 32)),
+<<"~J< erlang("{PK, _} = libsodium_crypto_sign_ed25519:seed_keypair(binary:copy(<<8>>, 32)),\nPK", "hex") >.">> = binary:encode_hex(PK),
+Signature = libsodium_crypto_sign_ed25519:detached(<<"message">>, SK),
+0 = libsodium_crypto_sign_ed25519:verify_detached(Signature, <<"message">>, PK),
+-1 = libsodium_crypto_sign_ed25519:verify_detached(Signature, <<"forged">>, PK).
+```
+
+### Hashing
+
+```erlang
+<<"~J< erlang("libsodium_crypto_generichash:crypto_generichash(<<\"abc\">>)", "hex") >.">> =
+    binary:encode_hex(libsodium_crypto_generichash:crypto_generichash(<<"abc">>)),
+State0 = libsodium_crypto_generichash:init(),
+State1 = libsodium_crypto_generichash:update(State0, <<"a">>),
+State2 = libsodium_crypto_generichash:update(State1, <<"bc">>),
+Digest = libsodium_crypto_generichash:final(State2),
+Digest = libsodium_crypto_generichash:crypto_generichash(<<"abc">>).
+```
+
+### Password hashing
+
+```erlang
+Hash = libsodium_crypto_pwhash:str(
+    <<"correct horse battery staple">>,
+    libsodium_crypto_pwhash:opslimit_interactive(),
+    libsodium_crypto_pwhash:memlimit_interactive()
+),
+0 = libsodium_crypto_pwhash:str_verify(Hash, <<"correct horse battery staple">>),
+-1 = libsodium_crypto_pwhash:str_verify(Hash, <<"wrong">>).
+```
+
+### Key derivation and exchange
+
+```erlang
+MasterKey = binary:copy(<<9>>, libsodium_crypto_kdf:keybytes()),
+SubKey1 = libsodium_crypto_kdf:derive_from_key(32, 1, <<"Examples">>, MasterKey),
+SubKey2 = libsodium_crypto_kdf:derive_from_key(32, 2, <<"Examples">>, MasterKey),
+true = SubKey1 =/= SubKey2,
+{ClientPK, ClientSK} = libsodium_crypto_kx:seed_keypair(binary:copy(<<10>>, 32)),
+{ServerPK, ServerSK} = libsodium_crypto_kx:seed_keypair(binary:copy(<<11>>, 32)),
+{ClientRx, ClientTx} = libsodium_crypto_kx:client_session_keys(ClientPK, ClientSK, ServerPK),
+{ServerRx, ServerTx} = libsodium_crypto_kx:server_session_keys(ServerPK, ServerSK, ClientPK),
+{ClientRx, ClientTx} = {ServerTx, ServerRx}.
+```
+
+## Modules
+
+~J{ for group, namespaces in ctx.groups }.
+### ~J< group >.
+
+| Module | Description | Functions |
+| ------ | ----------- | --------: |
+~J{ for namespace in namespaces }.
+| [`~J< namespace.module >.`](https://hexdocs.pm/libsodium/~J< namespace.module >..html) | ~J< namespace.title >. | ~J< namespace.public_functions | length >. |
+~J{ endfor }.
+
+~J{ endfor }.
+`libsodium_nif` exposes all ~J< ctx.nif_functions | length >. native functions directly, named
+`<namespace>_<function>`.
+
+## Development
+
+The native sources, the Erlang modules, the generated tests, and this README
+are generated from the YAML definitions in [`codegen/`](codegen/README.md):
+
+```sh
+just codegen          # or `just docker-codegen` to run in a Linux container
+gmake tests           # Common Test suites
+gmake lint            # formatting, Dialyzer, Eqwalizer, and xref
+```
+
+Generated files carry a signature; edit the definitions or templates and
+regenerate rather than changing them by hand.
+
+## License
+
+[MIT](LICENSE.md). libsodium is distributed under the [ISC license](c_deps/libsodium/LICENSE).

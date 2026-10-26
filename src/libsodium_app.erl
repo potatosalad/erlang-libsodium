@@ -1,26 +1,38 @@
-%% -*- mode: erlang; tab-width: 4; indent-tabs-mode: 1; st-rulers: [70] -*-
-%% vim: ts=4 sw=4 ft=erlang noet
-%%%-------------------------------------------------------------------
-%%% @author Andrew Bennett <potatosaladx@gmail.com>
-%%% @copyright 2015-2022, Andrew Bennett
-%%% @doc
-%%%
-%%% @end
-%%% Created :  28 Dec 2015 by Andrew Bennett <potatosaladx@gmail.com>
-%%%-------------------------------------------------------------------
+%%% % @format
 -module(libsodium_app).
+-moduledoc false.
+-moduledoc #{author => ["Andrew Bennett <potatosaladx@gmail.com>"]}.
+-moduledoc #{created => "2015-12-28", modified => "2026-10-26"}.
+-moduledoc #{copyright => "Andrew Bennett"}.
+-compile(warn_missing_spec_all).
+
 -behaviour(application).
 
-%% Application callbacks
--export([start/2]).
--export([stop/1]).
+%% application callbacks
+-export([
+    start/2,
+    stop/1
+]).
 
-%%%===================================================================
-%%% Application callbacks
-%%%===================================================================
+%%%=============================================================================
+%%% application callbacks
+%%%=============================================================================
 
-start(_Type, _Args) ->
-	libsodium_sup:start_link().
+-doc false.
+-spec start(StartType, StartArgs) -> StartResult when
+    StartType :: application:start_type(),
+    StartArgs :: term(),
+    StartResult :: {ok, pid()} | {error, term()}.
+start(_StartType, _StartArgs) ->
+    case libsodium_sup:start_link() of
+        {ok, Pid} -> {ok, Pid};
+        {error, Reason} -> {error, Reason};
+        ignore -> {error, supervisor_ignored}
+    end.
 
+-doc false.
+-spec stop(State) -> Ignored when
+    State :: term(),
+    Ignored :: ok.
 stop(_State) ->
-	ok.
+    ok.

@@ -56,6 +56,25 @@ CONSTANT_DOCS = {
 }
 
 
+# Categories follow the structure of the libsodium documentation.
+GROUPS = (
+    ("Secret-key cryptography", ("crypto_aead_", "crypto_auth", "crypto_secretbox", "crypto_secretstream_")),
+    ("Public-key cryptography", ("crypto_box", "crypto_kx", "crypto_sign")),
+    ("Hashing", ("crypto_generichash", "crypto_hash", "crypto_shorthash")),
+    ("Password hashing", ("crypto_pwhash",)),
+    ("Key derivation", ("crypto_kdf",)),
+    ("Advanced", ("crypto_core_", "crypto_onetimeauth", "crypto_scalarmult", "crypto_stream", "crypto_verify_")),
+    ("Helpers", ("randombytes", "runtime", "utils", "version")),
+)
+
+
+def namespace_group(name: str) -> str:
+    for group, prefixes in GROUPS:
+        if any(name == prefix or name.startswith(prefix) for prefix in prefixes):
+            return group
+    raise ValueError(f"No documentation group for namespace {name}")
+
+
 def erlang_variable(name: str) -> str:
     return "".join(part[:1].upper() + part[1:] for part in name.split("_") if part)
 
@@ -335,7 +354,10 @@ class FunctionCtx:
         for position, (atom, value) in enumerate(arg.values.items()):
             self.namespace.ctx.nif.make_atom(atom)
             keyword = "if" if position == 0 else "} else if"
-            lines += [f"    {keyword} (enif_is_identical({term}, ATOM({atom}))) {{", f"        {arg.name} = ({arg.c_type})({value});"]
+            lines += [
+                f"    {keyword} (enif_is_identical({term}, ATOM({atom}))) {{",
+                f"        {arg.name} = ({arg.c_type})({value});",
+            ]
         lines += ["    } else {", "        result = enif_make_badarg(env);", "        goto cleanup;", "    }"]
         if not arg.integers:
             lines += ["} else {", "    result = enif_make_badarg(env);", "    goto cleanup;", "}"]
@@ -644,6 +666,10 @@ class NamespaceCtx:
     @property
     def module(self) -> str:
         return self.schema.module or f"libsodium_{self.name}"
+
+    @property
+    def group(self) -> str:
+        return namespace_group(self.name)
 
     @property
     def c_prefix(self) -> str:
