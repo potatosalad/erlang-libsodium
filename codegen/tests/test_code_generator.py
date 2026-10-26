@@ -133,3 +133,23 @@ def test_duplicate_functions_are_rejected():
     function = {"name": "f", "doc": "F.", "check": "none", "returns": "int:rc"}
     with pytest.raises(ValidationError, match="Duplicate function"):
         Namespace.model_validate({"title": "T", "doc": "D.", "functions": [function, function]})
+
+
+def test_reserved_words_are_quoted():
+    ctx = context(
+        {
+            "crypto_stream": namespace(
+                xor={
+                    "name": "xor",
+                    "doc": "XOR.",
+                    "args": [{"type": "binary", "name": "m"}],
+                    "outputs": [{"name": "c", "size": "mlen"}],
+                    "returns": "c",
+                }
+            )
+        }
+    )
+    public = ctx.namespaces[0].public_functions[0]
+    assert public.atom == "'xor'"
+    assert public.spec.startswith("'xor'(M) ->")
+    assert ctx.namespaces[0].functions[0].nif_name == "crypto_stream_xor"

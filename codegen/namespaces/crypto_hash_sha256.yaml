@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_hash_sha256:
+  title: SHA-256
+  doc: |
+    SHA-256, producing `bytes/0` byte digests, either in one shot or
+    incrementally.
+
+    The streaming functions thread an opaque state binary of `statebytes/0`
+    bytes through `init/0`, `update/2`, and `final/1`; each call returns a
+    new state and leaves its argument unchanged. Updates over large inputs
+    yield to other processes between chunks.
+
+    SHA-2 is vulnerable to length extension attacks; unless SHA-256 is
+    required for interoperability, prefer `m:libsodium_crypto_generichash`.
+  example: |
+    Digest = libsodium_crypto_hash_sha256:crypto_hash_sha256(<<"hello world">>),
+    32 = byte_size(Digest),
+    State0 = libsodium_crypto_hash_sha256:init(),
+    State1 = libsodium_crypto_hash_sha256:update(State0, <<"hello ">>),
+    State2 = libsodium_crypto_hash_sha256:update(State1, <<"world">>),
+    Digest = libsodium_crypto_hash_sha256:final(State2).
+  see_also: [libsodium_crypto_hash, libsodium_crypto_generichash, libsodium_crypto_auth_hmacsha256]
+  constants:
+    - name: bytes
+      value: 32
+    - name: statebytes
+      value: 104
+  functions:
+    - name: crypto_hash_sha256
+      c: crypto_hash_sha256
+      doc: Hash `In`, returning a `bytes/0` byte digest.
+      args:
+        - {type: binary, name: in}
+      outputs:
+        - {name: out, size: crypto_hash_sha256_BYTES}
+      returns: out
+    - name: init
+      doc: Start a streaming hash, returning a `statebytes/0` byte state.
+      outputs:
+        - {type: state, name: state, c_type: crypto_hash_sha256_state}
+      returns: state
+    - name: update
+      doc: Absorb `In` into `State` and return the updated state.
+      args:
+        - {type: state, name: state, c_type: crypto_hash_sha256_state}
+        - {type: binary, name: in}
+      update: true
+      returns: state
+    - name: final
+      doc: Finish the streaming hash in `State`, returning a `bytes/0` byte digest.
+      args:
+        - {type: state, name: state, c_type: crypto_hash_sha256_state}
+      outputs:
+        - {name: out, size: crypto_hash_sha256_BYTES}
+      call: crypto_hash_sha256_final(&state, out)
+      returns: out
+  tests:
+    - name: known_answer
+      code: |
+        In = <<"The quick brown fox jumps over the lazy dog">>,
+        Expected = crypto:hash(sha256, In),
+        Expected = libsodium_crypto_hash_sha256:crypto_hash_sha256(In),
+        EmptyExpected = crypto:hash(sha256, <<>>),
+        EmptyExpected = libsodium_crypto_hash_sha256:crypto_hash_sha256(<<>>),
+        EmptyExpected = libsodium_crypto_hash_sha256:final(libsodium_crypto_hash_sha256:init()).
+    - name: streaming_matches_one_shot
+      code: |
+        Large = binary:copy(<<"0123456789abcdef">>, 20000),
+        Expected = crypto:hash(sha256, <<Large/binary, Large/binary>>),
+        Expected = libsodium_crypto_hash_sha256:crypto_hash_sha256(<<Large/binary, Large/binary>>),
+        State0 = libsodium_crypto_hash_sha256:init(),
+        State1 = libsodium_crypto_hash_sha256:update(State0, Large),
+        State2 = libsodium_crypto_hash_sha256:update(State1, Large),
+        Expected = libsodium_crypto_hash_sha256:final(State2),
+        Expected = libsodium_crypto_hash_sha256:final(State2).
+    - name: badarg
+      code: |
+        badarg = try libsodium_crypto_hash_sha256:update(<<0:8>>, <<"x">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_hash_sha256:final(<<>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_hash_sha256:crypto_hash_sha256(not_a_binary) catch error:badarg -> badarg end.

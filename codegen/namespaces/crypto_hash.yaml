@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_hash:
+  title: Hashing (SHA-512)
+  doc: |
+    The default fixed-output hash function, currently SHA-512, producing
+    `bytes/0` byte digests.
+
+    SHA-2 is vulnerable to length extension attacks; unless SHA-512 is
+    required for interoperability, prefer `m:libsodium_crypto_generichash`.
+    For streaming SHA-512, use `m:libsodium_crypto_hash_sha512`.
+  example: |
+    Digest = libsodium_crypto_hash:crypto_hash(<<"hello world">>),
+    64 = byte_size(Digest),
+    Digest = libsodium_crypto_hash_sha512:crypto_hash_sha512(<<"hello world">>).
+  see_also: [libsodium_crypto_hash_sha512, libsodium_crypto_hash_sha256, libsodium_crypto_generichash]
+  constants:
+    - name: bytes
+      value: 64
+    - name: primitive
+      type: atom
+      value: sha512
+  functions:
+    - name: crypto_hash
+      c: crypto_hash
+      doc: Hash `In`, returning a `bytes/0` byte digest.
+      args:
+        - {type: binary, name: in}
+      outputs:
+        - {name: out, size: crypto_hash_BYTES}
+      returns: out
+  tests:
+    - name: known_answer
+      code: |
+        In = <<"The quick brown fox jumps over the lazy dog">>,
+        Expected = crypto:hash(sha512, In),
+        Expected = libsodium_crypto_hash:crypto_hash(In),
+        EmptyExpected = crypto:hash(sha512, <<>>),
+        EmptyExpected = libsodium_crypto_hash:crypto_hash(<<>>),
+        badarg = try libsodium_crypto_hash:crypto_hash(not_a_binary) catch error:badarg -> badarg end.

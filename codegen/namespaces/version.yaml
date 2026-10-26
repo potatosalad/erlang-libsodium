@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=../namespace.schema.json
+version:
+  title: Library version
+  doc: |
+    Version information for the libsodium library linked into the NIF.
+
+    `version_string/0` is the release version, while
+    `library_version_major/0` and `library_version_minor/0` are the shared
+    library ABI version.
+  example: |
+    <<"1.", _/binary>> = libsodium_version:version_string(),
+    true = libsodium_version:library_version_major() >= 10.
+  constants:
+    - name: version_string
+      type: string
+      c: sodium_version_string()
+      value: "1.0.22"
+      doc: Return the libsodium release version, such as `<<"1.0.22">>`.
+    - name: library_version_major
+      type: int
+      c: sodium_library_version_major()
+      value: 26
+      spec: non_neg_integer()
+      doc: Return the major version of the libsodium library ABI.
+    - name: library_version_minor
+      type: int
+      c: sodium_library_version_minor()
+      value: 4
+      spec: non_neg_integer()
+      doc: Return the minor version of the libsodium library ABI.
+    - name: library_minimal
+      type: int
+      c: sodium_library_minimal()
+      spec: "0 | 1"
+      doc: |
+        Return `1` if libsodium was built in minimal mode (without the
+        functions omitted by `--enable-minimal`), otherwise `0`.
+  tests:
+    - name: consistent
+      code: |
+        Version = libsodium_version:version_string(),
+        [_, _, _] = binary:split(Version, <<".">>, [global]),
+        true = lists:member(libsodium_version:library_minimal(), [0, 1])

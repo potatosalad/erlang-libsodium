@@ -1,0 +1,270 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_aead_chacha20poly1305:
+  title: ChaCha20-Poly1305
+  doc: |
+    ChaCha20-Poly1305 authenticated encryption with additional data, in both
+    the IETF variant (RFC 8439, `ietf_*` functions) and the original variant.
+
+    The IETF variant uses a nonce of `ietf_npubbytes/0` (12) bytes and limits
+    a single message to about 256 GiB; the original variant uses a nonce of
+    `npubbytes/0` (8) bytes. Keys are `keybytes/0` bytes for both. Nonces are
+    too short to be chosen at random safely for many messages and must never
+    be reused with the same key; prefer
+    `m:libsodium_crypto_aead_xchacha20poly1305` for random nonces.
+  example: |
+    Key = libsodium_crypto_aead_chacha20poly1305:ietf_keygen(),
+    Nonce = libsodium_randombytes:buf(libsodium_crypto_aead_chacha20poly1305:ietf_npubbytes()),
+    Ciphertext = libsodium_crypto_aead_chacha20poly1305:ietf_encrypt(<<"message">>, <<"header">>, Nonce, Key),
+    <<"message">> = libsodium_crypto_aead_chacha20poly1305:ietf_decrypt(Ciphertext, <<"header">>, Nonce, Key).
+  constants:
+    - name: ietf_keybytes
+      value: 32
+    - name: ietf_nsecbytes
+      value: 0
+    - name: ietf_npubbytes
+      value: 12
+    - name: ietf_abytes
+      value: 16
+    - name: ietf_messagebytes_max
+    - name: keybytes
+      value: 32
+    - name: nsecbytes
+      value: 0
+    - name: npubbytes
+      value: 8
+    - name: abytes
+      value: 16
+    - name: messagebytes_max
+  functions:
+    # IETF construction
+    - name: ietf_encrypt
+      doc: |
+        Encrypt and authenticate `M` together with the additional data `AD`
+        (default empty) using the `ietf_npubbytes/0` byte nonce `NPub` and
+        the `ietf_keybytes/0` byte key `K`.
+
+        Returns the ciphertext followed by an `ietf_abytes/0` byte
+        authentication tag, or `-1` on failure.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_ietf_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_ietf_KEYBYTES}
+      outputs:
+        - {name: c, size: "mlen + crypto_aead_chacha20poly1305_ietf_ABYTES", len: clen}
+      returns: c
+      erlang:
+        - params: [M, NPub, K]
+          args: [M, "<<>>", "<<>>", NPub, K]
+        - params: [M, AD, NPub, K]
+          args: [M, AD, "<<>>", NPub, K]
+    - name: ietf_decrypt
+      doc: |
+        Verify and decrypt the ciphertext `C` with the additional data `AD`
+        (default empty), nonce `NPub`, and key `K`.
+
+        Returns the plaintext, or `-1` when verification fails.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_ietf_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_ietf_KEYBYTES}
+      outputs:
+        - name: m
+          size: "(clen < crypto_aead_chacha20poly1305_ietf_ABYTES) ? 0 : clen - crypto_aead_chacha20poly1305_ietf_ABYTES"
+          len: mlen
+      call: crypto_aead_chacha20poly1305_ietf_decrypt(m, &mlen, (unsigned char *)nsec, c, clen, ad, adlen, npub, k)
+      returns: m
+      erlang:
+        - params: [C, NPub, K]
+          args: ["<<>>", C, "<<>>", NPub, K]
+        - params: [C, AD, NPub, K]
+          args: ["<<>>", C, AD, NPub, K]
+    - name: ietf_encrypt_detached
+      doc: |
+        Encrypt and authenticate `M` with the additional data `AD` (default
+        empty), returning the ciphertext and the `ietf_abytes/0` byte
+        authentication tag separately as `{C, MAC}`, or `-1` on failure.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_ietf_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_ietf_KEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+        - {name: mac, size: crypto_aead_chacha20poly1305_ietf_ABYTES, len: maclen}
+      returns: [c, mac]
+      erlang:
+        - params: [M, NPub, K]
+          args: [M, "<<>>", "<<>>", NPub, K]
+        - params: [M, AD, NPub, K]
+          args: [M, AD, "<<>>", NPub, K]
+    - name: ietf_decrypt_detached
+      doc: |
+        Verify the detached tag `MAC` and decrypt `C` with the additional data
+        `AD` (default empty). Returns the plaintext, or `-1` when
+        verification fails.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_ietf_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: fixed, name: mac, size: crypto_aead_chacha20poly1305_ietf_ABYTES}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_ietf_KEYBYTES}
+      outputs:
+        - {name: m, size: clen}
+      call: crypto_aead_chacha20poly1305_ietf_decrypt_detached(m, (unsigned char *)nsec, c, clen, mac, ad, adlen, npub, k)
+      returns: m
+      erlang:
+        - params: [C, MAC, NPub, K]
+          args: ["<<>>", C, MAC, "<<>>", NPub, K]
+        - params: [C, MAC, AD, NPub, K]
+          args: ["<<>>", C, MAC, AD, NPub, K]
+    - name: ietf_keygen
+      doc: Generate a random `ietf_keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_aead_chacha20poly1305_ietf_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+    # Original construction
+    - name: encrypt
+      doc: |
+        Encrypt and authenticate `M` together with the additional data `AD`
+        (default empty) using the original construction with the
+        `npubbytes/0` byte nonce `NPub` and the `keybytes/0` byte key `K`.
+
+        Returns the ciphertext followed by an `abytes/0` byte authentication
+        tag, or `-1` on failure.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_KEYBYTES}
+      outputs:
+        - {name: c, size: "mlen + crypto_aead_chacha20poly1305_ABYTES", len: clen}
+      returns: c
+      erlang:
+        - params: [M, NPub, K]
+          args: [M, "<<>>", "<<>>", NPub, K]
+        - params: [M, AD, NPub, K]
+          args: [M, AD, "<<>>", NPub, K]
+    - name: decrypt
+      doc: |
+        Verify and decrypt the ciphertext `C` produced by `encrypt/4` with the
+        additional data `AD` (default empty), nonce `NPub`, and key `K`.
+
+        Returns the plaintext, or `-1` when verification fails.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_KEYBYTES}
+      outputs:
+        - name: m
+          size: "(clen < crypto_aead_chacha20poly1305_ABYTES) ? 0 : clen - crypto_aead_chacha20poly1305_ABYTES"
+          len: mlen
+      call: crypto_aead_chacha20poly1305_decrypt(m, &mlen, (unsigned char *)nsec, c, clen, ad, adlen, npub, k)
+      returns: m
+      erlang:
+        - params: [C, NPub, K]
+          args: ["<<>>", C, "<<>>", NPub, K]
+        - params: [C, AD, NPub, K]
+          args: ["<<>>", C, AD, NPub, K]
+    - name: encrypt_detached
+      doc: |
+        Like `encrypt/4`, returning the ciphertext and the `abytes/0` byte
+        authentication tag separately as `{C, MAC}`, or `-1` on failure.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_KEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+        - {name: mac, size: crypto_aead_chacha20poly1305_ABYTES, len: maclen}
+      returns: [c, mac]
+      erlang:
+        - params: [M, NPub, K]
+          args: [M, "<<>>", "<<>>", NPub, K]
+        - params: [M, AD, NPub, K]
+          args: [M, AD, "<<>>", NPub, K]
+    - name: decrypt_detached
+      doc: |
+        Like `decrypt/4`, verifying the detached tag `MAC` for `C`. Returns
+        the plaintext, or `-1` when verification fails.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_chacha20poly1305_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: fixed, name: mac, size: crypto_aead_chacha20poly1305_ABYTES}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_chacha20poly1305_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_chacha20poly1305_KEYBYTES}
+      outputs:
+        - {name: m, size: clen}
+      call: crypto_aead_chacha20poly1305_decrypt_detached(m, (unsigned char *)nsec, c, clen, mac, ad, adlen, npub, k)
+      returns: m
+      erlang:
+        - params: [C, MAC, NPub, K]
+          args: ["<<>>", C, MAC, "<<>>", NPub, K]
+        - params: [C, MAC, AD, NPub, K]
+          args: ["<<>>", C, MAC, AD, NPub, K]
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_aead_chacha20poly1305_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: original_known_answer
+      code: |
+        K = binary:decode_hex(<<"4290bcb154173531f314af57f3be3b5006da371ece272afa1b5dbdd1100a1007">>),
+        M = binary:decode_hex(<<"86d09974840bded2a5ca">>),
+        N = binary:decode_hex(<<"cd7cf67be39c794a">>),
+        AD = binary:decode_hex(<<"87e229d4500845a079c0">>),
+        C = binary:decode_hex(<<"e3e446f7ede9a19b62a4677dabf4e3d24b876bb284753896e1d6">>),
+        CNoAD = binary:decode_hex(<<"e3e446f7ede9a19b62a469e7789bcd954e658ed38423e23161dc">>),
+        C = libsodium_crypto_aead_chacha20poly1305:encrypt(M, AD, N, K),
+        CNoAD = libsodium_crypto_aead_chacha20poly1305:encrypt(M, N, K),
+        M = libsodium_crypto_aead_chacha20poly1305:decrypt(C, AD, N, K),
+        M = libsodium_crypto_aead_chacha20poly1305:decrypt(CNoAD, N, K),
+        <<CD:10/binary, MAC:16/binary>> = C,
+        {CD, MAC} = libsodium_crypto_aead_chacha20poly1305:encrypt_detached(M, AD, N, K),
+        M = libsodium_crypto_aead_chacha20poly1305:decrypt_detached(CD, MAC, AD, N, K),
+        -1 = libsodium_crypto_aead_chacha20poly1305:decrypt(C, N, K),
+        -1 = libsodium_crypto_aead_chacha20poly1305:decrypt_detached(CD, MAC, N, K).
+    - name: ietf_matches_otp_crypto
+      code: |
+        K = libsodium_crypto_aead_chacha20poly1305:ietf_keygen(),
+        N = libsodium_randombytes:buf(12),
+        M = libsodium_randombytes:buf(100),
+        AD = <<"additional data">>,
+        {C, Tag} = crypto:crypto_one_time_aead(chacha20_poly1305, K, N, M, AD, true),
+        {C, Tag} = libsodium_crypto_aead_chacha20poly1305:ietf_encrypt_detached(M, AD, N, K),
+        CT = <<C/binary, Tag/binary>>,
+        CT = libsodium_crypto_aead_chacha20poly1305:ietf_encrypt(M, AD, N, K),
+        M = libsodium_crypto_aead_chacha20poly1305:ietf_decrypt(CT, AD, N, K),
+        M = libsodium_crypto_aead_chacha20poly1305:ietf_decrypt_detached(C, Tag, AD, N, K),
+        {C2, Tag2} = crypto:crypto_one_time_aead(chacha20_poly1305, K, N, M, <<>>, true),
+        CT2 = <<C2/binary, Tag2/binary>>,
+        CT2 = libsodium_crypto_aead_chacha20poly1305:ietf_encrypt(M, N, K).
+    - name: tamper_and_badarg
+      code: |
+        K = libsodium_crypto_aead_chacha20poly1305:ietf_keygen(),
+        N = libsodium_randombytes:buf(12),
+        <<B, Rest/binary>> = libsodium_crypto_aead_chacha20poly1305:ietf_encrypt(<<"message">>, N, K),
+        -1 = libsodium_crypto_aead_chacha20poly1305:ietf_decrypt(<<(B bxor 1), Rest/binary>>, N, K),
+        -1 = libsodium_crypto_aead_chacha20poly1305:ietf_decrypt(<<"short">>, N, K),
+        -1 = libsodium_crypto_aead_chacha20poly1305:ietf_decrypt_detached(<<"message">>, <<0:128>>, N, K),
+        -1 = libsodium_crypto_aead_chacha20poly1305:decrypt(<<>>, <<0:64>>, K),
+        badarg = try libsodium_crypto_aead_chacha20poly1305:ietf_encrypt(<<"m">>, <<0:64>>, K) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_aead_chacha20poly1305:encrypt(<<"m">>, N, K) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_aead_chacha20poly1305:ietf_decrypt_detached(<<"m">>, <<0:120>>, N, K) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_aead_chacha20poly1305:ietf_encrypt(<<"m">>, N, <<K/binary, 0>>) catch error:badarg -> badarg end.

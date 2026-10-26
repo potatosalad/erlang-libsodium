@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_verify_16:
+  title: 16-byte comparison
+  doc: |
+    Constant-time comparison of two `bytes/0` (16) byte secrets, such as
+    authentication tags, whose timing does not depend on where they differ.
+
+    Returns `0` when the binaries are equal and `-1` otherwise. Both arguments
+    must be exactly `bytes/0` bytes long.
+  example: |
+    Tag = libsodium_randombytes:buf(libsodium_crypto_verify_16:bytes()),
+    0 = libsodium_crypto_verify_16:crypto_verify_16(Tag, Tag),
+    <<First, Rest/binary>> = Tag,
+    -1 = libsodium_crypto_verify_16:crypto_verify_16(Tag, <<(First bxor 1), Rest/binary>>).
+  constants:
+    - name: bytes
+      value: 16
+  functions:
+    - name: crypto_verify_16
+      c: crypto_verify_16
+      doc: Compare `X` and `Y` in constant time; returns `0` when they are equal and `-1` otherwise.
+      args:
+        - {type: fixed, name: x, size: crypto_verify_16_BYTES}
+        - {type: fixed, name: y, size: crypto_verify_16_BYTES}
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+  tests:
+    - name: differences
+      code: |
+        X = binary:copy(<<16#5a>>, 16),
+        0 = libsodium_crypto_verify_16:crypto_verify_16(X, binary:copy(<<16#5a>>, 16)),
+        -1 = libsodium_crypto_verify_16:crypto_verify_16(X, <<16#5b, (binary:part(X, 1, 16 - 1))/binary>>),
+        -1 = libsodium_crypto_verify_16:crypto_verify_16(X, <<(binary:part(X, 0, 16 - 1))/binary, 16#da>>),
+        badarg = try libsodium_crypto_verify_16:crypto_verify_16(X, <<X/binary, 0>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_verify_16:crypto_verify_16(<<>>, X) catch error:badarg -> badarg end.

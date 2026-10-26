@@ -1,0 +1,232 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_sign_ed25519:
+  title: Ed25519 signatures
+  doc: |
+    Ed25519 signatures (RFC 8032), plus conversions between Ed25519 and
+    X25519 (Curve25519) keys.
+
+    Public keys are `publickeybytes/0` bytes; secret keys are
+    `secretkeybytes/0` bytes, made of the `seedbytes/0` byte seed followed by
+    the public key (`sk_to_seed/1` and `sk_to_pk/1` extract them). Signatures
+    are `bytes/0` bytes and deterministic.
+
+    `pk_to_curve25519/1` and `sk_to_curve25519/1` convert a signing key pair
+    into an X25519 key pair for `m:libsodium_crypto_scalarmult_curve25519` or
+    `m:libsodium_crypto_box`; reusing one key for both purposes is generally
+    discouraged. The streaming functions compute Ed25519ph (pre-hashed)
+    signatures and are the same as those in
+    `m:libsodium_crypto_sign_ed25519ph`.
+  example: |
+    Seed = libsodium_randombytes:buf(libsodium_crypto_sign_ed25519:seedbytes()),
+    {PK, SK} = libsodium_crypto_sign_ed25519:seed_keypair(Seed),
+    Seed = libsodium_crypto_sign_ed25519:sk_to_seed(SK),
+    PK = libsodium_crypto_sign_ed25519:sk_to_pk(SK),
+    Sig = libsodium_crypto_sign_ed25519:detached(<<"message">>, SK),
+    0 = libsodium_crypto_sign_ed25519:verify_detached(Sig, <<"message">>, PK).
+  constants:
+    - name: statebytes
+      c: crypto_sign_ed25519ph_statebytes()
+      value: 208
+      doc: Return `crypto_sign_ed25519ph_statebytes()`, the size of a streaming state, in bytes.
+    - name: bytes
+      value: 64
+    - name: seedbytes
+      value: 32
+    - name: publickeybytes
+      value: 32
+    - name: secretkeybytes
+      value: 64
+    - name: messagebytes_max
+  functions:
+    - name: crypto_sign_ed25519
+      c: crypto_sign_ed25519
+      doc: |
+        Sign `M` with the secret key `SK`, returning the `bytes/0` byte
+        signature followed by the message.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: sk, size: crypto_sign_ed25519_SECRETKEYBYTES}
+      outputs:
+        - {name: sm, size: "mlen + crypto_sign_ed25519_BYTES", len: smlen}
+      returns: sm
+      erlang:
+        - params: [M, SK]
+    - name: open
+      doc: |
+        Verify the signed message `SM` with the public key `PK` and return the
+        message without its signature, or `-1` when the signature is invalid.
+      args:
+        - {type: binary, name: sm}
+        - {type: fixed, name: pk, size: crypto_sign_ed25519_PUBLICKEYBYTES}
+      outputs:
+        - {name: m, size: "(smlen < crypto_sign_ed25519_BYTES) ? 0 : smlen - crypto_sign_ed25519_BYTES", len: mlen}
+      returns: m
+      erlang:
+        - params: [SM, PK]
+    - name: detached
+      doc: Sign `M` with the secret key `SK`, returning only the `bytes/0` byte signature.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: sk, size: crypto_sign_ed25519_SECRETKEYBYTES}
+      outputs:
+        - {name: sig, size: crypto_sign_ed25519_BYTES, len: siglen}
+      returns: sig
+      erlang:
+        - params: [M, SK]
+    - name: verify_detached
+      doc: |
+        Verify the detached signature `Sig` of `M` with the public key `PK`.
+        Returns `0` when the signature is valid and `-1` otherwise.
+      args:
+        - {type: fixed, name: sig, size: crypto_sign_ed25519_BYTES}
+        - {type: binary, name: m}
+        - {type: fixed, name: pk, size: crypto_sign_ed25519_PUBLICKEYBYTES}
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+      erlang:
+        - params: [Sig, M, PK]
+    - name: keypair
+      doc: Generate a random key pair. Returns `{PK, SK}`.
+      outputs:
+        - {name: pk, size: crypto_sign_ed25519_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_sign_ed25519_SECRETKEYBYTES}
+      returns: [pk, sk]
+    - name: seed_keypair
+      doc: |
+        Deterministically derive a key pair from the `seedbytes/0` byte `Seed`.
+        Returns `{PK, SK}`.
+      args:
+        - {type: fixed, name: seed, size: crypto_sign_ed25519_SEEDBYTES}
+      outputs:
+        - {name: pk, size: crypto_sign_ed25519_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_sign_ed25519_SECRETKEYBYTES}
+      returns: [pk, sk]
+    - name: pk_to_curve25519
+      doc: |
+        Convert the Ed25519 public key `Ed25519PK` into an X25519 public key.
+        Returns `-1` when the key is not a valid point of prime order (for
+        example a small-order point).
+      args:
+        - {type: fixed, name: ed25519_pk, size: crypto_sign_ed25519_PUBLICKEYBYTES}
+      outputs:
+        - {name: curve25519_pk, size: crypto_scalarmult_curve25519_BYTES}
+      returns: curve25519_pk
+      erlang:
+        - params: [Ed25519PK]
+    - name: sk_to_curve25519
+      doc: Convert the Ed25519 secret key `Ed25519SK` into an X25519 secret key.
+      args:
+        - {type: fixed, name: ed25519_sk, size: crypto_sign_ed25519_SECRETKEYBYTES}
+      outputs:
+        - {name: curve25519_sk, size: crypto_scalarmult_curve25519_BYTES}
+      returns: curve25519_sk
+      erlang:
+        - params: [Ed25519SK]
+    - name: sk_to_seed
+      doc: Extract the `seedbytes/0` byte seed from the secret key `SK`.
+      args:
+        - {type: fixed, name: sk, size: crypto_sign_ed25519_SECRETKEYBYTES}
+      outputs:
+        - {name: seed, size: crypto_sign_ed25519_SEEDBYTES}
+      returns: seed
+      erlang:
+        - params: [SK]
+    - name: sk_to_pk
+      doc: Extract the `publickeybytes/0` byte public key from the secret key `SK`.
+      args:
+        - {type: fixed, name: sk, size: crypto_sign_ed25519_SECRETKEYBYTES}
+      outputs:
+        - {name: pk, size: crypto_sign_ed25519_PUBLICKEYBYTES}
+      returns: pk
+      erlang:
+        - params: [SK]
+    - name: init
+      c: crypto_sign_ed25519ph_init
+      doc: |
+        Start a streaming Ed25519ph signature, returning a new state. Same as
+        `libsodium_crypto_sign_ed25519ph:init/0`.
+      outputs:
+        - {type: state, name: state, c_type: crypto_sign_ed25519ph_state}
+      returns: state
+    - name: update
+      c: crypto_sign_ed25519ph_update
+      doc: Absorb the message chunk `M` into `State` and return the updated state.
+      args:
+        - {type: state, name: state, c_type: crypto_sign_ed25519ph_state}
+        - {type: binary, name: m}
+      update: true
+      returns: state
+    - name: final_create
+      c: crypto_sign_ed25519ph_final_create
+      doc: |
+        Finish the streaming message in `State` and sign it with the secret key
+        `SK`, returning the `bytes/0` byte Ed25519ph signature.
+      args:
+        - {type: state, name: state, c_type: crypto_sign_ed25519ph_state}
+        - {type: fixed, name: sk, size: crypto_sign_ed25519_SECRETKEYBYTES}
+      outputs:
+        - {name: sig, size: crypto_sign_ed25519_BYTES, len: siglen}
+      call: crypto_sign_ed25519ph_final_create(&state, sig, &siglen, sk)
+      returns: sig
+      erlang:
+        - params: [State, SK]
+    - name: final_verify
+      c: crypto_sign_ed25519ph_final_verify
+      doc: |
+        Finish the streaming message in `State` and verify its Ed25519ph
+        signature `Sig` with the public key `PK`. Returns `0` when the signature
+        is valid and `-1` otherwise.
+      args:
+        - {type: state, name: state, c_type: crypto_sign_ed25519ph_state}
+        - {type: fixed, name: sig, size: crypto_sign_ed25519_BYTES}
+        - {type: fixed, name: pk, size: crypto_sign_ed25519_PUBLICKEYBYTES}
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+      erlang:
+        - params: [State, Sig, PK]
+  tests:
+    - name: rfc8032_vectors
+      code: |
+        Seed = binary:decode_hex(<<"c5aa8df43f9f837bedb7442f31dcb7b166d38535076f094b85ce3a2e0b4458f7">>),
+        PK = binary:decode_hex(<<"fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025">>),
+        Sig = binary:decode_hex(<<"6291d657deec24024827e69c3abe01a30ce548a284743a445e3680d7db5ac3ac18ff9b538d16f290ae67f760984dc6594a7c15e9716ed28dc027beceea1ec40a">>),
+        M = <<16#af, 16#82>>,
+        {PK, SK} = libsodium_crypto_sign_ed25519:seed_keypair(Seed),
+        Sig = libsodium_crypto_sign_ed25519:detached(M, SK),
+        <<Sig:64/binary, M/binary>> = libsodium_crypto_sign_ed25519:crypto_sign_ed25519(M, SK),
+        M = libsodium_crypto_sign_ed25519:open(<<Sig/binary, M/binary>>, PK),
+        0 = libsodium_crypto_sign_ed25519:verify_detached(Sig, M, PK),
+        Long = libsodium_randombytes:buf(1000),
+        LongSig = crypto:sign(eddsa, none, Long, [Seed, ed25519]),
+        LongSig = libsodium_crypto_sign_ed25519:detached(Long, SK).
+    - name: forgery
+      code: |
+        {PK, SK} = libsodium_crypto_sign_ed25519:keypair(),
+        <<Sig:64/binary, M/binary>> = libsodium_crypto_sign_ed25519:crypto_sign_ed25519(<<"message">>, SK),
+        <<B0, Rest/binary>> = Sig,
+        Forged = <<(B0 bxor 1), Rest/binary>>,
+        -1 = libsodium_crypto_sign_ed25519:verify_detached(Forged, M, PK),
+        -1 = libsodium_crypto_sign_ed25519:open(<<Forged/binary, M/binary>>, PK),
+        -1 = libsodium_crypto_sign_ed25519:open(<<>>, PK),
+        -1 = libsodium_crypto_sign_ed25519:pk_to_curve25519(<<1, 0:248>>).
+    - name: curve25519_and_streaming
+      code: |
+        {PK, SK} = libsodium_crypto_sign_ed25519:keypair(),
+        XPK = libsodium_crypto_sign_ed25519:pk_to_curve25519(PK),
+        XSK = libsodium_crypto_sign_ed25519:sk_to_curve25519(SK),
+        {XPK, _} = crypto:generate_key(ecdh, x25519, XSK),
+        State0 = libsodium_crypto_sign_ed25519:init(),
+        208 = libsodium_crypto_sign_ed25519:statebytes(),
+        State1 = libsodium_crypto_sign_ed25519:update(State0, <<"message">>),
+        Sig = libsodium_crypto_sign_ed25519:final_create(State1, SK),
+        0 = libsodium_crypto_sign_ed25519:final_verify(State1, Sig, PK),
+        -1 = libsodium_crypto_sign_ed25519:final_verify(State0, Sig, PK).
+    - name: badarg
+      code: |
+        {PK, SK} = libsodium_crypto_sign_ed25519:keypair(),
+        badarg = try libsodium_crypto_sign_ed25519:sk_to_pk(PK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign_ed25519:pk_to_curve25519(SK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign_ed25519:open(<<"sm">>, SK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign_ed25519:verify_detached(<<0:512>>, <<"m">>, SK) catch error:badarg -> badarg end.

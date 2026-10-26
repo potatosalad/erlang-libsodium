@@ -1,0 +1,171 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_pwhash_argon2id:
+  title: Argon2id password hashing
+  doc: |
+    Password hashing and password-based key derivation with Argon2id version
+    1.3, the hybrid Argon2 variant that resists both side-channel and GPU
+    attacks. This is the current default of `m:libsodium_crypto_pwhash`, which
+    should be preferred unless Argon2id must be selected explicitly.
+
+    `str/3` produces a self-describing string to store and check with
+    `str_verify/2`; `crypto_pwhash_argon2id/6` derives a key from a password
+    and a `saltbytes/0` byte salt. Raise `Opslimit` (CPU cost) and `Memlimit`
+    (memory in bytes) as far as your latency budget allows, starting from the
+    `_interactive` limits for online logins. All hashing runs on a dirty CPU
+    scheduler.
+  example: |
+    Ops = libsodium_crypto_pwhash_argon2id:opslimit_interactive(),
+    Mem = libsodium_crypto_pwhash_argon2id:memlimit_interactive(),
+    Str = libsodium_crypto_pwhash_argon2id:str(<<"correct horse">>, Ops, Mem),
+    0 = libsodium_crypto_pwhash_argon2id:str_verify(Str, <<"correct horse">>),
+    -1 = libsodium_crypto_pwhash_argon2id:str_verify(Str, <<"wrong horse">>),
+    0 = libsodium_crypto_pwhash_argon2id:str_needs_rehash(Str, Ops, Mem).
+  constants:
+    - name: alg_argon2id13
+      type: int
+      value: 2
+      doc: Return the algorithm identifier for Argon2id version 1.3, the only `Alg` accepted by `crypto_pwhash_argon2id/6`.
+    - name: bytes_min
+      value: 16
+    - name: bytes_max
+      value: 4294967295
+    - name: passwd_min
+      value: 0
+    - name: passwd_max
+      value: 4294967295
+    - name: saltbytes
+      value: 16
+    - name: strbytes
+      value: 128
+    - name: strprefix
+      type: string
+      value: "$argon2id$"
+    - name: opslimit_min
+      value: 1
+    - name: opslimit_max
+      value: 4294967295
+    - name: memlimit_min
+      value: 8192
+    - name: memlimit_max
+    - name: opslimit_interactive
+      value: 2
+    - name: memlimit_interactive
+      value: 67108864
+    - name: opslimit_moderate
+      value: 3
+    - name: memlimit_moderate
+      value: 268435456
+    - name: opslimit_sensitive
+      value: 4
+    - name: memlimit_sensitive
+      value: 1073741824
+  functions:
+    - name: crypto_pwhash_argon2id
+      c: crypto_pwhash_argon2id
+      doc: |
+        Derive an `Outlen` byte key from `Passwd` and the salt `Salt` (at least
+        `saltbytes/0` bytes; only the first `saltbytes/0` are used) with the
+        cost parameters `Opslimit` and `Memlimit`. `Alg` must be
+        `alg_argon2id13/0`.
+
+        Returns `-1` when libsodium rejects the parameters (for example an
+        `Outlen` below `bytes_min/0`, limits out of range, or another `Alg`)
+        or cannot allocate the requested memory.
+      args:
+        - {type: uint, name: outlen, c_type: "unsigned long long"}
+        - {type: binary, name: passwd, work: false}
+        - {type: binary, name: salt, len_type: size_t, min: crypto_pwhash_argon2id_SALTBYTES, work: false}
+        - {type: uint, name: opslimit, c_type: "unsigned long long"}
+        - {type: uint, name: memlimit, c_type: size_t}
+        - {type: int, name: alg}
+      prelude: |
+        if (outlen > crypto_pwhash_argon2id_BYTES_MAX) {
+            result = enif_make_int(env, -1);
+            goto cleanup;
+        }
+      outputs:
+        - {name: out, size: outlen}
+      call: crypto_pwhash_argon2id(out, outlen, (const char *)passwd, passwdlen, salt, opslimit, memlimit, alg)
+      schedule: dirty_cpu
+      returns: out
+    - name: str
+      doc: |
+        Hash `Passwd` for storage with the cost parameters `Opslimit` and
+        `Memlimit` and a random salt.
+
+        Returns an ASCII binary of at most `strbytes/0` - 1 bytes starting with
+        `strprefix/0`, or `-1` on failure.
+      args:
+        - {type: binary, name: passwd, work: false}
+        - {type: uint, name: opslimit, c_type: "unsigned long long"}
+        - {type: uint, name: memlimit, c_type: size_t}
+      outputs:
+        - {name: out, size: crypto_pwhash_argon2id_STRBYTES, length: "strlen((const char *)out)"}
+      call: crypto_pwhash_argon2id_str((char *)out, (const char *)passwd, passwdlen, opslimit, memlimit)
+      schedule: dirty_cpu
+      returns: out
+    - name: str_verify
+      doc: |
+        Check `Passwd` against `Str`, an Argon2id string produced by `str/3`.
+
+        Returns `0` when the password matches and `-1` when it does not or
+        `Str` is malformed.
+      args:
+        - {type: cstring, name: str, max: crypto_pwhash_argon2id_STRBYTES}
+        - {type: binary, name: passwd, work: false}
+      call: crypto_pwhash_argon2id_str_verify(str, (const char *)passwd, passwdlen)
+      check: none
+      schedule: dirty_cpu
+      returns: "int:rc"
+      spec: "0 | -1"
+    - name: str_needs_rehash
+      doc: |
+        Check whether `Str` was hashed with Argon2id and exactly the cost
+        parameters `Opslimit` and `Memlimit`.
+
+        Returns `0` when it was, `1` when the password should be rehashed (after
+        a successful `str_verify/2`), and `-1` when `Str` is malformed or the
+        parameters are invalid.
+      args:
+        - {type: cstring, name: str, max: crypto_pwhash_argon2id_STRBYTES}
+        - {type: uint, name: opslimit, c_type: "unsigned long long"}
+        - {type: uint, name: memlimit, c_type: size_t}
+      call: crypto_pwhash_argon2id_str_needs_rehash(str, opslimit, memlimit)
+      check: none
+      returns: "int:rc"
+      spec: "-1 | 0 | 1"
+  tests:
+    - name: known_answers
+      code: |
+        Passwd = binary:decode_hex(<<"4a857e2ee8aa9b6056f2424e84d24a72473378906ee04a46cb05311502d5250b82ad86b83c8f20a23dbb74f6da60b0b6ecffd67134d45946ac8ebfb3064294bc097d43ced68642bfb8bbbdd0f50b30118f5e">>),
+        Salt = binary:decode_hex(<<"39d82eef32010b8b79cc5ba88ed539fbaba741100f2edbeca7cc171ffeabf258">>),
+        Out = binary:decode_hex(<<"08d8cd330c57e1b4643241d05bb468ba4ee4e932cd0858816be9ef15360b27bbd06a87130ee92222be267a29b81f5ae8fe8613324cfc4832dc49387fd0602f1c57b4d0f3855db94fb7e12eb05f9a484aed4a4307abf586cd3d55c809bc081541e00b682772fb2066504ff935b8ebc551a2083882f874bc0fae68e56848ae34c91097c3bf0cca8e75c0797eef3efde3f75e005815018db3cf7c109a812264c4de69dcb22322dbbcfa447f5b00ecd1b04a7be1569c8e556adb7bba48adf81d">>),
+        Out = libsodium_crypto_pwhash_argon2id:crypto_pwhash_argon2id(190, Passwd, Salt, 3, 1432947, libsodium_crypto_pwhash_argon2id:alg_argon2id13()),
+        0 = libsodium_crypto_pwhash_argon2id:str_verify(<<"$argon2id$v=19$m=4882,t=2,p=1$bA81arsiXysd3WbTRzmEOw$Nm8QBM+7RH1DXo9rvp5cwKEOOOfD2g6JuxlXihoNcpE">>, <<>>),
+        0 = libsodium_crypto_pwhash_argon2id:str_verify(<<"$argon2id$v=19$m=4096,t=1,p=3$PkEgcHJldHR5IGxvbmcgc2FsdA$HUqx5Z1b/ZypnUrvvJ5UC2Q+T6Q1WwASK/Kr9dRbGA0">>, <<"K3S=KyH#)36_?]LxeR8QNKw6X=gFbxai$C%29V*">>).
+    - name: str_round_trip
+      code: |
+        Ops = libsodium_crypto_pwhash_argon2id:opslimit_min(),
+        Mem = libsodium_crypto_pwhash_argon2id:memlimit_min(),
+        Str = libsodium_crypto_pwhash_argon2id:str(<<"Correct Horse Battery Staple">>, Ops, Mem),
+        <<"$argon2id$", _/binary>> = Str,
+        0 = libsodium_crypto_pwhash_argon2id:str_verify(Str, <<"Correct Horse Battery Staple">>),
+        -1 = libsodium_crypto_pwhash_argon2id:str_verify(Str, <<"Wrong Horse Battery Staple">>),
+        0 = libsodium_crypto_pwhash_argon2id:str_needs_rehash(Str, Ops, Mem),
+        1 = libsodium_crypto_pwhash_argon2id:str_needs_rehash(Str, Ops, Mem * 2).
+    - name: legacy_failures
+      code: |
+        Salt = binary:copy(<<0>>, 32),
+        Alg = libsodium_crypto_pwhash_argon2id:alg_argon2id13(),
+        -1 = libsodium_crypto_pwhash_argon2id:crypto_pwhash_argon2id(32, <<"pw">>, Salt, 3, 1 bsl 12, 0),
+        -1 = libsodium_crypto_pwhash_argon2id:crypto_pwhash_argon2id(32, <<"pw">>, Salt, 3, 1, Alg),
+        -1 = libsodium_crypto_pwhash_argon2id:crypto_pwhash_argon2id(32, <<"pw">>, Salt, 0, 1 bsl 12, Alg),
+        -1 = libsodium_crypto_pwhash_argon2id:crypto_pwhash_argon2id(5, <<"pw">>, Salt, 3, 1 bsl 12, Alg),
+        -1 = libsodium_crypto_pwhash_argon2id:str(<<"pw">>, 3, 1),
+        -1 = libsodium_crypto_pwhash_argon2id:str_verify(<<"$argon2id$v=19$m=4096,t=0,p=1$X1NhbHQAAAAAAAAAAAAAAA$bWh++MKN1OiFHKgIWTLvIi1iHicmHH7+Fv3K88ifFfI">>, <<>>),
+        -1 = libsodium_crypto_pwhash_argon2id:str_verify(<<"$argon2i$v=19$m=4096,t=1,p=1$X1NhbHQAAAAAAAAAAAAAAA$bWh++MKN1OiFHKgIWTLvIi1iHicmHH7+Fv3K88ifFfI">>, <<>>).
+    - name: badarg
+      code: |
+        ok = try libsodium_crypto_pwhash_argon2id:crypto_pwhash_argon2id(32, <<"pw">>, <<0:120>>, 3, 1 bsl 12, 2) of _ -> unexpected catch error:badarg -> ok end,
+        ok = try libsodium_crypto_pwhash_argon2id:str(<<"pw">>, -1, 1 bsl 12) of _ -> unexpected catch error:badarg -> ok end,
+        ok = try libsodium_crypto_pwhash_argon2id:str_verify(binary:copy(<<"a">>, 129), <<"pw">>) of _ -> unexpected catch error:badarg -> ok end.

@@ -1,0 +1,100 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_scalarmult_ed25519:
+  title: Ed25519 point multiplication
+  doc: |
+    Point multiplication on the Edwards25519 curve, for building custom
+    protocols.
+
+    Points are `bytes/0` byte encodings and scalars are `scalarbytes/0` bytes
+    (little-endian). `crypto_scalarmult_ed25519/2` and `base/1` clamp the
+    scalar like X25519; `noclamp/2` and `base_noclamp/1` use it as is (reduced
+    modulo the group order).
+
+    These functions return `-1` when the input point is invalid or of small
+    order, or when the result is the identity element (for example with a zero
+    scalar).
+  example: |
+    Mod = libsodium_crypto_scalarmult_ed25519,
+    A = libsodium_randombytes:buf(Mod:scalarbytes()),
+    B = libsodium_randombytes:buf(Mod:scalarbytes()),
+    PA = Mod:base(A),
+    PB = Mod:base(B),
+    Shared = Mod:crypto_scalarmult_ed25519(A, PB),
+    Shared = Mod:crypto_scalarmult_ed25519(B, PA).
+  constants:
+    - name: bytes
+      value: 32
+    - name: scalarbytes
+      value: 32
+  functions:
+    - name: crypto_scalarmult_ed25519
+      c: crypto_scalarmult_ed25519
+      doc: |
+        Multiply the point `P` by the clamped scalar `N`. Returns `-1` when `P`
+        is invalid or of small order, or when the result is the identity.
+      args:
+        - {type: fixed, name: n, size: crypto_scalarmult_ed25519_SCALARBYTES}
+        - {type: fixed, name: p, size: crypto_scalarmult_ed25519_BYTES}
+      outputs:
+        - {name: q, size: crypto_scalarmult_ed25519_BYTES}
+      returns: q
+      erlang:
+        - params: [N, P]
+    - name: noclamp
+      doc: |
+        Multiply the point `P` by the scalar `N` without clamping. Returns `-1`
+        when `P` is invalid or of small order, or when the result is the
+        identity.
+      args:
+        - {type: fixed, name: n, size: crypto_scalarmult_ed25519_SCALARBYTES}
+        - {type: fixed, name: p, size: crypto_scalarmult_ed25519_BYTES}
+      outputs:
+        - {name: q, size: crypto_scalarmult_ed25519_BYTES}
+      returns: q
+      erlang:
+        - params: [N, P]
+    - name: base
+      doc: |
+        Multiply the base point by the clamped scalar `N`. Returns `-1` when
+        `N` is zero.
+      args:
+        - {type: fixed, name: n, size: crypto_scalarmult_ed25519_SCALARBYTES}
+      outputs:
+        - {name: q, size: crypto_scalarmult_ed25519_BYTES}
+      returns: q
+      erlang:
+        - params: [N]
+    - name: base_noclamp
+      doc: |
+        Multiply the base point by the scalar `N` without clamping. Returns
+        `-1` when the result is the identity.
+      args:
+        - {type: fixed, name: n, size: crypto_scalarmult_ed25519_SCALARBYTES}
+      outputs:
+        - {name: q, size: crypto_scalarmult_ed25519_BYTES}
+      returns: q
+      erlang:
+        - params: [N]
+  tests:
+    - name: known_answer
+      code: |
+        Mod = libsodium_crypto_scalarmult_ed25519,
+        One = <<1, 0:248>>,
+        Base = binary:decode_hex(<<"5866666666666666666666666666666666666666666666666666666666666666">>),
+        Base = Mod:base_noclamp(One),
+        Base = Mod:noclamp(One, Base),
+        N = libsodium_randombytes:buf(32),
+        Q = Mod:base(N),
+        Q = Mod:crypto_scalarmult_ed25519(N, Base),
+        QN = Mod:base_noclamp(N),
+        QN = Mod:noclamp(N, Base).
+    - name: errors
+      code: |
+        Mod = libsodium_crypto_scalarmult_ed25519,
+        One = <<1, 0:248>>,
+        -1 = Mod:base(<<0:256>>),
+        -1 = Mod:base_noclamp(<<0:256>>),
+        -1 = Mod:noclamp(One, <<0:256>>),
+        -1 = Mod:crypto_scalarmult_ed25519(One, <<1, 0:248>>),
+        badarg = try Mod:base(<<0:248>>) catch error:badarg -> badarg end,
+        badarg = try Mod:noclamp(One, <<>>) catch error:badarg -> badarg end.

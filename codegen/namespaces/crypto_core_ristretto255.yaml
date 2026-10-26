@@ -1,0 +1,200 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_core_ristretto255:
+  title: Ristretto255 arithmetic
+  doc: |
+    Low-level arithmetic on the ristretto255 prime-order group (RFC 9496) and
+    on scalars modulo its order L, for building custom protocols.
+
+    Ristretto255 is built on edwards25519 but has no cofactor: every valid
+    `bytes/0` byte encoding is canonical and represents a distinct group
+    element, so there are no small-order points to reject. Encodings of
+    edwards25519 points are not interchangeable with ristretto255 encodings.
+
+    Scalars are `scalarbytes/0` byte little-endian integers and are used as
+    given (no clamping). `from_hash/1` maps `hashbytes/0` bytes of uniform
+    data (such as a SHA-512 digest) to a group element, and `scalar_reduce/1`
+    reduces a `nonreducedscalarbytes/0` byte value modulo L.
+  example: |
+    P = libsodium_crypto_core_ristretto255:random(),
+    Q = libsodium_crypto_core_ristretto255:from_hash(libsodium_randombytes:buf(64)),
+    1 = libsodium_crypto_core_ristretto255:is_valid_point(Q),
+    R = libsodium_crypto_core_ristretto255:add(P, Q),
+    P = libsodium_crypto_core_ristretto255:sub(R, Q),
+    S = libsodium_crypto_core_ristretto255:scalar_random(),
+    One = libsodium_crypto_core_ristretto255:scalar_mul(S, libsodium_crypto_core_ristretto255:scalar_invert(S)),
+    One = <<1, 0:248>>.
+  constants:
+    - name: bytes
+      value: 32
+    - name: hashbytes
+      value: 64
+    - name: scalarbytes
+      value: 32
+    - name: nonreducedscalarbytes
+      value: 64
+  functions:
+    - name: is_valid_point
+      doc: Return `1` when `P` is a valid canonical ristretto255 encoding, otherwise `0`.
+      args:
+        - {type: fixed, name: p, size: crypto_core_ristretto255_BYTES}
+      check: none
+      returns: "int:rc"
+      spec: "0 | 1"
+      erlang:
+        - params: [P]
+    - name: add
+      doc: Return the element `P + Q`, or `-1` when either input is not a valid encoding.
+      args:
+        - {type: fixed, name: p, size: crypto_core_ristretto255_BYTES}
+        - {type: fixed, name: q, size: crypto_core_ristretto255_BYTES}
+      outputs:
+        - {name: r, size: crypto_core_ristretto255_BYTES}
+      returns: r
+      erlang:
+        - params: [P, Q]
+    - name: sub
+      doc: Return the element `P - Q`, or `-1` when either input is not a valid encoding.
+      args:
+        - {type: fixed, name: p, size: crypto_core_ristretto255_BYTES}
+        - {type: fixed, name: q, size: crypto_core_ristretto255_BYTES}
+      outputs:
+        - {name: r, size: crypto_core_ristretto255_BYTES}
+      returns: r
+      erlang:
+        - params: [P, Q]
+    - name: from_hash
+      doc: |
+        Map the `hashbytes/0` byte uniform string `H` (such as a SHA-512
+        digest) to a group element.
+      args:
+        - {type: fixed, name: h, size: crypto_core_ristretto255_HASHBYTES}
+      outputs:
+        - {name: p, size: crypto_core_ristretto255_BYTES}
+      returns: p
+      erlang:
+        - params: [H]
+    - name: random
+      doc: Return a random group element.
+      outputs:
+        - {name: p, size: crypto_core_ristretto255_BYTES}
+      rc_type: void
+      check: none
+      returns: p
+    - name: scalar_random
+      doc: Return a random scalar in `[0, L)`.
+      outputs:
+        - {name: r, size: crypto_core_ristretto255_SCALARBYTES}
+      rc_type: void
+      check: none
+      returns: r
+    - name: scalar_invert
+      doc: Return the multiplicative inverse of the scalar `S` modulo L, or `-1` when `S` is zero.
+      args:
+        - {type: fixed, name: s, size: crypto_core_ristretto255_SCALARBYTES}
+      outputs:
+        - {name: recip, size: crypto_core_ristretto255_SCALARBYTES}
+      returns: recip
+      erlang:
+        - params: [S]
+    - name: scalar_negate
+      doc: Return `-S mod L`.
+      args:
+        - {type: fixed, name: s, size: crypto_core_ristretto255_SCALARBYTES}
+      outputs:
+        - {name: neg, size: crypto_core_ristretto255_SCALARBYTES}
+      rc_type: void
+      check: none
+      returns: neg
+      erlang:
+        - params: [S]
+    - name: scalar_complement
+      doc: Return `1 - S mod L`, so that `S + Comp = 1 (mod L)`.
+      args:
+        - {type: fixed, name: s, size: crypto_core_ristretto255_SCALARBYTES}
+      outputs:
+        - {name: comp, size: crypto_core_ristretto255_SCALARBYTES}
+      rc_type: void
+      check: none
+      returns: comp
+      erlang:
+        - params: [S]
+    - name: scalar_add
+      doc: Return `X + Y mod L`.
+      args:
+        - {type: fixed, name: x, size: crypto_core_ristretto255_SCALARBYTES}
+        - {type: fixed, name: y, size: crypto_core_ristretto255_SCALARBYTES}
+      outputs:
+        - {name: z, size: crypto_core_ristretto255_SCALARBYTES}
+      rc_type: void
+      check: none
+      returns: z
+    - name: scalar_sub
+      doc: Return `X - Y mod L`.
+      args:
+        - {type: fixed, name: x, size: crypto_core_ristretto255_SCALARBYTES}
+        - {type: fixed, name: y, size: crypto_core_ristretto255_SCALARBYTES}
+      outputs:
+        - {name: z, size: crypto_core_ristretto255_SCALARBYTES}
+      rc_type: void
+      check: none
+      returns: z
+    - name: scalar_mul
+      doc: Return `X * Y mod L`.
+      args:
+        - {type: fixed, name: x, size: crypto_core_ristretto255_SCALARBYTES}
+        - {type: fixed, name: y, size: crypto_core_ristretto255_SCALARBYTES}
+      outputs:
+        - {name: z, size: crypto_core_ristretto255_SCALARBYTES}
+      rc_type: void
+      check: none
+      returns: z
+    - name: scalar_reduce
+      doc: |
+        Reduce the `nonreducedscalarbytes/0` byte little-endian integer `S`
+        modulo L. `S` should be sampled from at least 317 bits (such as a
+        64-byte hash) for the result to be close to uniform.
+      args:
+        - {type: fixed, name: s, size: crypto_core_ristretto255_NONREDUCEDSCALARBYTES}
+      outputs:
+        - {name: r, size: crypto_core_ristretto255_SCALARBYTES}
+      rc_type: void
+      check: none
+      returns: r
+      erlang:
+        - params: [S]
+  tests:
+    - name: rfc9496_generator_multiples
+      code: |
+        Identity = <<0:256>>,
+        B = binary:decode_hex(<<"e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76">>),
+        B2 = binary:decode_hex(<<"6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919">>),
+        B3 = binary:decode_hex(<<"94741f5d5d52755ece4f23f044ee27d5d1ea1e2bd196b462166b16152a9d0259">>),
+        1 = libsodium_crypto_core_ristretto255:is_valid_point(Identity),
+        1 = libsodium_crypto_core_ristretto255:is_valid_point(B),
+        B2 = libsodium_crypto_core_ristretto255:add(B, B),
+        B3 = libsodium_crypto_core_ristretto255:add(B2, B),
+        B = libsodium_crypto_core_ristretto255:sub(B3, B2),
+        Identity = libsodium_crypto_core_ristretto255:sub(B, B).
+    - name: scalars
+      code: |
+        X = libsodium_crypto_core_ristretto255:scalar_random(),
+        Y = libsodium_crypto_core_ristretto255:scalar_random(),
+        Zero = <<0:256>>,
+        One = <<1, 0:248>>,
+        Zero = libsodium_crypto_core_ristretto255:scalar_add(X, libsodium_crypto_core_ristretto255:scalar_negate(X)),
+        One = libsodium_crypto_core_ristretto255:scalar_add(X, libsodium_crypto_core_ristretto255:scalar_complement(X)),
+        X = libsodium_crypto_core_ristretto255:scalar_sub(libsodium_crypto_core_ristretto255:scalar_add(X, Y), Y),
+        X = libsodium_crypto_core_ristretto255:scalar_reduce(<<X/binary, 0:256>>),
+        Y = libsodium_crypto_core_ristretto255:scalar_mul(Y, One),
+        -1 = libsodium_crypto_core_ristretto255:scalar_invert(Zero).
+    - name: invalid_points
+      code: |
+        B = binary:decode_hex(<<"e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76">>),
+        NonCanonical = <<1, 0:248>>,
+        0 = libsodium_crypto_core_ristretto255:is_valid_point(NonCanonical),
+        0 = libsodium_crypto_core_ristretto255:is_valid_point(<<16#ff:256>>),
+        -1 = libsodium_crypto_core_ristretto255:add(B, NonCanonical),
+        -1 = libsodium_crypto_core_ristretto255:sub(NonCanonical, B),
+        badarg = try libsodium_crypto_core_ristretto255:add(B, <<1, 2, 3>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_core_ristretto255:from_hash(B) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_core_ristretto255:scalar_invert(<<>>) catch error:badarg -> badarg end.

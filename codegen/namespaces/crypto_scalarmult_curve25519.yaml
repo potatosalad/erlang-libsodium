@@ -1,0 +1,83 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_scalarmult_curve25519:
+  title: X25519 point multiplication
+  doc: |
+    X25519 (RFC 7748) point multiplication on Curve25519.
+
+    `base/1` computes a `bytes/0` byte public key from a `scalarbytes/0` byte
+    secret key, and `crypto_scalarmult_curve25519/2` computes a shared secret
+    from a secret key and another party's public key. Scalars are clamped.
+
+    Do not use the shared secret directly as a key: hash it together with both
+    public keys, or use `m:libsodium_crypto_kx` instead.
+  example: |
+    AliceSK = libsodium_randombytes:buf(libsodium_crypto_scalarmult_curve25519:scalarbytes()),
+    BobSK = libsodium_randombytes:buf(libsodium_crypto_scalarmult_curve25519:scalarbytes()),
+    AlicePK = libsodium_crypto_scalarmult_curve25519:base(AliceSK),
+    BobPK = libsodium_crypto_scalarmult_curve25519:base(BobSK),
+    Shared = libsodium_crypto_scalarmult_curve25519:crypto_scalarmult_curve25519(AliceSK, BobPK),
+    Shared = libsodium_crypto_scalarmult_curve25519:crypto_scalarmult_curve25519(BobSK, AlicePK).
+  constants:
+    - name: bytes
+      value: 32
+    - name: scalarbytes
+      value: 32
+  functions:
+    - name: crypto_scalarmult_curve25519
+      c: crypto_scalarmult_curve25519
+      doc: |
+        Multiply the point `P` by the clamped secret scalar `N`, producing a
+        shared secret. Returns `-1` when `P` is a low-order point.
+      args:
+        - {type: fixed, name: n, size: crypto_scalarmult_curve25519_SCALARBYTES}
+        - {type: fixed, name: p, size: crypto_scalarmult_curve25519_BYTES}
+      outputs:
+        - {name: q, size: crypto_scalarmult_curve25519_BYTES}
+      returns: q
+      erlang:
+        - params: [N, P]
+    - name: base
+      doc: |
+        Compute the public key for the clamped secret scalar `N` by multiplying
+        the base point. Returns `-1` on failure.
+      args:
+        - {type: fixed, name: n, size: crypto_scalarmult_curve25519_SCALARBYTES}
+      outputs:
+        - {name: q, size: crypto_scalarmult_curve25519_BYTES}
+      returns: q
+      erlang:
+        - params: [N]
+  tests:
+    - name: rfc7748
+      code: |
+        Mod = libsodium_crypto_scalarmult_curve25519,
+        Scalar = binary:decode_hex(<<"a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4">>),
+        U = binary:decode_hex(<<"e6db6867583030db3594c1a424b15f7c726624ec26b3353b10a903a6d0ab1c4c">>),
+        Out = binary:decode_hex(<<"c3da55379de9c6908e94ea4df28d084f32eccf03491c71f754b4075577a28552">>),
+        Out = Mod:crypto_scalarmult_curve25519(Scalar, U),
+        AliceSK = binary:decode_hex(<<"77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a">>),
+        AlicePK = binary:decode_hex(<<"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a">>),
+        BobSK = binary:decode_hex(<<"5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb">>),
+        BobPK = binary:decode_hex(<<"de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f">>),
+        Shared = binary:decode_hex(<<"4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742">>),
+        AlicePK = Mod:base(AliceSK),
+        BobPK = Mod:base(BobSK),
+        Shared = Mod:crypto_scalarmult_curve25519(AliceSK, BobPK),
+        Shared = Mod:crypto_scalarmult_curve25519(BobSK, AlicePK).
+    - name: crypto_cross_check
+      code: |
+        Mod = libsodium_crypto_scalarmult_curve25519,
+        {PK1, SK1} = crypto:generate_key(ecdh, x25519),
+        {PK2, SK2} = crypto:generate_key(ecdh, x25519),
+        PK1 = Mod:base(SK1),
+        Shared = crypto:compute_key(ecdh, PK2, SK1, x25519),
+        Shared = Mod:crypto_scalarmult_curve25519(SK1, PK2),
+        Shared = Mod:crypto_scalarmult_curve25519(SK2, PK1).
+    - name: errors
+      code: |
+        Mod = libsodium_crypto_scalarmult_curve25519,
+        SK = libsodium_randombytes:buf(32),
+        -1 = Mod:crypto_scalarmult_curve25519(SK, <<0:256>>),
+        -1 = Mod:crypto_scalarmult_curve25519(SK, <<1, 0:248>>),
+        badarg = try Mod:base(<<>>) catch error:badarg -> badarg end,
+        badarg = try Mod:crypto_scalarmult_curve25519(<<0:248>>, SK) catch error:badarg -> badarg end.

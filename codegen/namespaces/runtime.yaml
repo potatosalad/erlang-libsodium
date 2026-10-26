@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../namespace.schema.json
+runtime:
+  title: CPU features
+  doc: |
+    CPU features detected by libsodium at startup, used to choose optimized
+    implementations (for example, `m:libsodium_crypto_aead_aes256gcm` requires
+    `has_aesni/0` and `has_pclmul/0` on x86, or `has_armcrypto/0` on ARM).
+
+    Each function returns `1` when the feature is available on the current CPU
+    and `0` otherwise. Features that do not apply to the CPU architecture are
+    always `0`.
+  example: |
+    Flags = [libsodium_runtime:has_sse2(), libsodium_runtime:has_avx2(), libsodium_runtime:has_neon()],
+    true = lists:all(fun(Flag) -> Flag =:= 0 orelse Flag =:= 1 end, Flags).
+  constants:
+    - {name: has_neon, type: int, spec: "0 | 1", doc: "Return `1` if the CPU supports ARM NEON (Advanced SIMD), otherwise `0`."}
+    - {name: has_armcrypto, type: int, spec: "0 | 1", doc: "Return `1` if the CPU supports the ARMv8 cryptography extensions (AES, SHA), otherwise `0`."}
+    - {name: has_sse2, type: int, spec: "0 | 1", doc: "Return `1` if the CPU supports x86 SSE2, otherwise `0`."}
+    - {name: has_sse3, type: int, spec: "0 | 1", doc: "Return `1` if the CPU supports x86 SSE3, otherwise `0`."}
+    - {name: has_ssse3, type: int, spec: "0 | 1", doc: "Return `1` if the CPU supports x86 SSSE3, otherwise `0`."}
+    - {name: has_sse41, type: int, spec: "0 | 1", doc: "Return `1` if the CPU supports x86 SSE4.1, otherwise `0`."}
+    - {name: has_avx, type: int, spec: "0 | 1", doc: "Return `1` if the CPU and operating system support x86 AVX, otherwise `0`."}
+    - {name: has_avx2, type: int, spec: "0 | 1", doc: "Return `1` if the CPU and operating system support x86 AVX2, otherwise `0`."}
+    - {name: has_avx512f, type: int, spec: "0 | 1", doc: "Return `1` if the CPU and operating system support x86 AVX-512F, otherwise `0`."}
+    - {name: has_pclmul, type: int, spec: "0 | 1", doc: "Return `1` if the CPU supports x86 carry-less multiplication (PCLMULQDQ), otherwise `0`."}
+    - {name: has_aesni, type: int, spec: "0 | 1", doc: "Return `1` if the CPU supports x86 AES-NI instructions, otherwise `0`."}
+    - {name: has_rdrand, type: int, spec: "0 | 1", doc: "Return `1` if the CPU supports the x86 RDRAND instruction, otherwise `0`."}
+  tests:
+    - name: flags
+      code: |
+        Flags = [libsodium_runtime:F() || F <- [has_neon, has_armcrypto, has_sse2, has_sse3, has_ssse3, has_sse41,
+                                                has_avx, has_avx2, has_avx512f, has_pclmul, has_aesni, has_rdrand]],
+        true = lists:all(fun(Flag) -> Flag =:= 0 orelse Flag =:= 1 end, Flags),
+        true = (libsodium_runtime:has_neon() =:= 0) orelse (libsodium_runtime:has_sse2() =:= 0),
+        true = (libsodium_runtime:has_avx2() =< libsodium_runtime:has_avx())

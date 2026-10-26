@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_scalarmult:
+  title: Point multiplication
+  doc: |
+    Elliptic curve point multiplication with the default primitive, X25519.
+
+    `base/1` computes a `bytes/0` byte public key from a `scalarbytes/0` byte
+    secret key, and `crypto_scalarmult/2` computes a shared secret from a
+    secret key and another party's public key.
+
+    Do not use the shared secret directly as a key: hash it together with both
+    public keys, or use `m:libsodium_crypto_kx` instead.
+  example: |
+    AliceSK = libsodium_randombytes:buf(libsodium_crypto_scalarmult:scalarbytes()),
+    BobSK = libsodium_randombytes:buf(libsodium_crypto_scalarmult:scalarbytes()),
+    AlicePK = libsodium_crypto_scalarmult:base(AliceSK),
+    BobPK = libsodium_crypto_scalarmult:base(BobSK),
+    Shared = libsodium_crypto_scalarmult:crypto_scalarmult(AliceSK, BobPK),
+    Shared = libsodium_crypto_scalarmult:crypto_scalarmult(BobSK, AlicePK).
+  constants:
+    - name: bytes
+      value: 32
+    - name: scalarbytes
+      value: 32
+    - name: primitive
+      type: atom
+      value: curve25519
+  functions:
+    - name: base
+      doc: |
+        Compute the public key for the secret scalar `N` by multiplying the
+        base point. Returns `-1` on failure.
+      args:
+        - {type: fixed, name: n, size: crypto_scalarmult_SCALARBYTES}
+      outputs:
+        - {name: q, size: crypto_scalarmult_BYTES}
+      returns: q
+      erlang:
+        - params: [N]
+    - name: crypto_scalarmult
+      c: crypto_scalarmult
+      doc: |
+        Multiply the point `P` by the secret scalar `N`, producing a shared
+        secret. Returns `-1` when `P` is a low-order point.
+      args:
+        - {type: fixed, name: n, size: crypto_scalarmult_SCALARBYTES}
+        - {type: fixed, name: p, size: crypto_scalarmult_BYTES}
+      outputs:
+        - {name: q, size: crypto_scalarmult_BYTES}
+      returns: q
+      erlang:
+        - params: [N, P]
+  tests:
+    - name: rfc7748
+      code: |
+        AliceSK = binary:decode_hex(<<"77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a">>),
+        AlicePK = binary:decode_hex(<<"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a">>),
+        BobSK = binary:decode_hex(<<"5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb">>),
+        BobPK = binary:decode_hex(<<"de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f">>),
+        Shared = binary:decode_hex(<<"4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742">>),
+        AlicePK = libsodium_crypto_scalarmult:base(AliceSK),
+        BobPK = libsodium_crypto_scalarmult:base(BobSK),
+        Shared = libsodium_crypto_scalarmult:crypto_scalarmult(AliceSK, BobPK),
+        Shared = libsodium_crypto_scalarmult:crypto_scalarmult(BobSK, AlicePK),
+        Shared = crypto:compute_key(ecdh, BobPK, AliceSK, x25519).
+    - name: errors
+      code: |
+        SK = libsodium_randombytes:buf(32),
+        -1 = libsodium_crypto_scalarmult:crypto_scalarmult(SK, <<0:256>>),
+        -1 = libsodium_crypto_scalarmult:crypto_scalarmult(SK, <<1, 0:248>>),
+        badarg = try libsodium_crypto_scalarmult:base(<<0:248>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_scalarmult:crypto_scalarmult(SK, <<0:264>>) catch error:badarg -> badarg end.

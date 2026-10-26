@@ -1,0 +1,354 @@
+# yaml-language-server: $schema=../namespace.schema.json
+utils:
+  title: Helpers
+  doc: |
+    Constant-time comparisons, little-endian number arithmetic, hexadecimal,
+    Base64 and IP address codecs, and ISO/IEC 7816-4 padding.
+
+    `memcmp/2` and `is_zero/1` run in constant time for a given length and are
+    the right way to compare secrets such as MACs and keys. `compare/2`,
+    `increment/1`, `add/2`, and `sub/2` treat their binaries as unsigned
+    little-endian numbers (the layout of libsodium nonces and counters) and also
+    run in constant time for a given length. Functions taking two binaries
+    raise `badarg` unless both have the same length.
+
+    Base64 functions take a variant from `base64_variants/0` (or its libsodium
+    integer value) and default to `original`. Decoding functions return `-1`
+    for malformed input.
+  example: |
+    Hex = libsodium_utils:bin2hex(<<"hi">>),
+    <<"6869">> = Hex,
+    <<"hi">> = libsodium_utils:hex2bin(Hex),
+    <<"aGk">> = libsodium_utils:bin2base64(<<"hi">>, urlsafe_no_padding),
+    <<"hi">> = libsodium_utils:base642bin(<<"aGk">>, urlsafe_no_padding),
+    <<1, 1>> = libsodium_utils:increment(<<0, 1>>),
+    0 = libsodium_utils:memcmp(<<"secret">>, <<"secret">>).
+  constants:
+    - name: base64_variants
+      type: erlang
+      erlang: "[original, original_no_padding, urlsafe, urlsafe_no_padding]"
+      spec: "[original | original_no_padding | urlsafe | urlsafe_no_padding, ...]"
+      doc: |
+        Return the Base64 variants accepted by `base64_encoded_len/2`,
+        `bin2base64/2`, and `base642bin/2,3`: the standard (`original`) and
+        URL-safe (`urlsafe`) alphabets, each with or without `=` padding.
+  functions:
+    - name: memcmp
+      doc: |
+        Compare the secrets `B1` and `B2` in constant time. Returns `0` when they
+        are equal and `-1` otherwise; this is not a lexicographic comparison.
+        Raises `badarg` unless both have the same length.
+      args:
+        - {type: binary, name: b1, len_type: size_t}
+        - {type: binary, name: b2, len_type: size_t}
+      prelude: |
+        if (b1len != b2len) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      call: sodium_memcmp(b1, b2, b1len)
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+    - name: compare
+      doc: |
+        Compare `B1` and `B2` as unsigned little-endian numbers in constant time.
+        Returns `-1` if `B1` is less than `B2`, `1` if it is greater, and `0` if
+        they are equal. Raises `badarg` unless both have the same length.
+      args:
+        - {type: binary, name: b1, len_type: size_t}
+        - {type: binary, name: b2, len_type: size_t}
+      prelude: |
+        if (b1len != b2len) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      call: sodium_compare(b1, b2, b1len)
+      check: none
+      returns: "int:rc"
+      spec: "-1 | 0 | 1"
+    - name: is_zero
+      doc: Return `1` if every byte of `N` is zero (checked in constant time), otherwise `0`.
+      args:
+        - {type: binary, name: n, len_type: size_t}
+      call: sodium_is_zero(n, nlen)
+      check: none
+      returns: "int:rc"
+      spec: "0 | 1"
+    - name: increment
+      doc: |
+        Return `N` plus one, treating it as an unsigned little-endian number of
+        the same length; the carry out of the last byte is discarded, so an
+        all-`255` binary wraps around to zero.
+      args:
+        - {type: binary, name: n, len_type: size_t}
+      outputs:
+        - {name: out, size: nlen, copy_from: n}
+      call: sodium_increment(out, nlen)
+      rc_type: void
+      check: none
+      returns: out
+    - name: add
+      doc: |
+        Return `(A + B) mod 2^(8 * byte_size(A))`, treating both as unsigned
+        little-endian numbers. Raises `badarg` unless both have the same length.
+      args:
+        - {type: binary, name: a, len_type: size_t}
+        - {type: binary, name: b, len_type: size_t}
+      prelude: |
+        if (alen != blen) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      outputs:
+        - {name: sum, size: alen, copy_from: a}
+      call: sodium_add(sum, b, alen)
+      rc_type: void
+      check: none
+      returns: sum
+    - name: sub
+      doc: |
+        Return `(A - B) mod 2^(8 * byte_size(A))`, treating both as unsigned
+        little-endian numbers. Raises `badarg` unless both have the same length.
+      args:
+        - {type: binary, name: a, len_type: size_t}
+        - {type: binary, name: b, len_type: size_t}
+      prelude: |
+        if (alen != blen) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      outputs:
+        - {name: difference, size: alen, copy_from: a}
+      call: sodium_sub(difference, b, alen)
+      rc_type: void
+      check: none
+      returns: difference
+    - name: bin2hex
+      doc: Return the lowercase hexadecimal encoding of `Bin`, in constant time.
+      args:
+        - {type: binary, name: bin, len_type: size_t}
+      prelude: |
+        if (binlen >= SIZE_MAX / 2) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      outputs:
+        - {name: hex, size: "binlen * 2 + 1", length: "binlen * 2"}
+      call: sodium_bin2hex((char *)hex, hex_size, bin, binlen)
+      rc_type: "const char *"
+      check: none
+      returns: hex
+    - name: hex2bin
+      doc: |
+        Decode the hexadecimal `Hex` (either case), skipping any characters in
+        `Ignore` between byte pairs. `Ignore` defaults to `<<>>`, so no
+        separators are accepted.
+
+        Returns `-1` if `Hex` contains an invalid character or an incomplete pair.
+      args:
+        - {type: binary, name: hex, len_type: size_t}
+        - {type: cstring, name: ignore, nullable: true}
+      outputs:
+        - {name: bin, size: hexlen / 2, len: bin_len, len_type: size_t}
+      call: sodium_hex2bin(bin, bin_size, (const char *)hex, hexlen, ignore, &bin_len, NULL)
+      returns: bin
+      erlang:
+        - params: [Hex]
+          args: [Hex, "<<>>"]
+        - params: [Hex, Ignore]
+    - name: base64_encoded_len
+      doc: |
+        Return the length of the Base64 `Variant` encoding of `BinLen` bytes,
+        including one extra byte for libsodium's trailing NUL; the binary
+        returned by `bin2base64/2` is one byte shorter.
+      args:
+        - {type: uint, name: bin_len, c_type: size_t}
+        - &variant
+          type: enum
+          name: variant
+          values:
+            original: sodium_base64_VARIANT_ORIGINAL
+            original_no_padding: sodium_base64_VARIANT_ORIGINAL_NO_PADDING
+            urlsafe: sodium_base64_VARIANT_URLSAFE
+            urlsafe_no_padding: sodium_base64_VARIANT_URLSAFE_NO_PADDING
+      call: sodium_base64_encoded_len(bin_len, variant)
+      rc_type: size_t
+      check: none
+      returns: "uint:rc"
+    - name: bin2base64
+      doc: |
+        Return the Base64 encoding of `Bin` using `Variant`, in constant time.
+        `Variant` defaults to `original`.
+      args:
+        - {type: binary, name: bin, len_type: size_t}
+        - *variant
+      outputs:
+        - {name: b64, size: "sodium_base64_ENCODED_LEN(binlen, variant)", length: "strlen((const char *)b64)"}
+      call: sodium_bin2base64((char *)b64, b64_size, bin, binlen, variant)
+      rc_type: "const char *"
+      check: none
+      returns: b64
+      erlang:
+        - params: [Bin]
+          args: [Bin, original]
+        - params: [Bin, Variant]
+    - name: base642bin
+      doc: |
+        Decode the Base64 `B64` using `Variant`, skipping any characters in
+        `Ignore`. `Variant` defaults to `original` and `Ignore` to `<<>>`.
+
+        Returns `-1` if `B64` is malformed for the variant, including missing or
+        unexpected padding.
+      args:
+        - {type: binary, name: b64, len_type: size_t}
+        - {type: cstring, name: ignore, nullable: true}
+        - *variant
+      outputs:
+        - {name: bin, size: "(b64len / 4) * 3 + ((b64len % 4) * 3) / 4", len: bin_len, len_type: size_t}
+      call: sodium_base642bin(bin, bin_size, (const char *)b64, b64len, ignore, &bin_len, NULL, variant)
+      returns: bin
+      erlang:
+        - params: [B64]
+          args: [B64, "<<>>", original]
+        - params: [B64, Variant]
+          args: [B64, "<<>>", Variant]
+        - params: [B64, Ignore, Variant]
+    - name: pad
+      doc: |
+        Pad `UnpaddedBuf` to a multiple of `Blocksize` bytes using the ISO/IEC
+        7816-4 scheme (a `16#80` byte followed by zeros); at least one byte is
+        always added. Raises `badarg` if `Blocksize` is `0` or the padded length
+        would overflow.
+      args:
+        - {type: binary, name: unpadded_buf, len_type: size_t}
+        - {type: uint, name: blocksize, c_type: size_t, min: "1"}
+      prelude: |
+        if (blocksize > SIZE_MAX - unpadded_buflen) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      outputs:
+        - {name: buf, size: unpadded_buflen + blocksize, len: padded_buflen, len_type: size_t, copy_from: unpadded_buf}
+      call: sodium_pad(&padded_buflen, buf, unpadded_buflen, blocksize, buf_size)
+      returns: buf
+    - name: unpad
+      doc: |
+        Remove the ISO/IEC 7816-4 padding added by `pad/2` from `PaddedBuf`.
+        Returns `-1` if the padding is invalid or `Blocksize` is `0` or larger
+        than `PaddedBuf`.
+      args:
+        - {type: binary, name: padded_buf, len_type: size_t}
+        - {type: uint, name: blocksize, c_type: size_t}
+      outputs:
+        - {name: buf, size: padded_buflen, len: unpadded_buflen, len_type: size_t, copy_from: padded_buf}
+      call: sodium_unpad(&unpadded_buflen, padded_buf, padded_buflen, blocksize)
+      returns: buf
+    - name: ip2bin
+      doc: |
+        Parse the IPv4 or IPv6 address `Ip` (an IPv6 address may carry a
+        `%zone` suffix, which is discarded) into its 16-byte IPv6 form; IPv4
+        addresses become IPv4-mapped IPv6 addresses. Returns `-1` if `Ip` is
+        not a valid address.
+      args:
+        - {type: binary, name: ip, len_type: size_t, work: false}
+      outputs:
+        - {name: bin, size: "16"}
+      call: sodium_ip2bin(bin, (const char *)ip, iplen)
+      returns: bin
+    - name: bin2ip
+      doc: |
+        Format the 16-byte address `Bin` as text: IPv4-mapped addresses as
+        dotted IPv4, others as compressed IPv6 (RFC 5952).
+      args:
+        - {type: fixed, name: bin, size: "16"}
+      outputs:
+        - {name: ip, size: "46", length: "(rc == NULL) ? 0 : strlen((const char *)ip)"}
+      call: sodium_bin2ip((char *)ip, ip_size, bin)
+      rc_type: "const char *"
+      check: none
+      returns: ip
+  tests:
+    - name: hex_and_ip
+      code: |
+        Bin = libsodium_randombytes:buf(33),
+        Hex = libsodium_utils:bin2hex(Bin),
+        Hex = string:lowercase(binary:encode_hex(Bin)),
+        Bin = libsodium_utils:hex2bin(Hex),
+        Bin = libsodium_utils:hex2bin(binary:encode_hex(Bin)),
+        <<>> = libsodium_utils:bin2hex(<<>>),
+        <<>> = libsodium_utils:hex2bin(<<>>),
+        <<16#de, 16#ad, 16#be, 16#ef>> = libsodium_utils:hex2bin(<<"de:ad be:EF">>, <<": ">>),
+        -1 = libsodium_utils:hex2bin(<<"de:ad">>),
+        -1 = libsodium_utils:hex2bin(<<"0g">>),
+        -1 = libsodium_utils:hex2bin(<<"abc">>),
+        V4 = libsodium_utils:ip2bin(<<"192.168.1.20">>),
+        <<0:80, 16#ffff:16, 192, 168, 1, 20>> = V4,
+        <<"192.168.1.20">> = libsodium_utils:bin2ip(V4),
+        V6 = libsodium_utils:ip2bin(<<"2001:DB8::1">>),
+        <<16#2001:16, 16#db8:16, 0:80, 1:16>> = V6,
+        <<"2001:db8::1">> = libsodium_utils:bin2ip(V6),
+        -1 = libsodium_utils:ip2bin(<<"256.0.0.1">>),
+        badarg = try libsodium_utils:bin2ip(<<1, 2, 3>>) catch error:badarg -> badarg end
+    - name: base64
+      code: |
+        [original, original_no_padding, urlsafe, urlsafe_no_padding] = Variants = libsodium_utils:base64_variants(),
+        Options = #{original => #{}, original_no_padding => #{padding => false},
+                    urlsafe => #{mode => urlsafe}, urlsafe_no_padding => #{mode => urlsafe, padding => false}},
+        [begin
+             Bin = libsodium_randombytes:buf(Len),
+             B64 = base64:encode(Bin, maps:get(Variant, Options)),
+             B64 = libsodium_utils:bin2base64(Bin, Variant),
+             Bin = libsodium_utils:base642bin(B64, Variant),
+             Bin = libsodium_utils:base642bin(B64, <<>>, Variant),
+             true = libsodium_utils:base64_encoded_len(Len, Variant) =:= byte_size(B64) + 1
+         end || Variant <- Variants, Len <- lists:seq(0, 10)],
+        <<"aGVsbG8=">> = libsodium_utils:bin2base64(<<"hello">>),
+        <<"hello">> = libsodium_utils:base642bin(<<"aGVsbG8=">>),
+        <<"hello">> = libsodium_utils:base642bin(<<"aG Vs\nbG8=">>, <<" \n">>, 1),
+        <<"aGVsbG8">> = libsodium_utils:bin2base64(<<"hello">>, 3),
+        <<"-_8=">> = libsodium_utils:bin2base64(<<16#fb, 16#ff>>, 5),
+        <<"-_8">> = libsodium_utils:bin2base64(<<16#fb, 16#ff>>, 7),
+        -1 = libsodium_utils:base642bin(<<"aGVsbG8">>),
+        -1 = libsodium_utils:base642bin(<<"aGVsbG8=">>, urlsafe_no_padding),
+        -1 = libsodium_utils:base642bin(<<"-_8=">>, original),
+        badarg = try libsodium_utils:bin2base64(<<"x">>, bogus) catch error:badarg -> badarg end,
+        badarg = try libsodium_utils:bin2base64(<<"x">>, 2) catch error:badarg -> badarg end,
+        badarg = try libsodium_utils:base64_encoded_len(1, 0) catch error:badarg -> badarg end
+    - name: pad
+      code: |
+        <<"abc", 16#80>> = P1 = libsodium_utils:pad(<<"abc">>, 4),
+        <<"abc">> = libsodium_utils:unpad(P1, 4),
+        <<"abcd", 16#80, 0, 0, 0>> = P2 = libsodium_utils:pad(<<"abcd">>, 4),
+        <<"abcd">> = libsodium_utils:unpad(P2, 4),
+        <<16#80, 0:120>> = P3 = libsodium_utils:pad(<<>>, 16),
+        <<>> = libsodium_utils:unpad(P3, 16),
+        Msg = libsodium_randombytes:buf(100),
+        P4 = libsodium_utils:pad(Msg, 7),
+        105 = byte_size(P4),
+        Msg = libsodium_utils:unpad(P4, 7),
+        -1 = libsodium_utils:unpad(<<"abcd">>, 4),
+        -1 = libsodium_utils:unpad(<<"abc", 16#80>>, 8),
+        -1 = libsodium_utils:unpad(<<"abc", 16#80>>, 0),
+        badarg = try libsodium_utils:pad(<<"abc">>, 0) catch error:badarg -> badarg end
+    - name: numbers
+      code: |
+        <<1, 0>> = libsodium_utils:increment(<<0, 0>>),
+        <<0, 1>> = libsodium_utils:increment(<<255, 0>>),
+        <<0, 0>> = libsodium_utils:increment(<<255, 255>>),
+        <<>> = libsodium_utils:increment(<<>>),
+        <<0, 1>> = libsodium_utils:add(<<255, 0>>, <<1, 0>>),
+        <<1, 0>> = libsodium_utils:add(<<255, 255>>, <<2, 0>>),
+        <<255, 0>> = libsodium_utils:sub(<<0, 1>>, <<1, 0>>),
+        <<255, 255>> = libsodium_utils:sub(<<0, 0>>, <<1, 0>>),
+        1 = libsodium_utils:compare(<<1, 2>>, <<2, 1>>),
+        -1 = libsodium_utils:compare(<<2, 1>>, <<1, 2>>),
+        0 = libsodium_utils:compare(<<3, 4>>, <<3, 4>>),
+        1 = libsodium_utils:is_zero(<<0, 0, 0>>),
+        0 = libsodium_utils:is_zero(<<0, 1, 0>>),
+        0 = libsodium_utils:memcmp(<<"abc">>, <<"abc">>),
+        -1 = libsodium_utils:memcmp(<<"abc">>, <<"abd">>),
+        badarg = try libsodium_utils:compare(<<1>>, <<1, 2>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_utils:memcmp(<<1>>, <<>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_utils:add(<<1>>, <<1, 2>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_utils:sub(<<1, 2>>, <<1>>) catch error:badarg -> badarg end

@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_scalarmult_ristretto255:
+  title: Ristretto255 point multiplication
+  doc: |
+    Point multiplication in the Ristretto255 prime-order group, for building
+    custom protocols.
+
+    Elements are `bytes/0` byte encodings and scalars are `scalarbytes/0` bytes
+    (little-endian, not clamped). Unlike Ed25519, every valid encoding
+    represents an element of a prime-order group, so there are no small-order
+    points to reject.
+
+    Both functions return `-1` when the input element is invalid or when the
+    result is the identity element (for example with a zero scalar).
+  example: |
+    Mod = libsodium_crypto_scalarmult_ristretto255,
+    A = libsodium_randombytes:buf(Mod:scalarbytes()),
+    B = libsodium_randombytes:buf(Mod:scalarbytes()),
+    PA = Mod:base(A),
+    PB = Mod:base(B),
+    Shared = Mod:crypto_scalarmult_ristretto255(A, PB),
+    Shared = Mod:crypto_scalarmult_ristretto255(B, PA).
+  constants:
+    - name: bytes
+      value: 32
+    - name: scalarbytes
+      value: 32
+  functions:
+    - name: crypto_scalarmult_ristretto255
+      c: crypto_scalarmult_ristretto255
+      doc: |
+        Multiply the element `P` by the scalar `N`. Returns `-1` when `P` is
+        not a valid encoding or when the result is the identity.
+      args:
+        - {type: fixed, name: n, size: crypto_scalarmult_ristretto255_SCALARBYTES}
+        - {type: fixed, name: p, size: crypto_scalarmult_ristretto255_BYTES}
+      outputs:
+        - {name: q, size: crypto_scalarmult_ristretto255_BYTES}
+      returns: q
+      erlang:
+        - params: [N, P]
+    - name: base
+      doc: |
+        Multiply the generator by the scalar `N`. Returns `-1` when the result
+        is the identity.
+      args:
+        - {type: fixed, name: n, size: crypto_scalarmult_ristretto255_SCALARBYTES}
+      outputs:
+        - {name: q, size: crypto_scalarmult_ristretto255_BYTES}
+      returns: q
+      erlang:
+        - params: [N]
+  tests:
+    - name: known_answer
+      code: |
+        Mod = libsodium_crypto_scalarmult_ristretto255,
+        One = <<1, 0:248>>,
+        G = binary:decode_hex(<<"e2f2ae0a6abc4e71a884a961c500515f58e30b6aa582dd8db6a65945e08d2d76">>),
+        G = Mod:base(One),
+        G = Mod:crypto_scalarmult_ristretto255(One, G),
+        G2 = binary:decode_hex(<<"6a493210f7499cd17fecb510ae0cea23a110e8d5b901f8acadd3095c73a3b919">>),
+        G2 = Mod:base(<<2, 0:248>>),
+        G2 = Mod:crypto_scalarmult_ristretto255(<<2, 0:248>>, G).
+    - name: errors
+      code: |
+        Mod = libsodium_crypto_scalarmult_ristretto255,
+        One = <<1, 0:248>>,
+        -1 = Mod:base(<<0:256>>),
+        -1 = Mod:crypto_scalarmult_ristretto255(One, <<0:256>>),
+        -1 = Mod:crypto_scalarmult_ristretto255(One, binary:copy(<<255>>, 32)),
+        badarg = try Mod:base(<<0:248>>) catch error:badarg -> badarg end,
+        badarg = try Mod:crypto_scalarmult_ristretto255(One, <<>>) catch error:badarg -> badarg end.

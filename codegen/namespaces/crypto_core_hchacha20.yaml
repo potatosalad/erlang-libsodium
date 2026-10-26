@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_core_hchacha20:
+  title: HChaCha20 core
+  doc: |
+    The HChaCha20 core function, which derives a `outputbytes/0` byte subkey
+    from a `keybytes/0` byte key and a `inputbytes/0` byte input (typically
+    the first 16 bytes of an extended nonce). It is the building block of
+    XChaCha20.
+
+    The `constbytes/0` byte constant `C` is normally the 16-byte string
+    `<<"expand 32-byte k">>`. This is a low-level primitive: it is not a
+    general-purpose key derivation function, and the key must be secret and
+    uniformly random.
+  example: |
+    Key = libsodium_randombytes:buf(libsodium_crypto_core_hchacha20:keybytes()),
+    In = libsodium_randombytes:buf(libsodium_crypto_core_hchacha20:inputbytes()),
+    Out = libsodium_crypto_core_hchacha20:crypto_core_hchacha20(In, Key, <<"expand 32-byte k">>),
+    32 = byte_size(Out),
+    Out = libsodium_crypto_core_hchacha20:crypto_core_hchacha20(In, Key, <<"expand 32-byte k">>).
+  constants:
+    - name: outputbytes
+      value: 32
+    - name: inputbytes
+      value: 16
+    - name: keybytes
+      value: 32
+    - name: constbytes
+      value: 16
+  functions:
+    - name: crypto_core_hchacha20
+      c: crypto_core_hchacha20
+      doc: |
+        Compute the HChaCha20 core of the `inputbytes/0` byte input `In`
+        with the `keybytes/0` byte key `K` and the `constbytes/0` byte constant
+        `C`, returning `outputbytes/0` bytes.
+      args:
+        - {type: fixed, name: in, size: crypto_core_hchacha20_INPUTBYTES}
+        - {type: fixed, name: k, size: crypto_core_hchacha20_KEYBYTES}
+        - {type: fixed, name: c, size: crypto_core_hchacha20_CONSTBYTES}
+      outputs:
+        - {name: out, size: crypto_core_hchacha20_OUTPUTBYTES}
+      rc_type: void
+      check: none
+      returns: out
+      erlang:
+        - params: [In, K, C]
+  tests:
+    - name: hchacha20_vector
+      code: |
+        K = binary:decode_hex(<<"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f">>),
+        In = binary:decode_hex(<<"000000090000004a0000000031415927">>),
+        Expected = binary:decode_hex(<<"82413b4227b27bfed30e42508a877d73a0f9e4d58a74a853c12ec41326d3ecdc">>),
+        Expected = libsodium_crypto_core_hchacha20:crypto_core_hchacha20(In, K, <<"expand 32-byte k">>).
+    - name: badarg
+      code: |
+        K = libsodium_randombytes:buf(32),
+        badarg = try libsodium_crypto_core_hchacha20:crypto_core_hchacha20(<<0:120>>, K, <<"expand 32-byte k">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_core_hchacha20:crypto_core_hchacha20(<<0:128>>, <<K/binary, 0>>, <<"expand 32-byte k">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_core_hchacha20:crypto_core_hchacha20(<<0:128>>, K, <<>>) catch error:badarg -> badarg end.

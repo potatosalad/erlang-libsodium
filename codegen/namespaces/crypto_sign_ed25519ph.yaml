@@ -1,0 +1,94 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_sign_ed25519ph:
+  title: Ed25519ph signatures
+  doc: |
+    Streaming Ed25519ph signatures (RFC 8032), where the message is
+    pre-hashed with SHA-512 so it can be signed or verified in chunks.
+
+    `init/0` returns an opaque state binary of `statebytes/0` bytes, which
+    `update/2` threads through the message; each call returns a new state and
+    leaves its argument unchanged. Keys are the same as for
+    `m:libsodium_crypto_sign_ed25519`, but Ed25519ph signatures are not
+    interchangeable with plain Ed25519 signatures of the same message.
+  example: |
+    {PK, SK} = libsodium_crypto_sign_ed25519:keypair(),
+    State0 = libsodium_crypto_sign_ed25519ph:init(),
+    State1 = libsodium_crypto_sign_ed25519ph:update(State0, <<"hello ">>),
+    State2 = libsodium_crypto_sign_ed25519ph:update(State1, <<"world">>),
+    Sig = libsodium_crypto_sign_ed25519ph:final_create(State2, SK),
+    0 = libsodium_crypto_sign_ed25519ph:final_verify(State2, Sig, PK).
+  constants:
+    - name: statebytes
+      value: 208
+  functions:
+    - name: init
+      doc: Start a streaming Ed25519ph signature, returning a new state.
+      outputs:
+        - {type: state, name: state, c_type: crypto_sign_ed25519ph_state}
+      returns: state
+    - name: update
+      doc: Absorb the message chunk `M` into `State` and return the updated state.
+      args:
+        - {type: state, name: state, c_type: crypto_sign_ed25519ph_state}
+        - {type: binary, name: m}
+      update: true
+      returns: state
+    - name: final_create
+      doc: |
+        Finish the streaming message in `State` and sign it with the Ed25519
+        secret key `SK`, returning a
+        `libsodium_crypto_sign_ed25519:bytes/0` byte signature.
+      args:
+        - {type: state, name: state, c_type: crypto_sign_ed25519ph_state}
+        - {type: fixed, name: sk, size: crypto_sign_ed25519_SECRETKEYBYTES}
+      outputs:
+        - {name: sig, size: crypto_sign_ed25519_BYTES, len: siglen}
+      call: crypto_sign_ed25519ph_final_create(&state, sig, &siglen, sk)
+      returns: sig
+      erlang:
+        - params: [State, SK]
+    - name: final_verify
+      doc: |
+        Finish the streaming message in `State` and verify its signature `Sig`
+        with the Ed25519 public key `PK`. Returns `0` when the signature is
+        valid and `-1` otherwise.
+      args:
+        - {type: state, name: state, c_type: crypto_sign_ed25519ph_state}
+        - {type: fixed, name: sig, size: crypto_sign_ed25519_BYTES}
+        - {type: fixed, name: pk, size: crypto_sign_ed25519_PUBLICKEYBYTES}
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+      erlang:
+        - params: [State, Sig, PK]
+  tests:
+    - name: rfc8032_vector
+      code: |
+        Seed = binary:decode_hex(<<"833fe62409237b9d62ec77587520911e9a759cec1d19755b7da901b96dca3d42">>),
+        PK = binary:decode_hex(<<"ec172b93ad5e563bf4932c70e1245034c35467ef2efd4d64ebf819683467e2bf">>),
+        Sig = binary:decode_hex(<<"98a70222f0b8121aa9d30f813d683f809e462b469c7ff87639499bb94e6dae4131f85042463c2a355a2003d062adf5aaa10b8c61e636062aaad11c2a26083406">>),
+        SK = <<Seed/binary, PK/binary>>,
+        State0 = libsodium_crypto_sign_ed25519ph:init(),
+        State1 = libsodium_crypto_sign_ed25519ph:update(State0, <<"a">>),
+        State2 = libsodium_crypto_sign_ed25519ph:update(State1, <<"bc">>),
+        Sig = libsodium_crypto_sign_ed25519ph:final_create(State2, SK),
+        0 = libsodium_crypto_sign_ed25519ph:final_verify(State2, Sig, PK),
+        -1 = libsodium_crypto_sign_ed25519:verify_detached(Sig, <<"abc">>, PK).
+    - name: forgery
+      code: |
+        {PK, SK} = libsodium_crypto_sign_ed25519:keypair(),
+        State0 = libsodium_crypto_sign_ed25519ph:init(),
+        State1 = libsodium_crypto_sign_ed25519ph:update(State0, <<"message">>),
+        <<B0, Rest/binary>> = Sig = libsodium_crypto_sign_ed25519ph:final_create(State1, SK),
+        -1 = libsodium_crypto_sign_ed25519ph:final_verify(State1, <<(B0 bxor 1), Rest/binary>>, PK),
+        -1 = libsodium_crypto_sign_ed25519ph:final_verify(State0, Sig, PK),
+        Large = libsodium_crypto_sign_ed25519ph:update(State0, binary:copy(<<"message">>, 100000)),
+        -1 = libsodium_crypto_sign_ed25519ph:final_verify(Large, Sig, PK).
+    - name: badarg
+      code: |
+        {PK, SK} = libsodium_crypto_sign_ed25519:keypair(),
+        State = libsodium_crypto_sign_ed25519ph:init(),
+        badarg = try libsodium_crypto_sign_ed25519ph:update(<<State/binary, 0>>, <<"m">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign_ed25519ph:update(State, not_a_binary) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign_ed25519ph:final_create(State, PK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign_ed25519ph:final_verify(State, <<0:512>>, SK) catch error:badarg -> badarg end.

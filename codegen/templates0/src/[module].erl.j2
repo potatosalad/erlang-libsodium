@@ -17,9 +17,17 @@
 %% ~J< namespace.title >. API
 -export([
 ~J{ for function in namespace.public_functions }.
-    ~J< function.name >./~J< function.arity >.~J< ',' if not loop.last else '' >.
+    ~J< function.atom >./~J< function.arity >.~J< ',' if not loop.last else '' >.
 ~J{ endfor }.
 ]).
+~J{ if namespace.deprecated_functions }.
+
+-deprecated([
+~J{ for function in namespace.deprecated_functions }.
+    {~J< function.atom >., ~J< function.arity >., "~J< function.deprecated | replace('"', '\\"') >."}~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+]).
+~J{ endif }.
 
 %%%=============================================================================
 %%% ~J< namespace.title >. API functions
@@ -29,7 +37,10 @@
 -doc """
 ~J< function.doc >.
 """.
+~J{ if function.deprecated }.
+-doc #{deprecated => "~J< function.deprecated | replace('"', '\\"') >."}.
+~J{ endif }.
 -spec ~J< function.spec >..
-~J< function.name >.(~J< function.params | join(', ') >.) ->
+~J< function.atom >.(~J< function.params | join(', ') >.) ->
     ~J< function.body >..
 ~J{ endfor }.

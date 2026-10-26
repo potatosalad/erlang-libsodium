@@ -1,0 +1,103 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_kx:
+  title: Key exchange
+  doc: |
+    Key exchange based on X25519 and BLAKE2b.
+
+    A client and a server each hold a key pair of `publickeybytes/0` and
+    `secretkeybytes/0` bytes. After exchanging public keys, both sides derive
+    the same pair of `sessionkeybytes/0` byte session keys: a key for receiving
+    (`Rx`) and a key for transmitting (`Tx`). The client's `Tx` equals the
+    server's `Rx` and vice versa.
+
+    The session keys are bound to both public keys; use them with a symmetric
+    construction such as `m:libsodium_crypto_secretbox`.
+  example: |
+    {ClientPK, ClientSK} = libsodium_crypto_kx:keypair(),
+    {ServerPK, ServerSK} = libsodium_crypto_kx:keypair(),
+    {ClientRx, ClientTx} = libsodium_crypto_kx:client_session_keys(ClientPK, ClientSK, ServerPK),
+    {ServerRx, ServerTx} = libsodium_crypto_kx:server_session_keys(ServerPK, ServerSK, ClientPK),
+    ClientRx = ServerTx,
+    ClientTx = ServerRx.
+  constants:
+    - name: publickeybytes
+      value: 32
+    - name: secretkeybytes
+      value: 32
+    - name: seedbytes
+      value: 32
+    - name: sessionkeybytes
+      value: 32
+    - name: primitive
+      type: atom
+      value: x25519blake2b
+  functions:
+    - name: seed_keypair
+      doc: |
+        Deterministically derive a key pair from the `seedbytes/0` byte `Seed`.
+        Returns `{PK, SK}`.
+      args:
+        - {type: fixed, name: seed, size: crypto_kx_SEEDBYTES}
+      outputs:
+        - {name: pk, size: crypto_kx_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_kx_SECRETKEYBYTES}
+      returns: [pk, sk]
+      erlang:
+        - params: [Seed]
+    - name: keypair
+      doc: Generate a random key pair. Returns `{PK, SK}`.
+      outputs:
+        - {name: pk, size: crypto_kx_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_kx_SECRETKEYBYTES}
+      returns: [pk, sk]
+    - name: client_session_keys
+      doc: |
+        Compute the client's session keys from its key pair `ClientPK` and
+        `ClientSK` and the server's public key `ServerPK`.
+
+        Returns `{Rx, Tx}`, or `-1` when `ServerPK` is unacceptable.
+      args:
+        - {type: fixed, name: client_pk, size: crypto_kx_PUBLICKEYBYTES}
+        - {type: fixed, name: client_sk, size: crypto_kx_SECRETKEYBYTES}
+        - {type: fixed, name: server_pk, size: crypto_kx_PUBLICKEYBYTES}
+      outputs:
+        - {name: rx, size: crypto_kx_SESSIONKEYBYTES}
+        - {name: tx, size: crypto_kx_SESSIONKEYBYTES}
+      returns: [rx, tx]
+      erlang:
+        - params: [ClientPK, ClientSK, ServerPK]
+    - name: server_session_keys
+      doc: |
+        Compute the server's session keys from its key pair `ServerPK` and
+        `ServerSK` and the client's public key `ClientPK`.
+
+        Returns `{Rx, Tx}`, or `-1` when `ClientPK` is unacceptable.
+      args:
+        - {type: fixed, name: server_pk, size: crypto_kx_PUBLICKEYBYTES}
+        - {type: fixed, name: server_sk, size: crypto_kx_SECRETKEYBYTES}
+        - {type: fixed, name: client_pk, size: crypto_kx_PUBLICKEYBYTES}
+      outputs:
+        - {name: rx, size: crypto_kx_SESSIONKEYBYTES}
+        - {name: tx, size: crypto_kx_SESSIONKEYBYTES}
+      returns: [rx, tx]
+      erlang:
+        - params: [ServerPK, ServerSK, ClientPK]
+  tests:
+    - name: known_answer
+      code: |
+        Seed = binary:decode_hex(<<"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f">>),
+        {ClientPK, ClientSK} = libsodium_crypto_kx:seed_keypair(Seed),
+        {ClientPK, _} = crypto:generate_key(ecdh, x25519, ClientSK),
+        {ServerPK, ServerSK} = libsodium_crypto_kx:keypair(),
+        Q = crypto:compute_key(ecdh, ServerPK, ClientSK, x25519),
+        <<Rx:32/binary, Tx:32/binary>> = crypto:hash(blake2b, <<Q/binary, ClientPK/binary, ServerPK/binary>>),
+        {Rx, Tx} = libsodium_crypto_kx:client_session_keys(ClientPK, ClientSK, ServerPK),
+        {Tx, Rx} = libsodium_crypto_kx:server_session_keys(ServerPK, ServerSK, ClientPK).
+    - name: errors
+      code: |
+        {PK, SK} = libsodium_crypto_kx:keypair(),
+        -1 = libsodium_crypto_kx:client_session_keys(PK, SK, <<0:256>>),
+        -1 = libsodium_crypto_kx:server_session_keys(PK, SK, <<0:256>>),
+        badarg = try libsodium_crypto_kx:client_session_keys(PK, SK, <<0:248>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kx:server_session_keys(PK, <<>>, PK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kx:seed_keypair(<<0:264>>) catch error:badarg -> badarg end.

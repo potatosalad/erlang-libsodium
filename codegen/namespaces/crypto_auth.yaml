@@ -1,0 +1,69 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_auth:
+  title: Secret-key authentication
+  doc: |
+    Secret-key message authentication with the default construction,
+    currently HMAC-SHA-512-256.
+
+    `crypto_auth/2` computes a `bytes/0` byte tag for a message under a
+    `keybytes/0` byte key, and `verify/3` checks one in constant time. The
+    same key can authenticate many messages; for a streaming interface, use
+    `m:libsodium_crypto_auth_hmacsha512256`.
+  example: |
+    Key = libsodium_crypto_auth:keygen(),
+    Tag = libsodium_crypto_auth:crypto_auth(<<"message">>, Key),
+    0 = libsodium_crypto_auth:verify(Tag, <<"message">>, Key),
+    -1 = libsodium_crypto_auth:verify(Tag, <<"forged">>, Key).
+  see_also: [libsodium_crypto_auth_hmacsha512256, libsodium_crypto_auth_hmacsha256, libsodium_crypto_auth_hmacsha512]
+  constants:
+    - name: bytes
+      value: 32
+    - name: keybytes
+      value: 32
+    - name: primitive
+      type: atom
+      value: hmacsha512256
+  functions:
+    - name: crypto_auth
+      c: crypto_auth
+      doc: Compute the `bytes/0` byte authentication tag of `In` under the `keybytes/0` byte key `K`.
+      args:
+        - {type: binary, name: in}
+        - {type: fixed, name: k, size: crypto_auth_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_auth_BYTES}
+      returns: out
+    - name: verify
+      doc: |
+        Check in constant time that `H` is the tag of `In` under the key `K`.
+        Returns `0` when it is valid and `-1` otherwise.
+      args:
+        - {type: fixed, name: h, size: crypto_auth_BYTES}
+        - {type: binary, name: in}
+        - {type: fixed, name: k, size: crypto_auth_KEYBYTES}
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_auth_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: known_answer
+      code: |
+        Key = binary:copy(<<16#0b>>, 32),
+        In = <<"Hi There">>,
+        <<Expected:32/binary, _/binary>> = crypto:mac(hmac, sha512, Key, In),
+        Expected = libsodium_crypto_auth:crypto_auth(In, Key),
+        0 = libsodium_crypto_auth:verify(Expected, In, Key).
+    - name: verify_failure
+      code: |
+        Key = libsodium_crypto_auth:keygen(),
+        <<First, Rest/binary>> = libsodium_crypto_auth:crypto_auth(<<"message">>, Key),
+        -1 = libsodium_crypto_auth:verify(<<(First bxor 1), Rest/binary>>, <<"message">>, Key),
+        -1 = libsodium_crypto_auth:verify(<<First, Rest/binary>>, <<"message">>, libsodium_crypto_auth:keygen()),
+        badarg = try libsodium_crypto_auth:verify(Rest, <<"message">>, Key) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_auth:crypto_auth(<<"message">>, <<>>) catch error:badarg -> badarg end.

@@ -1,0 +1,184 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_box_curve25519xsalsa20poly1305:
+  title: X25519-XSalsa20-Poly1305 box
+  doc: |
+    The X25519, XSalsa20, and Poly1305 construction behind
+    `m:libsodium_crypto_box`, exposed through the NaCl compatibility
+    interface.
+
+    Messages passed to `crypto_box_curve25519xsalsa20poly1305/4` and
+    `afternm/3` must start with `zerobytes/0` zero bytes, and ciphertexts
+    passed to `open/4` and `open_afternm/3` must start with `boxzerobytes/0`
+    zero bytes; outputs have the same length as their inputs. Nonces are
+    `noncebytes/0` bytes and must never be reused for the same pair of keys.
+
+    Prefer `m:libsodium_crypto_box` for new code.
+  example: |
+    Mod = libsodium_crypto_box_curve25519xsalsa20poly1305,
+    {AlicePK, AliceSK} = Mod:keypair(),
+    {BobPK, BobSK} = Mod:keypair(),
+    Nonce = libsodium_randombytes:buf(Mod:noncebytes()),
+    Padding = binary:copy(<<0>>, Mod:zerobytes()),
+    <<0:128, Boxed/binary>> = Mod:crypto_box_curve25519xsalsa20poly1305(<<Padding/binary, "message">>, Nonce, BobPK, AliceSK),
+    <<0:256, "message">> = Mod:open(<<0:128, Boxed/binary>>, Nonce, AlicePK, BobSK).
+  constants:
+    - name: seedbytes
+      value: 32
+    - name: publickeybytes
+      value: 32
+    - name: secretkeybytes
+      value: 32
+    - name: beforenmbytes
+      value: 32
+    - name: noncebytes
+      value: 24
+    - name: zerobytes
+      value: 32
+    - name: boxzerobytes
+      value: 16
+    - name: macbytes
+      value: 16
+    - name: messagebytes_max
+  functions:
+    - name: crypto_box_curve25519xsalsa20poly1305
+      c: crypto_box_curve25519xsalsa20poly1305
+      doc: |
+        Encrypt `M`, which must start with `zerobytes/0` zero bytes, using the
+        nonce `N`, the recipient's public key `PK`, and the sender's secret key
+        `SK`.
+
+        Returns a ciphertext of the same length as `M` whose first
+        `boxzerobytes/0` bytes are zero, or `-1` when `M` is shorter than
+        `zerobytes/0`.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_box_curve25519xsalsa20poly1305_NONCEBYTES}
+        - {type: fixed, name: pk, size: crypto_box_curve25519xsalsa20poly1305_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_curve25519xsalsa20poly1305_SECRETKEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+      returns: c
+      erlang:
+        - params: [M, N, PK, SK]
+    - name: open
+      doc: |
+        Verify and decrypt `C`, which must start with `boxzerobytes/0` zero
+        bytes, using the nonce `N`, the sender's public key `PK`, and the
+        recipient's secret key `SK`.
+
+        Returns a plaintext of the same length as `C` whose first `zerobytes/0`
+        bytes are zero, or `-1` when verification fails.
+      args:
+        - {type: binary, name: c}
+        - {type: fixed, name: n, size: crypto_box_curve25519xsalsa20poly1305_NONCEBYTES}
+        - {type: fixed, name: pk, size: crypto_box_curve25519xsalsa20poly1305_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_curve25519xsalsa20poly1305_SECRETKEYBYTES}
+      outputs:
+        - {name: m, size: clen}
+      returns: m
+      erlang:
+        - params: [C, N, PK, SK]
+    - name: seed_keypair
+      doc: |
+        Deterministically derive a key pair from the `seedbytes/0` byte `Seed`.
+        Returns `{PK, SK}`.
+      args:
+        - {type: fixed, name: seed, size: crypto_box_curve25519xsalsa20poly1305_SEEDBYTES}
+      outputs:
+        - {name: pk, size: crypto_box_curve25519xsalsa20poly1305_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_box_curve25519xsalsa20poly1305_SECRETKEYBYTES}
+      returns: [pk, sk]
+      erlang:
+        - params: [Seed]
+    - name: keypair
+      doc: Generate a random key pair. Returns `{PK, SK}`.
+      outputs:
+        - {name: pk, size: crypto_box_curve25519xsalsa20poly1305_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_box_curve25519xsalsa20poly1305_SECRETKEYBYTES}
+      returns: [pk, sk]
+    - name: beforenm
+      doc: |
+        Precompute the `beforenmbytes/0` byte shared key for the public key `PK`
+        and the secret key `SK`, for use with `afternm/3` and `open_afternm/3`.
+
+        Returns `-1` when `PK` is a low-order point.
+      args:
+        - {type: fixed, name: pk, size: crypto_box_curve25519xsalsa20poly1305_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_curve25519xsalsa20poly1305_SECRETKEYBYTES}
+      outputs:
+        - {name: k, size: crypto_box_curve25519xsalsa20poly1305_BEFORENMBYTES}
+      returns: k
+      erlang:
+        - params: [PK, SK]
+    - name: afternm
+      doc: |
+        Like `crypto_box_curve25519xsalsa20poly1305/4`, using the shared key `K`
+        precomputed by `beforenm/2`.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_box_curve25519xsalsa20poly1305_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_box_curve25519xsalsa20poly1305_BEFORENMBYTES}
+      outputs:
+        - {name: c, size: mlen}
+      returns: c
+      erlang:
+        - params: [M, N, K]
+    - name: open_afternm
+      doc: |
+        Like `open/4`, using the shared key `K` precomputed by `beforenm/2`.
+        Returns `-1` when verification fails.
+      args:
+        - {type: binary, name: c}
+        - {type: fixed, name: n, size: crypto_box_curve25519xsalsa20poly1305_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_box_curve25519xsalsa20poly1305_BEFORENMBYTES}
+      outputs:
+        - {name: m, size: clen}
+      returns: m
+      erlang:
+        - params: [C, N, K]
+  tests:
+    - name: round_trips
+      code: |
+        Mod = libsodium_crypto_box_curve25519xsalsa20poly1305,
+        {PK1, SK1} = Mod:keypair(),
+        {PK2, SK2} = Mod:keypair(),
+        N = libsodium_randombytes:buf(Mod:noncebytes()),
+        M = <<0:256, "attack at dawn">>,
+        C = Mod:crypto_box_curve25519xsalsa20poly1305(M, N, PK2, SK1),
+        <<0:128, _/binary>> = C,
+        46 = byte_size(C),
+        M = Mod:open(C, N, PK1, SK2),
+        K = Mod:beforenm(PK2, SK1),
+        K = Mod:beforenm(PK1, SK2),
+        C = Mod:afternm(M, N, K),
+        M = Mod:open_afternm(C, N, K),
+        <<0:128, MAC:16/binary, CD/binary>> = C,
+        {CD, MAC} = libsodium_crypto_box:detached(<<"attack at dawn">>, N, PK2, SK1),
+        Seed = libsodium_randombytes:buf(Mod:seedbytes()),
+        {SPK, SSK} = Mod:seed_keypair(Seed),
+        {SPK, SSK} = libsodium_crypto_box:seed_keypair(Seed).
+    - name: forgery
+      code: |
+        Mod = libsodium_crypto_box_curve25519xsalsa20poly1305,
+        {PK1, SK1} = Mod:keypair(),
+        {PK2, SK2} = Mod:keypair(),
+        N = libsodium_randombytes:buf(Mod:noncebytes()),
+        <<Z:16/binary, B, Rest/binary>> = Mod:crypto_box_curve25519xsalsa20poly1305(<<0:256, "message">>, N, PK2, SK1),
+        -1 = Mod:open(<<Z/binary, (B bxor 1), Rest/binary>>, N, PK1, SK2),
+        -1 = Mod:crypto_box_curve25519xsalsa20poly1305(<<0:248>>, N, PK2, SK1),
+        -1 = Mod:open(<<0:248>>, N, PK1, SK2),
+        -1 = Mod:afternm(<<>>, N, Mod:beforenm(PK2, SK1)),
+        -1 = Mod:beforenm(<<0:256>>, SK1),
+        badarg = try Mod:open(<<0:256>>, <<0:64>>, PK1, SK2) catch error:badarg -> badarg end,
+        badarg = try Mod:afternm(<<0:256>>, N, <<0:248>>) catch error:badarg -> badarg end,
+        badarg = try Mod:seed_keypair(<<>>) catch error:badarg -> badarg end.
+    - name: known_answer
+      code: |
+        Mod = libsodium_crypto_box_curve25519xsalsa20poly1305,
+        AliceSK = binary:decode_hex(<<"77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a">>),
+        AlicePK = binary:decode_hex(<<"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a">>),
+        BobSK = binary:decode_hex(<<"5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb">>),
+        BobPK = binary:decode_hex(<<"de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f">>),
+        K = binary:decode_hex(<<"1b27556473e985d462cd51197a9a46c76009549eac6474f206c4ee0844f68389">>),
+        K = Mod:beforenm(BobPK, AliceSK),
+        K = Mod:beforenm(AlicePK, BobSK).

@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_core_salsa20:
+  title: Salsa20 core
+  doc: |
+    The Salsa20 core function, which maps a `keybytes/0` byte key, a
+    `inputbytes/0` byte input (nonce and block counter) and a `constbytes/0`
+    byte constant to one `outputbytes/0` byte keystream block. It is the
+    building block of the Salsa20 stream cipher.
+
+    The constant `C` is normally the 16-byte string `<<"expand 32-byte k">>`.
+    This is a low-level primitive; most applications should use
+    `m:libsodium_crypto_stream_salsa20` or a higher-level construction.
+  example: |
+    Key = libsodium_randombytes:buf(libsodium_crypto_core_salsa20:keybytes()),
+    In = libsodium_randombytes:buf(libsodium_crypto_core_salsa20:inputbytes()),
+    Out = libsodium_crypto_core_salsa20:crypto_core_salsa20(In, Key, <<"expand 32-byte k">>),
+    64 = byte_size(Out),
+    Out = libsodium_crypto_core_salsa20:crypto_core_salsa20(In, Key, <<"expand 32-byte k">>).
+  constants:
+    - name: outputbytes
+      value: 64
+    - name: inputbytes
+      value: 16
+    - name: keybytes
+      value: 32
+    - name: constbytes
+      value: 16
+  functions:
+    - name: crypto_core_salsa20
+      c: crypto_core_salsa20
+      doc: |
+        Compute the Salsa20 core of the `inputbytes/0` byte input `In`
+        with the `keybytes/0` byte key `K` and the `constbytes/0` byte constant
+        `C`, returning `outputbytes/0` bytes.
+      args:
+        - {type: fixed, name: in, size: crypto_core_salsa20_INPUTBYTES}
+        - {type: fixed, name: k, size: crypto_core_salsa20_KEYBYTES}
+        - {type: fixed, name: c, size: crypto_core_salsa20_CONSTBYTES}
+      outputs:
+        - {name: out, size: crypto_core_salsa20_OUTPUTBYTES}
+      rc_type: void
+      check: none
+      returns: out
+      erlang:
+        - params: [In, K, C]
+  tests:
+    - name: zero_block
+      code: |
+        <<0:512>> = libsodium_crypto_core_salsa20:crypto_core_salsa20(<<0:128>>, <<0:256>>, <<0:128>>),
+        A = libsodium_crypto_core_salsa20:crypto_core_salsa20(<<0:128>>, <<1, 0:248>>, <<"expand 32-byte k">>),
+        B = libsodium_crypto_core_salsa20:crypto_core_salsa20(<<1, 0:120>>, <<1, 0:248>>, <<"expand 32-byte k">>),
+        true = A =/= B.
+    - name: badarg
+      code: |
+        K = libsodium_randombytes:buf(32),
+        badarg = try libsodium_crypto_core_salsa20:crypto_core_salsa20(<<0:120>>, K, <<"expand 32-byte k">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_core_salsa20:crypto_core_salsa20(<<0:128>>, <<K/binary, 0>>, <<"expand 32-byte k">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_core_salsa20:crypto_core_salsa20(<<0:128>>, K, <<>>) catch error:badarg -> badarg end.

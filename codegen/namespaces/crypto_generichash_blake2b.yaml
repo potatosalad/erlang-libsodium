@@ -1,0 +1,211 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_generichash_blake2b:
+  title: BLAKE2b
+  doc: |
+    BLAKE2b hashing, optionally keyed, salted, and personalized; the
+    construction behind `m:libsodium_crypto_generichash`.
+
+    Output lengths must be between `bytes_min/0` and `bytes_max/0`; keys may
+    be empty or between `keybytes_min/0` and `keybytes_max/0` bytes. The
+    `salt_personal` variants also take a `saltbytes/0` byte salt and a
+    `personalbytes/0` byte personalization string, which separate otherwise
+    identical uses of the same key.
+
+    The streaming functions thread an opaque state binary of `statebytes/0`
+    bytes through `init/0,1,2` (or `init_salt_personal/2,3,4`), `update/2`,
+    and `final/1,2`; each call returns a new state and leaves its argument
+    unchanged. Updates over large inputs yield to other processes between
+    chunks.
+  example: |
+    Digest = libsodium_crypto_generichash_blake2b:crypto_generichash_blake2b(<<"hello world">>),
+    32 = byte_size(Digest),
+    State0 = libsodium_crypto_generichash_blake2b:init(),
+    State1 = libsodium_crypto_generichash_blake2b:update(State0, <<"hello ">>),
+    State2 = libsodium_crypto_generichash_blake2b:update(State1, <<"world">>),
+    Digest = libsodium_crypto_generichash_blake2b:final(State2),
+    Salt = <<"0123456789abcdef">>,
+    Personal = <<"my-app-v1-hashes">>,
+    Salted = libsodium_crypto_generichash_blake2b:salt_personal(<<"hello world">>, Salt, Personal),
+    true = Salted =/= Digest.
+  see_also: [libsodium_crypto_generichash, libsodium_crypto_kdf_blake2b]
+  constants:
+    - name: bytes_min
+      value: 16
+    - name: bytes_max
+      value: 64
+    - name: bytes
+      value: 32
+    - name: keybytes_min
+      value: 16
+    - name: keybytes_max
+      value: 64
+    - name: keybytes
+      value: 32
+    - name: saltbytes
+      value: 16
+    - name: personalbytes
+      value: 16
+    - name: statebytes
+      value: 384
+  functions:
+    - name: crypto_generichash_blake2b
+      c: crypto_generichash_blake2b
+      doc: |
+        Hash `In` with the optional `Key`, producing `Outlen` bytes.
+
+        Defaults to `bytes/0` bytes of output and no key.
+      args:
+        - {type: uint, name: outlen, c_type: size_t, min: crypto_generichash_blake2b_BYTES_MIN, max: crypto_generichash_blake2b_BYTES_MAX}
+        - {type: binary, name: in}
+        - {type: binary, name: key, len_type: size_t, nullable: true, max: crypto_generichash_blake2b_KEYBYTES_MAX, work: false}
+      prelude: |
+        if (keylen != 0 && keylen < crypto_generichash_blake2b_KEYBYTES_MIN) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      outputs:
+        - {name: out, size: outlen}
+      call: crypto_generichash_blake2b(out, outlen, in, inlen, key, keylen)
+      returns: out
+      erlang:
+        - params: [In]
+          args: ["bytes()", In, "<<>>"]
+        - params: [In, Key]
+          args: ["bytes()", In, Key]
+        - params: [Outlen, In, Key]
+    - name: salt_personal
+      doc: |
+        Hash `In` with the optional `Key`, the `saltbytes/0` byte `Salt`, and the
+        `personalbytes/0` byte `Personal`, producing `Outlen` bytes.
+
+        Defaults to `bytes/0` bytes of output and no key.
+      args:
+        - {type: uint, name: outlen, c_type: size_t, min: crypto_generichash_blake2b_BYTES_MIN, max: crypto_generichash_blake2b_BYTES_MAX}
+        - {type: binary, name: in}
+        - {type: binary, name: key, len_type: size_t, nullable: true, max: crypto_generichash_blake2b_KEYBYTES_MAX, work: false}
+        - {type: fixed, name: salt, size: crypto_generichash_blake2b_SALTBYTES}
+        - {type: fixed, name: personal, size: crypto_generichash_blake2b_PERSONALBYTES}
+      prelude: |
+        if (keylen != 0 && keylen < crypto_generichash_blake2b_KEYBYTES_MIN) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      outputs:
+        - {name: out, size: outlen}
+      call: crypto_generichash_blake2b_salt_personal(out, outlen, in, inlen, key, keylen, salt, personal)
+      returns: out
+      erlang:
+        - params: [In, Salt, Personal]
+          args: ["bytes()", In, "<<>>", Salt, Personal]
+        - params: [In, Key, Salt, Personal]
+          args: ["bytes()", In, Key, Salt, Personal]
+        - params: [Outlen, In, Key, Salt, Personal]
+    - name: init
+      doc: |
+        Start a streaming hash with the optional `Key` that will produce
+        `Outlen` bytes. Defaults to `bytes/0` bytes of output and no key.
+      args:
+        - {type: binary, name: key, len_type: size_t, nullable: true, max: crypto_generichash_blake2b_KEYBYTES_MAX, work: false}
+        - {type: uint, name: outlen, c_type: size_t, min: crypto_generichash_blake2b_BYTES_MIN, max: crypto_generichash_blake2b_BYTES_MAX}
+      prelude: |
+        if (keylen != 0 && keylen < crypto_generichash_blake2b_KEYBYTES_MIN) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      outputs:
+        - {type: state, name: state, c_type: crypto_generichash_blake2b_state}
+      call: crypto_generichash_blake2b_init(&state, key, keylen, outlen)
+      returns: state
+      erlang:
+        - params: []
+          args: ["<<>>", "bytes()"]
+        - params: [Key]
+          args: [Key, "bytes()"]
+        - params: [Key, Outlen]
+    - name: init_salt_personal
+      doc: |
+        Start a streaming hash with the optional `Key`, the `saltbytes/0` byte
+        `Salt`, and the `personalbytes/0` byte `Personal` that will produce
+        `Outlen` bytes. Defaults to `bytes/0` bytes of output and no key.
+      args:
+        - {type: binary, name: key, len_type: size_t, nullable: true, max: crypto_generichash_blake2b_KEYBYTES_MAX, work: false}
+        - {type: uint, name: outlen, c_type: size_t, min: crypto_generichash_blake2b_BYTES_MIN, max: crypto_generichash_blake2b_BYTES_MAX}
+        - {type: fixed, name: salt, size: crypto_generichash_blake2b_SALTBYTES}
+        - {type: fixed, name: personal, size: crypto_generichash_blake2b_PERSONALBYTES}
+      prelude: |
+        if (keylen != 0 && keylen < crypto_generichash_blake2b_KEYBYTES_MIN) {
+            result = enif_make_badarg(env);
+            goto cleanup;
+        }
+      outputs:
+        - {type: state, name: state, c_type: crypto_generichash_blake2b_state}
+      call: crypto_generichash_blake2b_init_salt_personal(&state, key, keylen, outlen, salt, personal)
+      returns: state
+      erlang:
+        - params: [Salt, Personal]
+          args: ["<<>>", "bytes()", Salt, Personal]
+        - params: [Key, Salt, Personal]
+          args: [Key, "bytes()", Salt, Personal]
+        - params: [Key, Outlen, Salt, Personal]
+    - name: update
+      doc: Absorb `In` into `State` and return the updated state.
+      args:
+        - {type: state, name: state, c_type: crypto_generichash_blake2b_state}
+        - {type: binary, name: in}
+      update: true
+      returns: state
+    - name: final
+      doc: |
+        Finish the streaming hash in `State`, producing `Outlen` bytes. The
+        length should match the one passed to `init/2` (default `bytes/0`).
+      args:
+        - {type: state, name: state, c_type: crypto_generichash_blake2b_state}
+        - {type: uint, name: outlen, c_type: size_t, min: crypto_generichash_blake2b_BYTES_MIN, max: crypto_generichash_blake2b_BYTES_MAX}
+      outputs:
+        - {name: out, size: outlen}
+      call: crypto_generichash_blake2b_final(&state, out, outlen)
+      returns: out
+      erlang:
+        - params: [State]
+          args: [State, "bytes()"]
+        - params: [State, Outlen]
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_generichash_blake2b_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: known_answer
+      code: |
+        In = <<"The quick brown fox jumps over the lazy dog">>,
+        Expected = crypto:hash(blake2b, In),
+        Expected = libsodium_crypto_generichash_blake2b:crypto_generichash_blake2b(64, In, <<>>),
+        State0 = libsodium_crypto_generichash_blake2b:init(<<>>, 64),
+        Expected = libsodium_crypto_generichash_blake2b:final(libsodium_crypto_generichash_blake2b:update(State0, In), 64),
+        Default = libsodium_crypto_generichash_blake2b:crypto_generichash_blake2b(In),
+        Default = libsodium_crypto_generichash:crypto_generichash(In).
+    - name: streaming_matches_one_shot
+      code: |
+        Key = libsodium_crypto_generichash_blake2b:keygen(),
+        Salt = <<"0123456789abcdef">>,
+        Personal = <<"fedcba9876543210">>,
+        Large = binary:copy(<<"0123456789abcdef">>, 20000),
+        Keyed = libsodium_crypto_generichash_blake2b:crypto_generichash_blake2b(48, <<Large/binary, Large/binary>>, Key),
+        K0 = libsodium_crypto_generichash_blake2b:init(Key, 48),
+        Keyed = libsodium_crypto_generichash_blake2b:final(libsodium_crypto_generichash_blake2b:update(libsodium_crypto_generichash_blake2b:update(K0, Large), Large), 48),
+        Salted = libsodium_crypto_generichash_blake2b:salt_personal(<<Large/binary, Large/binary>>, Key, Salt, Personal),
+        S0 = libsodium_crypto_generichash_blake2b:init_salt_personal(Key, Salt, Personal),
+        Salted = libsodium_crypto_generichash_blake2b:final(libsodium_crypto_generichash_blake2b:update(libsodium_crypto_generichash_blake2b:update(S0, Large), Large)),
+        Unkeyed = libsodium_crypto_generichash_blake2b:salt_personal(Large, Salt, Personal),
+        Unkeyed = libsodium_crypto_generichash_blake2b:final(libsodium_crypto_generichash_blake2b:update(libsodium_crypto_generichash_blake2b:init_salt_personal(Salt, Personal), Large)),
+        true = Unkeyed =/= libsodium_crypto_generichash_blake2b:crypto_generichash_blake2b(Large).
+    - name: invalid_arguments
+      code: |
+        badarg = try libsodium_crypto_generichash_blake2b:crypto_generichash_blake2b(15, <<"x">>, <<>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_generichash_blake2b:crypto_generichash_blake2b(<<"x">>, <<0:120>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_generichash_blake2b:init(<<0:(65 * 8)>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_generichash_blake2b:salt_personal(<<"x">>, <<0:64>>, <<0:128>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_generichash_blake2b:init_salt_personal(<<0:128>>, <<>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_generichash_blake2b:final(libsodium_crypto_generichash_blake2b:init(), 65) catch error:badarg -> badarg end.

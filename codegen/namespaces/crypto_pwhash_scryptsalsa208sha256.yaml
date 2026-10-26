@@ -1,0 +1,190 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_pwhash_scryptsalsa208sha256:
+  title: Scrypt password hashing
+  doc: |
+    Password hashing and password-based key derivation with scrypt
+    (`scryptsalsa208sha256`). Prefer Argon2id through
+    `m:libsodium_crypto_pwhash` for new applications; use scrypt for
+    interoperability with existing scrypt hashes or keys.
+
+    `str/3` produces a self-describing `$7$` string to store and check with
+    `str_verify/2`; `crypto_pwhash_scryptsalsa208sha256/5` derives a key from a
+    password and a `saltbytes/0` byte salt, and `ll/6` exposes the raw scrypt
+    function with explicit `N`, `R`, and `P` parameters. Raise `Opslimit` and
+    `Memlimit` (memory in bytes) as far as your latency budget allows, starting
+    from the `_interactive` limits for online logins; libsodium raises values
+    below the minimums to the minimums. All hashing runs on a dirty CPU
+    scheduler.
+  example: |
+    Ops = libsodium_crypto_pwhash_scryptsalsa208sha256:opslimit_interactive(),
+    Mem = libsodium_crypto_pwhash_scryptsalsa208sha256:memlimit_interactive(),
+    Str = libsodium_crypto_pwhash_scryptsalsa208sha256:str(<<"correct horse">>, Ops, Mem),
+    0 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(Str, <<"correct horse">>),
+    -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(Str, <<"wrong horse">>),
+    0 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_needs_rehash(Str, Ops, Mem).
+  constants:
+    - name: bytes_min
+      value: 16
+    - name: bytes_max
+    - name: passwd_min
+      value: 0
+    - name: passwd_max
+    - name: saltbytes
+      value: 32
+    - name: strbytes
+      value: 102
+    - name: strprefix
+      type: string
+      value: "$7$"
+    - name: opslimit_min
+      value: 32768
+    - name: opslimit_max
+      value: 4294967295
+    - name: memlimit_min
+      value: 16777216
+    - name: memlimit_max
+    - name: opslimit_interactive
+      value: 524288
+    - name: memlimit_interactive
+      value: 16777216
+    - name: opslimit_sensitive
+      value: 33554432
+    - name: memlimit_sensitive
+      value: 1073741824
+  functions:
+    - name: crypto_pwhash_scryptsalsa208sha256
+      c: crypto_pwhash_scryptsalsa208sha256
+      doc: |
+        Derive an `Outlen` byte key from `Passwd` and the `saltbytes/0` byte
+        `Salt` with the cost parameters `Opslimit` and `Memlimit`.
+
+        Returns `-1` when libsodium rejects the parameters (for example an
+        `Outlen` below `bytes_min/0`) or cannot allocate the requested memory.
+      args:
+        - {type: uint, name: outlen, c_type: "unsigned long long"}
+        - {type: binary, name: passwd, work: false}
+        - {type: fixed, name: salt, size: crypto_pwhash_scryptsalsa208sha256_SALTBYTES}
+        - {type: uint, name: opslimit, c_type: "unsigned long long"}
+        - {type: uint, name: memlimit, c_type: size_t}
+      prelude: |
+        if (outlen > crypto_pwhash_scryptsalsa208sha256_BYTES_MAX) {
+            result = enif_make_int(env, -1);
+            goto cleanup;
+        }
+      outputs:
+        - {name: out, size: outlen}
+      call: crypto_pwhash_scryptsalsa208sha256(out, outlen, (const char *)passwd, passwdlen, salt, opslimit, memlimit)
+      schedule: dirty_cpu
+      returns: out
+    - name: str
+      doc: |
+        Hash `Passwd` for storage with the cost parameters `Opslimit` and
+        `Memlimit` and a random salt.
+
+        Returns an ASCII binary of `strbytes/0` - 1 bytes starting with
+        `strprefix/0`, or `-1` on failure.
+      args:
+        - {type: binary, name: passwd, work: false}
+        - {type: uint, name: opslimit, c_type: "unsigned long long"}
+        - {type: uint, name: memlimit, c_type: size_t}
+      outputs:
+        - {name: out, size: crypto_pwhash_scryptsalsa208sha256_STRBYTES, length: "strlen((const char *)out)"}
+      call: crypto_pwhash_scryptsalsa208sha256_str((char *)out, (const char *)passwd, passwdlen, opslimit, memlimit)
+      schedule: dirty_cpu
+      returns: out
+    - name: str_verify
+      doc: |
+        Check `Passwd` against `Str`, a `$7$` string produced by `str/3`.
+
+        Returns `0` when the password matches and `-1` when it does not or
+        `Str` is malformed.
+      args:
+        - {type: cstring, name: str, max: crypto_pwhash_scryptsalsa208sha256_STRBYTES}
+        - {type: binary, name: passwd, work: false}
+      call: crypto_pwhash_scryptsalsa208sha256_str_verify(str, (const char *)passwd, passwdlen)
+      check: none
+      schedule: dirty_cpu
+      returns: "int:rc"
+      spec: "0 | -1"
+    - name: ll
+      doc: |
+        Compute raw scrypt over `Passwd` and `Salt` with the CPU/memory cost
+        `N` (a power of two greater than one), block size `R`, and
+        parallelism `P`, producing `Buflen` bytes.
+
+        Returns `-1` when the parameters are invalid or the required memory
+        cannot be allocated.
+      args:
+        - {type: binary, name: passwd, len_type: size_t, work: false}
+        - {type: binary, name: salt, len_type: size_t, work: false}
+        - {type: uint, name: n, c_type: uint64_t}
+        - {type: uint, name: r, c_type: uint32_t}
+        - {type: uint, name: p, c_type: uint32_t}
+        - {type: uint, name: buflen, c_type: size_t}
+      prelude: |
+        if (buflen > crypto_pwhash_scryptsalsa208sha256_BYTES_MAX) {
+            result = enif_make_int(env, -1);
+            goto cleanup;
+        }
+      outputs:
+        - {name: buf, size: buflen}
+      call: crypto_pwhash_scryptsalsa208sha256_ll(passwd, passwdlen, salt, saltlen, n, r, p, buf, buflen)
+      schedule: dirty_cpu
+      returns: buf
+    - name: str_needs_rehash
+      doc: |
+        Check whether `Str` was hashed with exactly the parameters that
+        `Opslimit` and `Memlimit` select.
+
+        Returns `0` when it was, `1` when the password should be rehashed (after
+        a successful `str_verify/2`), and `-1` when `Str` is malformed.
+      args:
+        - {type: cstring, name: str, max: crypto_pwhash_scryptsalsa208sha256_STRBYTES}
+        - {type: uint, name: opslimit, c_type: "unsigned long long"}
+        - {type: uint, name: memlimit, c_type: size_t}
+      call: crypto_pwhash_scryptsalsa208sha256_str_needs_rehash(str, opslimit, memlimit)
+      check: none
+      returns: "int:rc"
+      spec: "-1 | 0 | 1"
+  tests:
+    - name: known_answers
+      code: |
+        Passwd = binary:decode_hex(<<"4a857e2ee8aa9b6056f2424e84d24a72473378906ee04a46cb05311502d5250b82ad86b83c8f20a23dbb74f6da60b0b6ecffd67134d45946ac8ebfb3064294bc097d43ced68642bfb8bbbdd0f50b30118f5e">>),
+        Salt = binary:decode_hex(<<"39d82eef32010b8b79cc5ba88ed539fbaba741100f2edbeca7cc171ffeabf258">>),
+        Out = binary:decode_hex(<<"bcc5c2fd785e4781d1201ed43d84925537e2a540d3de55f5812f29e9dd0a4a00451a5c8ddbb4862c03d45c75bf91b7fb49265feb667ad5c899fdbf2ca19eac67aa5e48595d5b02f8183ab07f71b1ce0d76e5df54919f63810ad0893ded7d1ca18fc956ec06ffd4c3d1f77a00ed53608947b25eea5df6bea02272be15815f974c321a2a9208674fdf59d1d798c2a12f1889df68b0c222b37ee9ef0d6391fc160b0281ec53073cb3a3706ce1d71c3af2f5237a1b3d8545d99012eecc0b4abb">>),
+        Out = libsodium_crypto_pwhash_scryptsalsa208sha256:crypto_pwhash_scryptsalsa208sha256(190, Passwd, Salt, 758010, 5432947),
+        0 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(<<"$7$A6....1....TrXs5Zk6s8sWHpQgWDIXTR8kUU3s6Jc3s.DtdS8M2i4$a4ik5hGDN7foMuHOW.cp.CtX01UyCeO0.JAG.AHPpx5">>, <<"Y0!?iQa9M%5ekffW(`">>).
+    - name: ll_known_answers
+      code: |
+        <<16#77d6576238657b203b19ca42c18a0497f16b4844e3074ae8dfdffa3fede21442fcd0069ded0948f8326a753a0fc81f17e8d3e0fb2e0d3628cf35e20c38d18906:512>> =
+            libsodium_crypto_pwhash_scryptsalsa208sha256:ll(<<>>, <<>>, 16, 1, 1, 64),
+        <<16#fdbabe1c9d3472007856e7190d01e9fe7c6ad7cbc8237830e77376634b3731622eaf30d92e22a3886ff109279d9830dac727afb94a83ee6d8360cbdfa2cc0640:512>> =
+            libsodium_crypto_pwhash_scryptsalsa208sha256:ll(<<"password">>, <<"NaCl">>, 1024, 8, 16, 64),
+        -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:ll(<<"password">>, <<"NaCl">>, 1000, 8, 16, 64).
+    - name: str_round_trip
+      code: |
+        Ops = libsodium_crypto_pwhash_scryptsalsa208sha256:opslimit_min(),
+        Mem = libsodium_crypto_pwhash_scryptsalsa208sha256:memlimit_min(),
+        Str = libsodium_crypto_pwhash_scryptsalsa208sha256:str(<<"Correct Horse Battery Staple">>, Ops, Mem),
+        <<"$7$", _/binary>> = Str,
+        101 = byte_size(Str),
+        0 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(Str, <<"Correct Horse Battery Staple">>),
+        -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(Str, <<"Wrong Horse Battery Staple">>),
+        0 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_needs_rehash(Str, Ops, Mem),
+        1 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_needs_rehash(Str, Ops * 4, Mem * 4).
+    - name: legacy_failures
+      code: |
+        Passwd = <<"Y0!?iQa9M%5ekffW(`">>,
+        -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(<<"$7$A6....1....$TrXs5Zk6s8sWHpQgWDIXTR8kUU3s6Jc3s.DtdS8M2i4a4ik5hGDN7foMuHOW.cp.CtX01UyCeO0.JAG.AHPpx5">>, Passwd),
+        -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(<<"$7$.6....1....TrXs5Zk6s8sWHpQgWDIXTR8kUU3s6Jc3s.DtdS8M2i4$a4ik5hGDN7foMuHOW.cp.CtX01UyCeO0.JAG.AHPpx5">>, Passwd),
+        -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(<<"$7$A6....1....TrXs5Zk6s8sWHpQgWDIXTR8kUU3s6Jc3s.DtdS8M2i4$a4ik5hGDN7foMuHOW.cp.CtX01UyCeO0.JAG.AHPpx5">>, <<>>),
+        -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(<<"$7$A6....1">>, Passwd),
+        -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(<<"$7$">>, Passwd),
+        -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(<<>>, Passwd),
+        -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:crypto_pwhash_scryptsalsa208sha256(5, Passwd, binary:copy(<<0>>, 32), 32768, 16777216),
+        -1 = libsodium_crypto_pwhash_scryptsalsa208sha256:str_needs_rehash(<<"$7$">>, 32768, 16777216).
+    - name: badarg
+      code: |
+        ok = try libsodium_crypto_pwhash_scryptsalsa208sha256:crypto_pwhash_scryptsalsa208sha256(32, <<"pw">>, <<0:128>>, 32768, 16777216) of _ -> unexpected catch error:badarg -> ok end,
+        ok = try libsodium_crypto_pwhash_scryptsalsa208sha256:ll(<<"pw">>, <<"salt">>, 16, 1 bsl 32, 1, 64) of _ -> unexpected catch error:badarg -> ok end,
+        ok = try libsodium_crypto_pwhash_scryptsalsa208sha256:str_verify(binary:copy(<<"a">>, 103), <<"pw">>) of _ -> unexpected catch error:badarg -> ok end.

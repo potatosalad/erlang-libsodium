@@ -1,0 +1,360 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_box:
+  title: Public-key authenticated encryption
+  doc: |
+    Public-key authenticated encryption (X25519, XSalsa20, and Poly1305).
+
+    A sender encrypts a message with the recipient's public key `PK` and their
+    own secret key `SK`; the recipient opens it with the sender's public key
+    and their own secret key. Keys are `publickeybytes/0` and
+    `secretkeybytes/0` bytes, and nonces are `noncebytes/0` bytes. A nonce must
+    never be reused for the same pair of keys; random nonces are safe at this
+    size. Ciphertexts are `macbytes/0` bytes longer than their messages.
+
+    `beforenm/2` precomputes the `beforenmbytes/0` byte shared key used by the
+    `_afternm` variants. `seal/2` and `seal_open/3` provide anonymous
+    encryption to a public key using an ephemeral sender key pair; sealed boxes
+    are `sealbytes/0` bytes longer than their messages.
+
+    `crypto_box/4`, `open/4`, `afternm/3`, and `open_afternm/3` are the NaCl
+    compatibility interface: messages must start with `zerobytes/0` zero bytes
+    and ciphertexts with `boxzerobytes/0` zero bytes. Prefer the `easy` API.
+  example: |
+    {AlicePK, AliceSK} = libsodium_crypto_box:keypair(),
+    {BobPK, BobSK} = libsodium_crypto_box:keypair(),
+    Nonce = libsodium_randombytes:buf(libsodium_crypto_box:noncebytes()),
+    Ciphertext = libsodium_crypto_box:easy(<<"message">>, Nonce, BobPK, AliceSK),
+    <<"message">> = libsodium_crypto_box:open_easy(Ciphertext, Nonce, AlicePK, BobSK),
+    Sealed = libsodium_crypto_box:seal(<<"anonymous">>, BobPK),
+    <<"anonymous">> = libsodium_crypto_box:seal_open(Sealed, BobPK, BobSK).
+  constants:
+    - name: seedbytes
+      value: 32
+    - name: publickeybytes
+      value: 32
+    - name: secretkeybytes
+      value: 32
+    - name: noncebytes
+      value: 24
+    - name: macbytes
+      value: 16
+    - name: messagebytes_max
+    - name: primitive
+      type: atom
+      value: curve25519xsalsa20poly1305
+    - name: beforenmbytes
+      value: 32
+    - name: sealbytes
+      value: 48
+    - name: zerobytes
+      value: 32
+    - name: boxzerobytes
+      value: 16
+  functions:
+    - name: seed_keypair
+      doc: |
+        Deterministically derive a key pair from the `seedbytes/0` byte `Seed`.
+        Returns `{PK, SK}`.
+      args:
+        - {type: fixed, name: seed, size: crypto_box_SEEDBYTES}
+      outputs:
+        - {name: pk, size: crypto_box_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_box_SECRETKEYBYTES}
+      returns: [pk, sk]
+      erlang:
+        - params: [Seed]
+    - name: keypair
+      doc: Generate a random key pair. Returns `{PK, SK}`.
+      outputs:
+        - {name: pk, size: crypto_box_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_box_SECRETKEYBYTES}
+      returns: [pk, sk]
+    - name: easy
+      doc: |
+        Encrypt and authenticate `M` with the nonce `N`, the recipient's public
+        key `PK`, and the sender's secret key `SK`.
+
+        Returns the `macbytes/0` byte authentication tag followed by the
+        ciphertext, or `-1` on failure.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: pk, size: crypto_box_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_SECRETKEYBYTES}
+      outputs:
+        - {name: c, size: "mlen + crypto_box_MACBYTES"}
+      returns: c
+      erlang:
+        - params: [M, N, PK, SK]
+    - name: open_easy
+      doc: |
+        Verify and decrypt `C`, produced by `easy/4`, with the nonce `N`, the
+        sender's public key `PK`, and the recipient's secret key `SK`.
+
+        Returns the plaintext, or `-1` when verification fails.
+      args:
+        - {type: binary, name: c}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: pk, size: crypto_box_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_SECRETKEYBYTES}
+      outputs:
+        - {name: m, size: "(clen < crypto_box_MACBYTES) ? 0 : clen - crypto_box_MACBYTES"}
+      returns: m
+      erlang:
+        - params: [C, N, PK, SK]
+    - name: detached
+      doc: |
+        Like `easy/4`, but returns the ciphertext and the `macbytes/0` byte
+        authentication tag separately as `{C, MAC}`.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: pk, size: crypto_box_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_SECRETKEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+        - {name: mac, size: crypto_box_MACBYTES}
+      returns: [c, mac]
+      erlang:
+        - params: [M, N, PK, SK]
+    - name: open_detached
+      doc: |
+        Verify the detached tag `MAC` and decrypt `C` with the nonce `N`, the
+        sender's public key `PK`, and the recipient's secret key `SK`.
+
+        Returns the plaintext, or `-1` when verification fails.
+      args:
+        - {type: binary, name: c}
+        - {type: fixed, name: mac, size: crypto_box_MACBYTES}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: pk, size: crypto_box_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_SECRETKEYBYTES}
+      outputs:
+        - {name: m, size: clen}
+      call: crypto_box_open_detached(m, c, mac, clen, n, pk, sk)
+      returns: m
+      erlang:
+        - params: [C, MAC, N, PK, SK]
+    - name: beforenm
+      doc: |
+        Precompute the `beforenmbytes/0` byte shared key for the public key `PK`
+        and the secret key `SK`, for use with the `_afternm` functions.
+
+        Returns `-1` when `PK` is a low-order point.
+      args:
+        - {type: fixed, name: pk, size: crypto_box_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_SECRETKEYBYTES}
+      outputs:
+        - {name: k, size: crypto_box_BEFORENMBYTES}
+      returns: k
+      erlang:
+        - params: [PK, SK]
+    - name: easy_afternm
+      doc: Like `easy/4`, using the shared key `K` precomputed by `beforenm/2`.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_box_BEFORENMBYTES}
+      outputs:
+        - {name: c, size: "mlen + crypto_box_MACBYTES"}
+      returns: c
+      erlang:
+        - params: [M, N, K]
+    - name: open_easy_afternm
+      doc: |
+        Like `open_easy/4`, using the shared key `K` precomputed by
+        `beforenm/2`. Returns `-1` when verification fails.
+      args:
+        - {type: binary, name: c}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_box_BEFORENMBYTES}
+      outputs:
+        - {name: m, size: "(clen < crypto_box_MACBYTES) ? 0 : clen - crypto_box_MACBYTES"}
+      returns: m
+      erlang:
+        - params: [C, N, K]
+    - name: detached_afternm
+      doc: |
+        Like `detached/4`, using the shared key `K` precomputed by `beforenm/2`.
+        Returns `{C, MAC}`.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_box_BEFORENMBYTES}
+      outputs:
+        - {name: c, size: mlen}
+        - {name: mac, size: crypto_box_MACBYTES}
+      returns: [c, mac]
+      erlang:
+        - params: [M, N, K]
+    - name: open_detached_afternm
+      doc: |
+        Like `open_detached/5`, using the shared key `K` precomputed by
+        `beforenm/2`. Returns `-1` when verification fails.
+      args:
+        - {type: binary, name: c}
+        - {type: fixed, name: mac, size: crypto_box_MACBYTES}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_box_BEFORENMBYTES}
+      outputs:
+        - {name: m, size: clen}
+      call: crypto_box_open_detached_afternm(m, c, mac, clen, n, k)
+      returns: m
+      erlang:
+        - params: [C, MAC, N, K]
+    - name: seal
+      doc: |
+        Anonymously encrypt `M` for the recipient's public key `PK` using a new
+        ephemeral key pair. The result is `sealbytes/0` bytes longer than `M`;
+        only the recipient can open it, but the sender cannot be identified.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: pk, size: crypto_box_PUBLICKEYBYTES}
+      outputs:
+        - {name: c, size: "mlen + crypto_box_SEALBYTES"}
+      returns: c
+      erlang:
+        - params: [M, PK]
+    - name: seal_open
+      doc: |
+        Open the sealed box `C` with the recipient's key pair `PK` and `SK`.
+
+        Returns the plaintext, or `-1` when verification fails. Raises `badarg`
+        when `C` is shorter than `sealbytes/0`.
+      args:
+        - {type: binary, name: c, min: crypto_box_SEALBYTES}
+        - {type: fixed, name: pk, size: crypto_box_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_SECRETKEYBYTES}
+      outputs:
+        - {name: m, size: "(clen < crypto_box_SEALBYTES) ? 0 : clen - crypto_box_SEALBYTES"}
+      returns: m
+      erlang:
+        - params: [C, PK, SK]
+    - name: crypto_box
+      c: crypto_box
+      doc: |
+        NaCl-compatible encryption of `M`, which must start with `zerobytes/0`
+        zero bytes, using the nonce `N`, the recipient's public key `PK`, and
+        the sender's secret key `SK`.
+
+        Returns a ciphertext of the same length as `M` whose first
+        `boxzerobytes/0` bytes are zero, or `-1` when `M` is shorter than
+        `zerobytes/0`.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: pk, size: crypto_box_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_SECRETKEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+      returns: c
+      erlang:
+        - params: [M, N, PK, SK]
+    - name: open
+      doc: |
+        NaCl-compatible verification and decryption of `C`, which must start
+        with `boxzerobytes/0` zero bytes, using the nonce `N`, the sender's
+        public key `PK`, and the recipient's secret key `SK`.
+
+        Returns a plaintext of the same length as `C` whose first `zerobytes/0`
+        bytes are zero, or `-1` when verification fails.
+      args:
+        - {type: binary, name: c}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: pk, size: crypto_box_PUBLICKEYBYTES}
+        - {type: fixed, name: sk, size: crypto_box_SECRETKEYBYTES}
+      outputs:
+        - {name: m, size: clen}
+      returns: m
+      erlang:
+        - params: [C, N, PK, SK]
+    - name: afternm
+      doc: Like `crypto_box/4`, using the shared key `K` precomputed by `beforenm/2`.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_box_BEFORENMBYTES}
+      outputs:
+        - {name: c, size: mlen}
+      returns: c
+      erlang:
+        - params: [M, N, K]
+    - name: open_afternm
+      doc: |
+        Like `open/4`, using the shared key `K` precomputed by `beforenm/2`.
+        Returns `-1` when verification fails.
+      args:
+        - {type: binary, name: c}
+        - {type: fixed, name: n, size: crypto_box_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_box_BEFORENMBYTES}
+      outputs:
+        - {name: m, size: clen}
+      returns: m
+      erlang:
+        - params: [C, N, K]
+  tests:
+    - name: round_trips
+      code: |
+        {PK1, SK1} = libsodium_crypto_box:keypair(),
+        {PK2, SK2} = libsodium_crypto_box:keypair(),
+        N = libsodium_randombytes:buf(libsodium_crypto_box:noncebytes()),
+        M = <<"attack at dawn">>,
+        C = libsodium_crypto_box:easy(M, N, PK2, SK1),
+        30 = byte_size(C),
+        M = libsodium_crypto_box:open_easy(C, N, PK1, SK2),
+        {CD, MAC} = libsodium_crypto_box:detached(M, N, PK2, SK1),
+        C = <<MAC/binary, CD/binary>>,
+        M = libsodium_crypto_box:open_detached(CD, MAC, N, PK1, SK2),
+        K = libsodium_crypto_box:beforenm(PK2, SK1),
+        K = libsodium_crypto_box:beforenm(PK1, SK2),
+        C = libsodium_crypto_box:easy_afternm(M, N, K),
+        M = libsodium_crypto_box:open_easy_afternm(C, N, K),
+        {CD, MAC} = libsodium_crypto_box:detached_afternm(M, N, K),
+        M = libsodium_crypto_box:open_detached_afternm(CD, MAC, N, K),
+        Z = <<0:256>>,
+        <<0:128, MAC:16/binary, CD/binary>> = Boxed = libsodium_crypto_box:crypto_box(<<Z/binary, M/binary>>, N, PK2, SK1),
+        <<Z:32/binary, M/binary>> = libsodium_crypto_box:open(Boxed, N, PK1, SK2),
+        Boxed = libsodium_crypto_box:afternm(<<Z/binary, M/binary>>, N, K),
+        <<Z:32/binary, M/binary>> = libsodium_crypto_box:open_afternm(Boxed, N, K),
+        <<>> = libsodium_crypto_box:open_easy(libsodium_crypto_box:easy(<<>>, N, PK2, SK1), N, PK1, SK2).
+    - name: forgery
+      code: |
+        {PK1, SK1} = libsodium_crypto_box:keypair(),
+        {PK2, SK2} = libsodium_crypto_box:keypair(),
+        N = libsodium_randombytes:buf(libsodium_crypto_box:noncebytes()),
+        <<B, Rest/binary>> = libsodium_crypto_box:easy(<<"message">>, N, PK2, SK1),
+        Tampered = <<(B bxor 1), Rest/binary>>,
+        -1 = libsodium_crypto_box:open_easy(Tampered, N, PK1, SK2),
+        -1 = libsodium_crypto_box:open_easy(<<1, 2, 3>>, N, PK1, SK2),
+        -1 = libsodium_crypto_box:open_easy_afternm(<<>>, N, libsodium_crypto_box:beforenm(PK1, SK2)),
+        {CD, _} = libsodium_crypto_box:detached(<<"message">>, N, PK2, SK1),
+        -1 = libsodium_crypto_box:open_detached(CD, <<0:128>>, N, PK1, SK2),
+        Sealed = libsodium_crypto_box:seal(<<"message">>, PK2),
+        55 = byte_size(Sealed),
+        -1 = libsodium_crypto_box:seal_open(Sealed, PK1, SK1),
+        -1 = libsodium_crypto_box:seal_open(binary:part(Sealed, 0, 48), PK2, SK2),
+        badarg = try libsodium_crypto_box:seal_open(<<>>, PK2, SK2) catch error:badarg -> badarg end,
+        -1 = libsodium_crypto_box:crypto_box(<<0:248>>, N, PK2, SK1),
+        -1 = libsodium_crypto_box:open(<<0:256>>, N, PK1, SK2),
+        -1 = libsodium_crypto_box:beforenm(<<0:256>>, SK1).
+    - name: badarg
+      code: |
+        {PK, SK} = libsodium_crypto_box:keypair(),
+        N = libsodium_randombytes:buf(libsodium_crypto_box:noncebytes()),
+        badarg = try libsodium_crypto_box:easy(<<"m">>, <<0:64>>, PK, SK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_box:open_easy(<<"c">>, N, <<0:248>>, SK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_box:easy(not_binary, N, PK, SK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_box:seal_open(<<0:376>>, PK, SK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_box:seed_keypair(<<0:248>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_box:easy_afternm(<<"m">>, N, <<0:248>>) catch error:badarg -> badarg end.
+    - name: known_answer
+      code: |
+        AliceSK = binary:decode_hex(<<"77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a">>),
+        BobPK = binary:decode_hex(<<"de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f">>),
+        K = binary:decode_hex(<<"1b27556473e985d462cd51197a9a46c76009549eac6474f206c4ee0844f68389">>),
+        K = libsodium_crypto_box:beforenm(BobPK, AliceSK),
+        Seed = binary:decode_hex(<<"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f">>),
+        {PK, SK} = libsodium_crypto_box:seed_keypair(Seed),
+        SK = binary:part(crypto:hash(sha512, Seed), 0, 32),
+        {PK, _} = crypto:generate_key(ecdh, x25519, SK),
+        {PK, SK} = libsodium_crypto_box:seed_keypair(Seed).

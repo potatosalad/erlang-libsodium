@@ -13,6 +13,9 @@ signatures, including truncated inputs and invalid parameters.
 
 -include_lib("common_test/include/ct.hrl").
 
+%% The legacy dispatch shim is tested on purpose.
+-compile({nowarn_deprecated_function, [{libsodium, call, 2}, {libsodium, call, 3}]}).
+
 %% ct.
 -export([
     all/0,
@@ -32,6 +35,7 @@ signatures, including truncated inputs and invalid parameters.
     aead_chacha20poly1305_ietf/1,
     box_check/1,
     box_seal/1,
+    legacy_call/1,
     pwhash_argon2i_key_derivation/1,
     pwhash_argon2i_password_storage/1,
     pwhash_argon2id_key_derivation/1,
@@ -41,31 +45,13 @@ signatures, including truncated inputs and invalid parameters.
     sign/1
 ]).
 
-%% Macros.
--define(tv_badarg(M, F, A), libsodium_ct:assert_badarg(M, F, A)).
--define(tv_not(M, F, A, E),
-    case libsodium_ct:call(M, F, A) of
-        E ->
-            ct:fail({{M, F, A}, {not_expected, E}});
-        Result ->
-            Result
-    end
-).
--define(tv_ok(M, F, A, E),
-    case libsodium_ct:call(M, F, A) of
-        E ->
-            ok;
-        Result ->
-            ct:fail({{M, F, A}, {expected, E}, {got, Result}})
-    end
-).
-
 -spec all() -> Result when Result :: [ct_suite:ct_test_def()].
 all() ->
     [
         {group, aead_aes256gcm},
         {group, aead_chacha20poly1305},
         {group, box},
+        legacy_call,
         {group, pwhash_argon2i},
         {group, pwhash_argon2id},
         {group, pwhash_scrypt},
@@ -202,12 +188,24 @@ box_seal(_Config) ->
     {PK, SK} = libsodium_crypto_box:keypair(),
     MLen = libsodium_randombytes:uniform(1000),
     M = libsodium_randombytes:buf(MLen),
-    C = ?tv_not(libsodium_crypto_box, seal, [M, PK], -1),
+    C = tv_not(libsodium_crypto_box, seal, [M, PK], -1),
     CLen = libsodium_crypto_box:sealbytes() + MLen,
     CLen = byte_size(C),
-    ok = ?tv_ok(libsodium_crypto_box, seal_open, [C, PK, SK], M),
-    ok = ?tv_badarg(libsodium_crypto_box, seal_open, [<<>>, PK, SK]),
-    ?tv_ok(libsodium_crypto_box, seal_open, [binary:part(C, 0, CLen - 1), PK, SK], -1).
+    ok = tv_ok(libsodium_crypto_box, seal_open, [C, PK, SK], M),
+    ok = libsodium_ct:assert_badarg(libsodium_crypto_box, seal_open, [<<>>, PK, SK]),
+    tv_ok(libsodium_crypto_box, seal_open, [binary:part(C, 0, CLen - 1), PK, SK], -1).
+
+-spec legacy_call(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
+legacy_call(_Config) ->
+    32 = libsodium:call(crypto_box, seedbytes),
+    {PK, SK} = libsodium:call(crypto_box, seed_keypair, {binary:copy(<<1>>, 32)}),
+    {PK, SK} = libsodium_crypto_box:seed_keypair(binary:copy(<<1>>, 32)),
+    ok = libsodium_ct:assert_badarg(libsodium, call, [crypto_box, seed_keypair, {<<>>}]),
+    try libsodium:call(crypto_box, no_such_function, {}) of
+        Result -> ct:fail({expected_undef, Result})
+    catch
+        error:undef -> ok
+    end.
 
 -spec pwhash_argon2i_key_derivation(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 pwhash_argon2i_key_derivation(Config) ->
@@ -229,7 +227,7 @@ pwhash_argon2id_password_storage(Config) ->
 pwhash_scrypt_key_derivation(Config) ->
     lists:foreach(
         fun({Passwd, _Passwdlen, Salt, Outlen, Opslimit, Memlimit, Out}) ->
-            ok = ?tv_ok(
+            ok = tv_ok(
                 libsodium_crypto_pwhash_scryptsalsa208sha256,
                 crypto_pwhash_scryptsalsa208sha256,
                 [Outlen, Passwd, Salt, Opslimit, Memlimit],
@@ -249,10 +247,10 @@ sign(Config) ->
         fun({Seed, PK, Sig, M}) ->
             SK = <<Seed/binary, PK/binary>>,
             SM = <<Sig/binary, M/binary>>,
-            ok = ?tv_ok(libsodium_crypto_sign, crypto_sign, [M, SK], SM),
-            ok = ?tv_ok(libsodium_crypto_sign, open, [SM, PK], M),
-            ok = ?tv_ok(libsodium_crypto_sign, detached, [M, SK], Sig),
-            ok = ?tv_ok(libsodium_crypto_sign, verify_detached, [Sig, M, PK], 0)
+            ok = tv_ok(libsodium_crypto_sign, crypto_sign, [M, SK], SM),
+            ok = tv_ok(libsodium_crypto_sign, open, [SM, PK], M),
+            ok = tv_ok(libsodium_crypto_sign, detached, [M, SK], Sig),
+            ok = tv_ok(libsodium_crypto_sign, verify_detached, [Sig, M, PK], 0)
         end,
         ?config(tv, Config)
     ).
@@ -270,13 +268,13 @@ aead_aes256gcm_vectors(Vectors) ->
             TruncatedCiphertext = truncate(Expected),
             TruncatedTag = binary:part(Expected, 0, libsodium_randombytes:uniform(M:abytes())),
             TruncatedMac = truncate(Mac),
-            ok = ?tv_ok(M, encrypt, [Message, Ad, Nonce, Key], Expected),
-            ok = ?tv_ok(M, decrypt, [TruncatedCiphertext, Ad, Nonce, Key], -1),
-            ok = ?tv_ok(M, decrypt, [TruncatedTag, Ad, Nonce, Key], -1),
-            ok = ?tv_ok(M, decrypt, [Expected, Ad, Nonce, Key], Message),
-            ok = ?tv_ok(M, encrypt_detached, [Message, Ad, Nonce, Key], {Ciphertext, Mac}),
-            ok = ?tv_badarg(M, decrypt_detached, [Ciphertext, TruncatedMac, Ad, Nonce, Key]),
-            ok = ?tv_ok(M, decrypt_detached, [Ciphertext, Mac, Ad, Nonce, Key], Message)
+            ok = tv_ok(M, encrypt, [Message, Ad, Nonce, Key], Expected),
+            ok = tv_ok(M, decrypt, [TruncatedCiphertext, Ad, Nonce, Key], -1),
+            ok = tv_ok(M, decrypt, [TruncatedTag, Ad, Nonce, Key], -1),
+            ok = tv_ok(M, decrypt, [Expected, Ad, Nonce, Key], Message),
+            ok = tv_ok(M, encrypt_detached, [Message, Ad, Nonce, Key], {Ciphertext, Mac}),
+            ok = libsodium_ct:assert_badarg(M, decrypt_detached, [Ciphertext, TruncatedMac, Ad, Nonce, Key]),
+            ok = tv_ok(M, decrypt_detached, [Ciphertext, Mac, Ad, Nonce, Key], Message)
         end,
         Vectors
     ).
@@ -285,19 +283,19 @@ aead_aes256gcm_vectors(Vectors) ->
     Vectors :: [tuple()], Prefix :: string(), Result :: ok.
 aead_chacha20poly1305_vectors(Vectors, Prefix) ->
     M = libsodium_crypto_aead_chacha20poly1305,
-    F = fun(Name) -> list_to_existing_atom(Prefix ++ Name) end,
+    F = fun(Name) -> list_to_atom(Prefix ++ Name) end,
     lists:foreach(
         fun({K, Message, NPub, AD, C, CNoAD}) ->
             MLen = byte_size(Message),
             <<CD:MLen/binary, MAC/binary>> = C,
-            ok = ?tv_ok(M, F("encrypt"), [Message, AD, NPub, K], C),
-            ok = ?tv_ok(M, F("encrypt"), [Message, NPub, K], CNoAD),
-            ok = ?tv_ok(M, F("decrypt"), [C, AD, NPub, K], Message),
-            ok = ?tv_ok(M, F("decrypt"), [CNoAD, NPub, K], Message),
-            ok = ?tv_ok(M, F("decrypt"), [truncate(C), AD, NPub, K], -1),
-            ok = ?tv_ok(M, F("encrypt_detached"), [Message, AD, NPub, K], {CD, MAC}),
-            ok = ?tv_badarg(M, F("decrypt_detached"), [CD, truncate(MAC), AD, NPub, K]),
-            ok = ?tv_ok(M, F("decrypt_detached"), [CD, MAC, AD, NPub, K], Message)
+            ok = tv_ok(M, F("encrypt"), [Message, AD, NPub, K], C),
+            ok = tv_ok(M, F("encrypt"), [Message, NPub, K], CNoAD),
+            ok = tv_ok(M, F("decrypt"), [C, AD, NPub, K], Message),
+            ok = tv_ok(M, F("decrypt"), [CNoAD, NPub, K], Message),
+            ok = tv_ok(M, F("decrypt"), [truncate(C), AD, NPub, K], -1),
+            ok = tv_ok(M, F("encrypt_detached"), [Message, AD, NPub, K], {CD, MAC}),
+            ok = libsodium_ct:assert_badarg(M, F("decrypt_detached"), [CD, truncate(MAC), AD, NPub, K]),
+            ok = tv_ok(M, F("decrypt_detached"), [CD, MAC, AD, NPub, K], Message)
         end,
         Vectors
     ).
@@ -309,12 +307,12 @@ pwhash_argon2_key_derivation(Module, Function, Vectors) ->
     lists:foreach(
         fun
             ({Passwd, _Passwdlen, Salt, Outlen, Opslimit, Memlimit, Alg, Out}) ->
-                ok = ?tv_ok(Module, Function, [Outlen, Passwd, Salt, Opslimit, Memlimit, Alg], Out);
+                ok = tv_ok(Module, Function, [Outlen, Passwd, Salt, Opslimit, Memlimit, Alg], Out);
             ({Passwd, _Passwdlen, Salt, Outlen}) ->
-                ok = ?tv_ok(Module, Function, [Outlen, Passwd, Salt, 3, 1 bsl 12, 0], -1),
-                ok = ?tv_ok(Module, Function, [Outlen, Passwd, Salt, 3, 1, Default], -1),
-                ok = ?tv_ok(Module, Function, [Outlen, Passwd, Salt, 3, 1 bsl 12, Default], -1),
-                ok = ?tv_ok(Module, Function, [Outlen, Passwd, Salt, 2, 1 bsl 12, Default], -1)
+                ok = tv_ok(Module, Function, [Outlen, Passwd, Salt, 3, 1 bsl 12, 0], -1),
+                ok = tv_ok(Module, Function, [Outlen, Passwd, Salt, 3, 1, Default], -1),
+                ok = tv_ok(Module, Function, [Outlen, Passwd, Salt, 3, 1 bsl 12, Default], -1),
+                ok = tv_ok(Module, Function, [Outlen, Passwd, Salt, 2, 1 bsl 12, Default], -1)
         end,
         Vectors
     ).
@@ -324,23 +322,43 @@ pwhash_argon2_key_derivation(Module, Function, Vectors) ->
 pwhash_password_storage(Module, Vectors, Opslimit, Memlimit) ->
     lists:foreach(
         fun({Passwd, Out, Verified}) ->
-            ok = ?tv_ok(Module, str_verify, [Out, Passwd], Verified)
+            ok = tv_ok(Module, str_verify, [Out, Passwd], Verified)
         end,
         Vectors
     ),
     Passwd = <<"Correct Horse Battery Staple">>,
-    Hash1 = ?tv_not(Module, str, [Passwd, Opslimit, Memlimit], -1),
-    Hash2 = ?tv_not(Module, str, [Passwd, Opslimit, Memlimit], Hash1),
-    ok = ?tv_ok(Module, str_verify, [Hash1, Passwd], 0),
-    ?tv_ok(Module, str_verify, [Hash2, Passwd], 0).
+    Hash1 = tv_not(Module, str, [Passwd, Opslimit, Memlimit], -1),
+    Hash2 = tv_not(Module, str, [Passwd, Opslimit, Memlimit], Hash1),
+    ok = tv_ok(Module, str_verify, [Hash1, Passwd], 0),
+    tv_ok(Module, str_verify, [Hash2, Passwd], 0).
 
 %%%-----------------------------------------------------------------------------
 %%% Internal functions
 %%%-----------------------------------------------------------------------------
 
+-spec tv_ok(Module, Function, Arguments, Expected) -> Result when
+    Module :: module(), Function :: atom(), Arguments :: [term()], Expected :: term(), Result :: ok.
+tv_ok(Module, Function, Arguments, Expected) ->
+    case libsodium_ct:call(Module, Function, Arguments) of
+        Expected ->
+            ok;
+        Result ->
+            ct:fail({{Module, Function, Arguments}, {expected, Expected}, {got, Result}})
+    end.
+
+-spec tv_not(Module, Function, Arguments, Unexpected) -> Result when
+    Module :: module(), Function :: atom(), Arguments :: [term()], Unexpected :: term(), Result :: term().
+tv_not(Module, Function, Arguments, Unexpected) ->
+    case libsodium_ct:call(Module, Function, Arguments) of
+        Unexpected ->
+            ct:fail({{Module, Function, Arguments}, {not_expected, Unexpected}});
+        Result ->
+            Result
+    end.
+
 -spec check(Module, Checks) -> Result when Module :: module(), Checks :: [{atom(), term()}], Result :: ok.
 check(Module, Checks) ->
-    lists:foreach(fun({Function, Value}) -> ok = ?tv_ok(Module, Function, [], Value) end, Checks).
+    lists:foreach(fun({Function, Value}) -> ok = tv_ok(Module, Function, [], Value) end, Checks).
 
 -spec truncate(Binary) -> Truncated when Binary :: binary(), Truncated :: binary().
 truncate(Binary) ->

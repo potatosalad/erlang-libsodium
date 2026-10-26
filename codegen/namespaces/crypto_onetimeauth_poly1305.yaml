@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_onetimeauth_poly1305:
+  title: Poly1305
+  doc: |
+    One-time message authentication with Poly1305.
+
+    A `keybytes/0` byte key must be used to authenticate **a single message
+    only**; reusing it lets an attacker forge tags. Derive a fresh key per
+    message (for example from a stream cipher), or use
+    `m:libsodium_crypto_auth` for a reusable key.
+
+    The streaming functions thread an opaque state binary of `statebytes/0`
+    bytes through `init/1`, `update/2`, and `final/1`; each call returns a new
+    state and leaves its argument unchanged. Updates over large inputs yield to
+    other processes between chunks.
+  example: |
+    Key = libsodium_crypto_onetimeauth_poly1305:keygen(),
+    Tag = libsodium_crypto_onetimeauth_poly1305:crypto_onetimeauth_poly1305(<<"message">>, Key),
+    0 = libsodium_crypto_onetimeauth_poly1305:verify(Tag, <<"message">>, Key),
+    -1 = libsodium_crypto_onetimeauth_poly1305:verify(Tag, <<"forged">>, Key),
+    State0 = libsodium_crypto_onetimeauth_poly1305:init(Key),
+    State1 = libsodium_crypto_onetimeauth_poly1305:update(State0, <<"mess">>),
+    State2 = libsodium_crypto_onetimeauth_poly1305:update(State1, <<"age">>),
+    Tag = libsodium_crypto_onetimeauth_poly1305:final(State2).
+  see_also: [libsodium_crypto_onetimeauth, libsodium_crypto_auth]
+  constants:
+    - name: bytes
+      value: 16
+    - name: keybytes
+      value: 32
+    - name: statebytes
+      value: 256
+  functions:
+    - name: crypto_onetimeauth_poly1305
+      c: crypto_onetimeauth_poly1305
+      doc: Compute the `bytes/0` byte tag of `In` under the one-time `keybytes/0` byte key `K`.
+      args:
+        - {type: binary, name: in}
+        - {type: fixed, name: k, size: crypto_onetimeauth_poly1305_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_onetimeauth_poly1305_BYTES}
+      returns: out
+    - name: verify
+      doc: |
+        Check in constant time that `H` is the tag of `In` under the key `K`.
+        Returns `0` when it is valid and `-1` otherwise.
+      args:
+        - {type: fixed, name: h, size: crypto_onetimeauth_poly1305_BYTES}
+        - {type: binary, name: in}
+        - {type: fixed, name: k, size: crypto_onetimeauth_poly1305_KEYBYTES}
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+    - name: init
+      doc: Start a streaming authenticator with the one-time `keybytes/0` byte `Key`.
+      args:
+        - {type: fixed, name: key, size: crypto_onetimeauth_poly1305_KEYBYTES}
+      outputs:
+        - {type: state, name: state, c_type: crypto_onetimeauth_poly1305_state}
+      returns: state
+    - name: update
+      doc: Absorb `In` into `State` and return the updated state.
+      args:
+        - {type: state, name: state, c_type: crypto_onetimeauth_poly1305_state}
+        - {type: binary, name: in}
+      update: true
+      returns: state
+    - name: final
+      doc: Finish the streaming authenticator in `State`, returning a `bytes/0` byte tag.
+      args:
+        - {type: state, name: state, c_type: crypto_onetimeauth_poly1305_state}
+      outputs:
+        - {name: out, size: crypto_onetimeauth_poly1305_BYTES}
+      call: crypto_onetimeauth_poly1305_final(&state, out)
+      returns: out
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_onetimeauth_poly1305_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: known_answer
+      code: |
+        Key = libsodium_crypto_onetimeauth_poly1305:keygen(),
+        In = <<"Cryptographic Forum Research Group">>,
+        Expected = crypto:mac(poly1305, Key, In),
+        Expected = libsodium_crypto_onetimeauth_poly1305:crypto_onetimeauth_poly1305(In, Key),
+        State = libsodium_crypto_onetimeauth_poly1305:update(libsodium_crypto_onetimeauth_poly1305:init(Key), In),
+        Expected = libsodium_crypto_onetimeauth_poly1305:final(State).
+    - name: streaming_matches_one_shot
+      code: |
+        Key = libsodium_crypto_onetimeauth_poly1305:keygen(),
+        Large = binary:copy(<<"0123456789abcdef">>, 20000),
+        Tag = libsodium_crypto_onetimeauth_poly1305:crypto_onetimeauth_poly1305(<<Large/binary, Large/binary>>, Key),
+        State0 = libsodium_crypto_onetimeauth_poly1305:init(Key),
+        State1 = libsodium_crypto_onetimeauth_poly1305:update(State0, Large),
+        State2 = libsodium_crypto_onetimeauth_poly1305:update(State1, Large),
+        Tag = libsodium_crypto_onetimeauth_poly1305:final(State2),
+        0 = libsodium_crypto_onetimeauth_poly1305:verify(Tag, <<Large/binary, Large/binary>>, Key),
+        -1 = libsodium_crypto_onetimeauth_poly1305:verify(Tag, Large, Key).
+    - name: badarg
+      code: |
+        Key = libsodium_crypto_onetimeauth_poly1305:keygen(),
+        badarg = try libsodium_crypto_onetimeauth_poly1305:crypto_onetimeauth_poly1305(<<"m">>, <<Key/binary, 0>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_onetimeauth_poly1305:verify(<<0:8>>, <<"m">>, Key) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_onetimeauth_poly1305:init(<<>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_onetimeauth_poly1305:final(<<0:8>>) catch error:badarg -> badarg end.

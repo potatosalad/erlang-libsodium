@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_kdf:
+  title: Key derivation
+  doc: |
+    Derive many subkeys from a single `keybytes/0` byte master key with the
+    default construction, currently BLAKE2b.
+
+    Each subkey is identified by a 64-bit integer `SubkeyId` and a
+    `contextbytes/0` byte context, such as `<<"Examples">>`, which separates
+    keys derived for different purposes. Subkeys are between `bytes_min/0`
+    and `bytes_max/0` bytes long. This is not a password hash; use
+    `m:libsodium_crypto_pwhash` to derive keys from passwords.
+  example: |
+    Key = libsodium_crypto_kdf:keygen(),
+    Subkey1 = libsodium_crypto_kdf:derive_from_key(32, 1, <<"Examples">>, Key),
+    Subkey2 = libsodium_crypto_kdf:derive_from_key(32, 2, <<"Examples">>, Key),
+    32 = byte_size(Subkey1),
+    true = Subkey1 =/= Subkey2,
+    Subkey1 = libsodium_crypto_kdf:derive_from_key(32, 1, <<"Examples">>, Key).
+  see_also: [libsodium_crypto_kdf_blake2b]
+  constants:
+    - name: bytes_min
+      value: 16
+    - name: bytes_max
+      value: 64
+    - name: contextbytes
+      value: 8
+    - name: keybytes
+      value: 32
+    - name: primitive
+      type: atom
+      value: blake2b
+  functions:
+    - name: derive_from_key
+      doc: |
+        Derive the `SubkeyLen` byte subkey number `SubkeyId` for the
+        `contextbytes/0` byte context `Ctx` from the `keybytes/0` byte master
+        key `Key`.
+
+        Returns `-1` when `SubkeyLen` is outside `bytes_min/0` to `bytes_max/0`.
+      args:
+        - {type: uint, name: subkey_len, c_type: size_t}
+        - {type: uint, name: subkey_id, c_type: uint64_t}
+        - {type: fixed, name: ctx, size: crypto_kdf_CONTEXTBYTES}
+        - {type: fixed, name: key, size: crypto_kdf_KEYBYTES}
+      prelude: |
+        if (subkey_len < crypto_kdf_BYTES_MIN || subkey_len > crypto_kdf_BYTES_MAX) {
+            result = enif_make_int(env, -1);
+            goto cleanup;
+        }
+      outputs:
+        - {name: subkey, size: subkey_len}
+      call: crypto_kdf_derive_from_key(subkey, subkey_len, subkey_id, (const char *)ctx, key)
+      returns: subkey
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte master key.
+      outputs:
+        - {name: k, size: crypto_kdf_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: matches_blake2b
+      code: |
+        Key = libsodium_crypto_kdf:keygen(),
+        Subkey = libsodium_crypto_kdf:derive_from_key(64, 16#ffffffffffffffff, <<"Context!">>, Key),
+        Subkey = libsodium_crypto_kdf_blake2b:derive_from_key(64, 16#ffffffffffffffff, <<"Context!">>, Key),
+        Salt = <<16#ffffffffffffffff:64/little, 0:64>>,
+        Personal = <<"Context!", 0:64>>,
+        Subkey = libsodium_crypto_generichash_blake2b:salt_personal(64, <<>>, Key, Salt, Personal).
+    - name: invalid_arguments
+      code: |
+        Key = libsodium_crypto_kdf:keygen(),
+        -1 = libsodium_crypto_kdf:derive_from_key(15, 1, <<"Examples">>, Key),
+        -1 = libsodium_crypto_kdf:derive_from_key(65, 1, <<"Examples">>, Key),
+        badarg = try libsodium_crypto_kdf:derive_from_key(32, -1, <<"Examples">>, Key) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kdf:derive_from_key(32, 1 bsl 64, <<"Examples">>, Key) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kdf:derive_from_key(32, 1, <<"Example">>, Key) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_kdf:derive_from_key(32, 1, <<"Examples">>, <<Key/binary, 0>>) catch error:badarg -> badarg end.

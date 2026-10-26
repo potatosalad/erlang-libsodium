@@ -1,0 +1,78 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_stream_salsa2012:
+  title: Salsa20/12 stream cipher
+  doc: |
+    The reduced-round Salsa20/12 stream cipher with a 64-bit nonce, faster
+    than Salsa20/20 with a smaller security margin.
+
+    `crypto_stream_salsa2012/3` returns raw keystream and `'xor'/3` encrypts
+    or decrypts by combining a message with it. The 8 byte nonce is too short
+    to be chosen at random safely.
+
+    This is not authenticated encryption: ciphertexts can be modified without
+    detection, so pair it with a MAC or use `m:libsodium_crypto_secretbox`
+    instead. A nonce must never be reused with the same key.
+  example: |
+    K = libsodium_crypto_stream_salsa2012:keygen(),
+    N = libsodium_randombytes:buf(libsodium_crypto_stream_salsa2012:noncebytes()),
+    C = libsodium_crypto_stream_salsa2012:'xor'(<<"message">>, N, K),
+    <<"message">> = libsodium_crypto_stream_salsa2012:'xor'(C, N, K).
+  constants:
+    - name: keybytes
+      value: 32
+    - name: noncebytes
+      value: 8
+    - name: messagebytes_max
+  functions:
+    - name: crypto_stream_salsa2012
+      c: crypto_stream_salsa2012
+      doc: Return `CLen` bytes of keystream for the `noncebytes/0` byte nonce `N` and the `keybytes/0` byte key `K`.
+      args:
+        - {type: uint, name: clen, c_type: size_t, work: true}
+        - {type: fixed, name: n, size: crypto_stream_salsa2012_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_stream_salsa2012_KEYBYTES}
+      outputs:
+        - {name: c, size: clen}
+      check: none
+      returns: c
+      erlang:
+        - params: [CLen, N, K]
+    - name: xor
+      doc: |
+        Encrypt or decrypt `M` by combining it with the keystream for the nonce
+        `N` and key `K`.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_stream_salsa2012_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_stream_salsa2012_KEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+      check: none
+      returns: c
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_stream_salsa2012_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: xor_round_trip
+      code: |
+        K = libsodium_crypto_stream_salsa2012:keygen(),
+        N = libsodium_randombytes:buf(libsodium_crypto_stream_salsa2012:noncebytes()),
+        M = libsodium_randombytes:buf(200),
+        Stream = libsodium_crypto_stream_salsa2012:crypto_stream_salsa2012(264, N, K),
+        264 = byte_size(Stream),
+        C = libsodium_crypto_stream_salsa2012:'xor'(M, N, K),
+        C = crypto:exor(M, binary:part(Stream, 0, 200)),
+        M = libsodium_crypto_stream_salsa2012:'xor'(C, N, K),
+        <<>> = libsodium_crypto_stream_salsa2012:crypto_stream_salsa2012(0, N, K),
+        <<>> = libsodium_crypto_stream_salsa2012:'xor'(<<>>, N, K).
+    - name: badarg
+      code: |
+        K = libsodium_crypto_stream_salsa2012:keygen(),
+        N = libsodium_randombytes:buf(libsodium_crypto_stream_salsa2012:noncebytes()),
+        ok = try libsodium_crypto_stream_salsa2012:'xor'(<<"m">>, <<0:16>>, K) of _ -> unexpected catch error:badarg -> ok end,
+        ok = try libsodium_crypto_stream_salsa2012:'xor'(<<"m">>, N, <<0:16>>) of _ -> unexpected catch error:badarg -> ok end,
+        ok = try libsodium_crypto_stream_salsa2012:crypto_stream_salsa2012(-1, N, K) of _ -> unexpected catch error:badarg -> ok end.

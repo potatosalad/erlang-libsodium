@@ -1,0 +1,115 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_auth_hmacsha512256:
+  title: HMAC-SHA-512-256
+  doc: |
+    Secret-key message authentication with HMAC-SHA-512-256: HMAC-SHA-512
+    truncated to 256 bits. This is the construction used by
+    `m:libsodium_crypto_auth`.
+
+    The one-shot functions take a `keybytes/0` byte key and produce
+    `bytes/0` byte tags. The streaming functions thread an opaque state
+    binary of `statebytes/0` bytes through `init/1`, `update/2`, and
+    `final/1`; each call returns a new state and leaves its argument
+    unchanged. Updates over large inputs yield to other processes between
+    chunks. Unlike the one-shot functions, `init/1` accepts a key of any
+    length, as HMAC does.
+
+    `verify/3` compares tags in constant time.
+  example: |
+    Key = libsodium_crypto_auth_hmacsha512256:keygen(),
+    Tag = libsodium_crypto_auth_hmacsha512256:crypto_auth_hmacsha512256(<<"message">>, Key),
+    0 = libsodium_crypto_auth_hmacsha512256:verify(Tag, <<"message">>, Key),
+    -1 = libsodium_crypto_auth_hmacsha512256:verify(Tag, <<"forged">>, Key),
+    State0 = libsodium_crypto_auth_hmacsha512256:init(Key),
+    State1 = libsodium_crypto_auth_hmacsha512256:update(State0, <<"mess">>),
+    State2 = libsodium_crypto_auth_hmacsha512256:update(State1, <<"age">>),
+    Tag = libsodium_crypto_auth_hmacsha512256:final(State2).
+  see_also: [libsodium_crypto_auth, libsodium_crypto_auth_hmacsha256, libsodium_crypto_auth_hmacsha512]
+  constants:
+    - name: bytes
+      value: 32
+    - name: keybytes
+      value: 32
+    - name: statebytes
+      value: 416
+  functions:
+    - name: crypto_auth_hmacsha512256
+      c: crypto_auth_hmacsha512256
+      doc: Compute the `bytes/0` byte authentication tag of `In` under the `keybytes/0` byte key `K`.
+      args:
+        - {type: binary, name: in}
+        - {type: fixed, name: k, size: crypto_auth_hmacsha512256_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_auth_hmacsha512256_BYTES}
+      returns: out
+    - name: verify
+      doc: |
+        Check in constant time that `H` is the tag of `In` under the key `K`.
+        Returns `0` when it is valid and `-1` otherwise.
+      args:
+        - {type: fixed, name: h, size: crypto_auth_hmacsha512256_BYTES}
+        - {type: binary, name: in}
+        - {type: fixed, name: k, size: crypto_auth_hmacsha512256_KEYBYTES}
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+    - name: init
+      doc: |
+        Start a streaming authenticator keyed with `Key`, which may be of any
+        length, and return its state.
+      args:
+        - {type: binary, name: key, len_type: size_t}
+      outputs:
+        - {type: state, name: state, c_type: crypto_auth_hmacsha512256_state}
+      returns: state
+    - name: update
+      doc: Absorb `In` into `State` and return the updated state.
+      args:
+        - {type: state, name: state, c_type: crypto_auth_hmacsha512256_state}
+        - {type: binary, name: in}
+      update: true
+      returns: state
+    - name: final
+      doc: Finish the streaming authenticator in `State`, returning a `bytes/0` byte tag.
+      args:
+        - {type: state, name: state, c_type: crypto_auth_hmacsha512256_state}
+      outputs:
+        - {name: out, size: crypto_auth_hmacsha512256_BYTES}
+      call: crypto_auth_hmacsha512256_final(&state, out)
+      returns: out
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_auth_hmacsha512256_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: known_answer
+      code: |
+        Key = binary:copy(<<16#0b>>, 32),
+        In = <<"Hi There">>,
+        <<Expected:32/binary, _/binary>> = crypto:mac(hmac, sha512, Key, In),
+        Expected = libsodium_crypto_auth_hmacsha512256:crypto_auth_hmacsha512256(In, Key),
+        Expected = libsodium_crypto_auth_hmacsha512256:final(libsodium_crypto_auth_hmacsha512256:update(libsodium_crypto_auth_hmacsha512256:init(Key), In)),
+        LongKey = binary:copy(<<16#aa>>, 200),
+        <<LongExpected:32/binary, _/binary>> = crypto:mac(hmac, sha512, LongKey, In),
+        LongExpected = libsodium_crypto_auth_hmacsha512256:final(libsodium_crypto_auth_hmacsha512256:update(libsodium_crypto_auth_hmacsha512256:init(LongKey), In)).
+    - name: streaming_matches_one_shot
+      code: |
+        Key = libsodium_crypto_auth_hmacsha512256:keygen(),
+        Large = binary:copy(<<"0123456789abcdef">>, 20000),
+        Tag = libsodium_crypto_auth_hmacsha512256:crypto_auth_hmacsha512256(<<Large/binary, Large/binary>>, Key),
+        State0 = libsodium_crypto_auth_hmacsha512256:init(Key),
+        State1 = libsodium_crypto_auth_hmacsha512256:update(State0, Large),
+        State2 = libsodium_crypto_auth_hmacsha512256:update(State1, Large),
+        Tag = libsodium_crypto_auth_hmacsha512256:final(State2),
+        0 = libsodium_crypto_auth_hmacsha512256:verify(Tag, <<Large/binary, Large/binary>>, Key),
+        -1 = libsodium_crypto_auth_hmacsha512256:verify(Tag, Large, Key).
+    - name: badarg
+      code: |
+        Key = libsodium_crypto_auth_hmacsha512256:keygen(),
+        badarg = try libsodium_crypto_auth_hmacsha512256:crypto_auth_hmacsha512256(<<"m">>, <<Key/binary, 0>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_auth_hmacsha512256:verify(<<0:8>>, <<"m">>, Key) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_auth_hmacsha512256:update(<<0:8>>, <<"m">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_auth_hmacsha512256:final(<<>>) catch error:badarg -> badarg end.

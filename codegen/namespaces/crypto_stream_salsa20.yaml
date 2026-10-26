@@ -1,0 +1,98 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_stream_salsa20:
+  title: Salsa20 stream cipher
+  doc: |
+    The Salsa20/20 stream cipher with a 64-bit nonce and a 64-bit block
+    counter.
+
+    `crypto_stream_salsa20/3` returns raw keystream, `'xor'/3` encrypts or
+    decrypts by combining a message with it, and `xor_ic/4` starts at a given
+    64-byte block counter. The 8 byte nonce is too short to be chosen at
+    random safely; prefer `m:libsodium_crypto_stream_xsalsa20` when nonces
+    are random.
+
+    This is not authenticated encryption: ciphertexts can be modified without
+    detection, so pair it with a MAC or use `m:libsodium_crypto_secretbox`
+    instead. A nonce must never be reused with the same key.
+  example: |
+    K = libsodium_crypto_stream_salsa20:keygen(),
+    N = libsodium_randombytes:buf(libsodium_crypto_stream_salsa20:noncebytes()),
+    C = libsodium_crypto_stream_salsa20:'xor'(<<"message">>, N, K),
+    <<"message">> = libsodium_crypto_stream_salsa20:'xor'(C, N, K).
+  constants:
+    - name: keybytes
+      value: 32
+    - name: noncebytes
+      value: 8
+    - name: messagebytes_max
+  functions:
+    - name: crypto_stream_salsa20
+      c: crypto_stream_salsa20
+      doc: Return `CLen` bytes of keystream for the `noncebytes/0` byte nonce `N` and the `keybytes/0` byte key `K`.
+      args:
+        - {type: uint, name: clen, c_type: size_t, work: true}
+        - {type: fixed, name: n, size: crypto_stream_salsa20_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_stream_salsa20_KEYBYTES}
+      outputs:
+        - {name: c, size: clen}
+      check: none
+      returns: c
+      erlang:
+        - params: [CLen, N, K]
+    - name: xor
+      doc: |
+        Encrypt or decrypt `M` by combining it with the keystream for the nonce
+        `N` and key `K`, starting at block counter `0`.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_stream_salsa20_NONCEBYTES}
+        - {type: fixed, name: k, size: crypto_stream_salsa20_KEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+      check: none
+      returns: c
+    - name: xor_ic
+      doc: |
+        Like `'xor'/3`, but start at the 64-byte block counter `IC`, so the
+        message is combined with the keystream from byte `IC * 64` onwards.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: n, size: crypto_stream_salsa20_NONCEBYTES}
+        - {type: uint, name: ic, c_type: uint64_t}
+        - {type: fixed, name: k, size: crypto_stream_salsa20_KEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+      check: none
+      returns: c
+      erlang:
+        - params: [M, N, IC, K]
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_stream_salsa20_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: xor_round_trip
+      code: |
+        K = libsodium_crypto_stream_salsa20:keygen(),
+        N = libsodium_randombytes:buf(libsodium_crypto_stream_salsa20:noncebytes()),
+        M = libsodium_randombytes:buf(200),
+        Stream = libsodium_crypto_stream_salsa20:crypto_stream_salsa20(264, N, K),
+        264 = byte_size(Stream),
+        C = libsodium_crypto_stream_salsa20:'xor'(M, N, K),
+        C = crypto:exor(M, binary:part(Stream, 0, 200)),
+        M = libsodium_crypto_stream_salsa20:'xor'(C, N, K),
+        Tail = crypto:exor(M, binary:part(Stream, 64, 200)),
+        Tail = libsodium_crypto_stream_salsa20:xor_ic(M, N, 1, K),
+        <<>> = libsodium_crypto_stream_salsa20:crypto_stream_salsa20(0, N, K),
+        <<>> = libsodium_crypto_stream_salsa20:'xor'(<<>>, N, K).
+    - name: badarg
+      code: |
+        K = libsodium_crypto_stream_salsa20:keygen(),
+        N = libsodium_randombytes:buf(libsodium_crypto_stream_salsa20:noncebytes()),
+        ok = try libsodium_crypto_stream_salsa20:'xor'(<<"m">>, <<0:16>>, K) of _ -> unexpected catch error:badarg -> ok end,
+        ok = try libsodium_crypto_stream_salsa20:'xor'(<<"m">>, N, <<0:16>>) of _ -> unexpected catch error:badarg -> ok end,
+        ok = try libsodium_crypto_stream_salsa20:crypto_stream_salsa20(-1, N, K) of _ -> unexpected catch error:badarg -> ok end,
+        ok = try libsodium_crypto_stream_salsa20:xor_ic(<<"m">>, N, 1 bsl 64, K) of _ -> unexpected catch error:badarg -> ok end.

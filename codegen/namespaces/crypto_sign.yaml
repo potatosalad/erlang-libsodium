@@ -1,0 +1,195 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_sign:
+  title: Public-key signatures
+  doc: |
+    Public-key signatures with Ed25519, the default `crypto_sign` primitive.
+
+    A key pair is a `publickeybytes/0` byte public key and a
+    `secretkeybytes/0` byte secret key (the `seedbytes/0` byte seed followed by
+    the public key). Signatures are `bytes/0` bytes and are deterministic: the
+    same message and key always produce the same signature.
+
+    `crypto_sign/2` and `open/2` work with the signature prepended to the
+    message, while `detached/2` and `verify_detached/3` keep them apart. The
+    streaming functions (`init/0`, `update/2`, `final_create/2`,
+    `final_verify/3`) compute Ed25519ph (pre-hashed with SHA-512) signatures,
+    which are not interchangeable with the one-shot signatures; the state is an
+    opaque binary of `statebytes/0` bytes.
+  example: |
+    {PK, SK} = libsodium_crypto_sign:keypair(),
+    SM = libsodium_crypto_sign:crypto_sign(<<"message">>, SK),
+    <<"message">> = libsodium_crypto_sign:open(SM, PK),
+    Sig = libsodium_crypto_sign:detached(<<"message">>, SK),
+    0 = libsodium_crypto_sign:verify_detached(Sig, <<"message">>, PK).
+  constants:
+    - name: statebytes
+      value: 208
+    - name: bytes
+      value: 64
+    - name: seedbytes
+      value: 32
+    - name: publickeybytes
+      value: 32
+    - name: secretkeybytes
+      value: 64
+    - name: messagebytes_max
+    - name: primitive
+      type: atom
+      value: ed25519
+  functions:
+    - name: seed_keypair
+      doc: |
+        Deterministically derive a key pair from the `seedbytes/0` byte `Seed`.
+        Returns `{PK, SK}`.
+      args:
+        - {type: fixed, name: seed, size: crypto_sign_SEEDBYTES}
+      outputs:
+        - {name: pk, size: crypto_sign_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_sign_SECRETKEYBYTES}
+      returns: [pk, sk]
+    - name: keypair
+      doc: Generate a random key pair. Returns `{PK, SK}`.
+      outputs:
+        - {name: pk, size: crypto_sign_PUBLICKEYBYTES}
+        - {name: sk, size: crypto_sign_SECRETKEYBYTES}
+      returns: [pk, sk]
+    - name: crypto_sign
+      c: crypto_sign
+      doc: |
+        Sign `M` with the secret key `SK`, returning the `bytes/0` byte
+        signature followed by the message.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: sk, size: crypto_sign_SECRETKEYBYTES}
+      outputs:
+        - {name: sm, size: "mlen + crypto_sign_BYTES", len: smlen}
+      returns: sm
+      erlang:
+        - params: [M, SK]
+    - name: open
+      doc: |
+        Verify the signed message `SM` with the public key `PK` and return the
+        message without its signature, or `-1` when the signature is invalid.
+      args:
+        - {type: binary, name: sm}
+        - {type: fixed, name: pk, size: crypto_sign_PUBLICKEYBYTES}
+      outputs:
+        - {name: m, size: "(smlen < crypto_sign_BYTES) ? 0 : smlen - crypto_sign_BYTES", len: mlen}
+      returns: m
+      erlang:
+        - params: [SM, PK]
+    - name: detached
+      doc: Sign `M` with the secret key `SK`, returning only the `bytes/0` byte signature.
+      args:
+        - {type: binary, name: m}
+        - {type: fixed, name: sk, size: crypto_sign_SECRETKEYBYTES}
+      outputs:
+        - {name: sig, size: crypto_sign_BYTES, len: siglen}
+      returns: sig
+      erlang:
+        - params: [M, SK]
+    - name: verify_detached
+      doc: |
+        Verify the detached signature `Sig` of `M` with the public key `PK`.
+        Returns `0` when the signature is valid and `-1` otherwise.
+      args:
+        - {type: fixed, name: sig, size: crypto_sign_BYTES}
+        - {type: binary, name: m}
+        - {type: fixed, name: pk, size: crypto_sign_PUBLICKEYBYTES}
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+      erlang:
+        - params: [Sig, M, PK]
+    - name: init
+      doc: Start a streaming Ed25519ph signature, returning a new state.
+      outputs:
+        - {type: state, name: state, c_type: crypto_sign_state}
+      returns: state
+    - name: update
+      doc: Absorb the message chunk `M` into `State` and return the updated state.
+      args:
+        - {type: state, name: state, c_type: crypto_sign_state}
+        - {type: binary, name: m}
+      update: true
+      returns: state
+    - name: final_create
+      doc: |
+        Finish the streaming message in `State` and sign it with the secret key
+        `SK`, returning the `bytes/0` byte Ed25519ph signature.
+      args:
+        - {type: state, name: state, c_type: crypto_sign_state}
+        - {type: fixed, name: sk, size: crypto_sign_SECRETKEYBYTES}
+      outputs:
+        - {name: sig, size: crypto_sign_BYTES, len: siglen}
+      call: crypto_sign_final_create(&state, sig, &siglen, sk)
+      returns: sig
+      erlang:
+        - params: [State, SK]
+    - name: final_verify
+      doc: |
+        Finish the streaming message in `State` and verify its Ed25519ph
+        signature `Sig` with the public key `PK`. Returns `0` when the signature
+        is valid and `-1` otherwise.
+      args:
+        - {type: state, name: state, c_type: crypto_sign_state}
+        - {type: fixed, name: sig, size: crypto_sign_BYTES}
+        - {type: fixed, name: pk, size: crypto_sign_PUBLICKEYBYTES}
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+      erlang:
+        - params: [State, Sig, PK]
+  tests:
+    - name: rfc8032_vectors
+      code: |
+        Seed1 = binary:decode_hex(<<"9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60">>),
+        PK1 = binary:decode_hex(<<"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a">>),
+        Sig1 = binary:decode_hex(<<"e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b">>),
+        {PK1, SK1} = libsodium_crypto_sign:seed_keypair(Seed1),
+        SK1 = <<Seed1/binary, PK1/binary>>,
+        Sig1 = libsodium_crypto_sign:detached(<<>>, SK1),
+        Sig1 = libsodium_crypto_sign:crypto_sign(<<>>, SK1),
+        <<>> = libsodium_crypto_sign:open(Sig1, PK1),
+        Seed2 = binary:decode_hex(<<"4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb">>),
+        PK2 = binary:decode_hex(<<"3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c">>),
+        Sig2 = binary:decode_hex(<<"92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00">>),
+        {PK2, SK2} = libsodium_crypto_sign:seed_keypair(Seed2),
+        Sig2 = libsodium_crypto_sign:detached(<<16#72>>, SK2),
+        0 = libsodium_crypto_sign:verify_detached(Sig2, <<16#72>>, PK2),
+        <<16#72>> = libsodium_crypto_sign:open(<<Sig2/binary, 16#72>>, PK2).
+    - name: forgery
+      code: |
+        {PK, SK} = libsodium_crypto_sign:keypair(),
+        {OtherPK, _} = libsodium_crypto_sign:keypair(),
+        <<Sig:64/binary, M/binary>> = libsodium_crypto_sign:crypto_sign(<<"message">>, SK),
+        <<B0, Rest/binary>> = Sig,
+        Forged = <<(B0 bxor 1), Rest/binary>>,
+        -1 = libsodium_crypto_sign:verify_detached(Forged, M, PK),
+        -1 = libsodium_crypto_sign:verify_detached(Sig, <<"messagE">>, PK),
+        -1 = libsodium_crypto_sign:verify_detached(Sig, M, OtherPK),
+        -1 = libsodium_crypto_sign:open(<<Forged/binary, M/binary>>, PK),
+        -1 = libsodium_crypto_sign:open(<<"short">>, PK).
+    - name: streaming
+      code: |
+        {PK, SK} = libsodium_crypto_sign:keypair(),
+        State0 = libsodium_crypto_sign:init(),
+        208 = byte_size(State0),
+        State1 = libsodium_crypto_sign:update(State0, <<"hello ">>),
+        State2 = libsodium_crypto_sign:update(State1, <<"world">>),
+        Sig = libsodium_crypto_sign:final_create(State2, SK),
+        64 = byte_size(Sig),
+        0 = libsodium_crypto_sign:final_verify(State2, Sig, PK),
+        State3 = libsodium_crypto_sign:update(State0, <<"hello world">>),
+        0 = libsodium_crypto_sign:final_verify(State3, Sig, PK),
+        -1 = libsodium_crypto_sign:final_verify(State1, Sig, PK),
+        -1 = libsodium_crypto_sign:verify_detached(Sig, <<"hello world">>, PK).
+    - name: badarg
+      code: |
+        {PK, SK} = libsodium_crypto_sign:keypair(),
+        badarg = try libsodium_crypto_sign:seed_keypair(<<0:248>>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign:detached(<<"m">>, PK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign:crypto_sign(not_a_binary, SK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign:verify_detached(<<0:504>>, <<"m">>, PK) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign:update(<<"bad state">>, <<"m">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign:final_create(libsodium_crypto_sign:init(), PK) catch error:badarg -> badarg end.

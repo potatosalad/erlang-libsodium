@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_shorthash_siphashx24:
+  title: SipHash-2-4 (128-bit)
+  doc: |
+    Keyed hashing of short inputs with SipHash-2-4 with 128-bit output, producing `bytes/0`
+    byte (128-bit) outputs under a `keybytes/0` byte secret key.
+
+    It is designed for hash tables, Bloom filters, and similar structures
+    where an attacker must not be able to predict collisions. It is **not** a
+    general-purpose or collision-resistant cryptographic hash; use
+    `m:libsodium_crypto_generichash` for that. Keys can be generated with
+    `libsodium_crypto_shorthash:keygen/0`.
+  example: |
+    Key = libsodium_randombytes:buf(libsodium_crypto_shorthash_siphashx24:keybytes()),
+    Hash = libsodium_crypto_shorthash_siphashx24:crypto_shorthash_siphashx24(<<"short input">>, Key),
+    16 = byte_size(Hash),
+    Hash = libsodium_crypto_shorthash_siphashx24:crypto_shorthash_siphashx24(<<"short input">>, Key).
+  see_also: [libsodium_crypto_shorthash, libsodium_crypto_shorthash_siphash24]
+  constants:
+    - name: bytes
+      value: 16
+    - name: keybytes
+      value: 16
+  functions:
+    - name: crypto_shorthash_siphashx24
+      c: crypto_shorthash_siphashx24
+      doc: Hash `In` under the `keybytes/0` byte key `K`, returning `bytes/0` bytes.
+      args:
+        - {type: binary, name: in}
+        - {type: fixed, name: k, size: crypto_shorthash_siphashx24_KEYBYTES}
+      outputs:
+        - {name: out, size: crypto_shorthash_siphashx24_BYTES}
+      returns: out
+  tests:
+    - name: known_answer
+      code: |
+        Key = list_to_binary(lists:seq(0, 15)),
+        <<16#a3, 16#81, 16#7f, 16#04, 16#ba, 16#25, 16#a8, 16#e6, 16#6d, 16#f6, 16#72, 16#14, 16#c7, 16#55, 16#02, 16#93>> = libsodium_crypto_shorthash_siphashx24:crypto_shorthash_siphashx24(<<>>, Key),
+        badarg = try libsodium_crypto_shorthash_siphashx24:crypto_shorthash_siphashx24(<<>>, <<>>) catch error:badarg -> badarg end.

@@ -75,6 +75,16 @@ def namespace_group(name: str) -> str:
     raise ValueError(f"No documentation group for namespace {name}")
 
 
+ERLANG_RESERVED = frozenset(
+    "after and andalso band begin bnot bor bsl bsr bxor case catch cond div else end fun if let maybe not of or "
+    "orelse receive rem try when xor".split()
+)
+
+
+def erlang_atom(name: str) -> str:
+    return f"'{name}'" if name in ERLANG_RESERVED else name
+
+
 def erlang_variable(name: str) -> str:
     return "".join(part[:1].upper() + part[1:] for part in name.split("_") if part)
 
@@ -416,7 +426,10 @@ class FunctionCtx:
                 if output.copy_from:
                     source = output.copy_from
                     lines += self._badarg_if(f"{source}_bin.size > {output.name}_size")
-                    lines.append(f"(void)memcpy({output.name}, {source}_bin.data, {source}_bin.size);")
+                    lines += [
+                        f"(void)memcpy({output.name}, {source}_bin.data, {source}_bin.size);",
+                        f"(void){source};",
+                    ]
                 if output.len:
                     lines.append(f"{output.len} = ({output.len_type})({output.name}_size);")
         return lines
@@ -450,6 +463,14 @@ class FunctionCtx:
             lines = [f"{self.call_expr};"]
         else:
             lines = [f"rc = {self.call_expr};"]
+        if self.schema.deprecated:
+            # libsodium marks some functions deprecated; keep exposing them without warnings.
+            lines = [
+                '_Pragma("GCC diagnostic push")',
+                '_Pragma("GCC diagnostic ignored \\"-Wdeprecated-declarations\\"")',
+                *lines,
+                '_Pragma("GCC diagnostic pop")',
+            ]
         if self.schema.check == "zero":
             lines += ["if (rc != 0) {", "    result = enif_make_int(env, (int)rc);", "    goto cleanup;", "}"]
         return lines
@@ -473,15 +494,18 @@ class FunctionCtx:
             counter[0] += 1
             match item:
                 case schema.BufferOutput():
-                    length = item.length or item.len or f"{item.name}_size"
+                    length = item.length or item.len
+                    if length:
+                        lines += [
+                            f"if ((size_t)({length}) < {item.name}_size) {{",
+                            f"    sodium_memzero({item.name} + (size_t)({length}), {item.name}_size - (size_t)({length}));",
+                            f"    if (!enif_realloc_binary(&{item.name}_bin, (size_t)({length}))) {{",
+                            '        result = EXCP_ERROR(env, "Can\'t allocate memory");',
+                            "        goto cleanup;",
+                            "    }",
+                            "}",
+                        ]
                     lines += [
-                        f"if ((size_t)({length}) < {item.name}_size) {{",
-                        f"    sodium_memzero({item.name} + (size_t)({length}), {item.name}_size - (size_t)({length}));",
-                        f"    if (!enif_realloc_binary(&{item.name}_bin, (size_t)({length}))) {{",
-                        '        result = EXCP_ERROR(env, "Can\'t allocate memory");',
-                        "        goto cleanup;",
-                        "    }",
-                        "}",
                         f"ERL_NIF_TERM {term} = enif_make_binary(env, &{item.name}_bin);",
                         f"{item.name}_alloc = 0;",
                     ]
@@ -624,6 +648,7 @@ class FunctionCtx:
                     result_type=self.result_type,
                     doc=(variant.doc or self.doc).strip(),
                     target=self,
+                    deprecated=self.schema.deprecated,
                 )
             )
         return functions
@@ -639,16 +664,21 @@ class PublicFunction:
     doc: str
     target: ConstantCtx | FunctionCtx = field(repr=False)
     expression: str | None = None
+    deprecated: str | None = None
 
     @property
     def arity(self) -> int:
         return len(self.params)
 
     @property
+    def atom(self) -> str:
+        return erlang_atom(self.name)
+
+    @property
     def spec(self) -> str:
         types = [f"{param} :: {self.types[param]}" for param in self.params]
         types.append(f"Result :: {self.result_type}")
-        return f"{self.name}({', '.join(self.params)}) -> Result when {', '.join(types)}"
+        return f"{self.atom}({', '.join(self.params)}) -> Result when {', '.join(types)}"
 
     @property
     def body(self) -> str:
@@ -738,3 +768,7 @@ class NamespaceCtx:
     @property
     def update_functions(self) -> list[FunctionCtx]:
         return [function for function in self.functions if function.is_update]
+
+    @property
+    def deprecated_functions(self) -> list[PublicFunction]:
+        return [function for function in self.public_functions if function.deprecated]

@@ -1,0 +1,159 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_aead_xchacha20poly1305:
+  title: XChaCha20-Poly1305
+  doc: |
+    XChaCha20-Poly1305 authenticated encryption with additional data, the
+    recommended general-purpose AEAD construction.
+
+    Its `ietf_npubbytes/0` (24) byte nonce is long enough to be generated at
+    random for every message (for example with `libsodium_randombytes:buf/1`)
+    without practical risk of collision. Keys are `ietf_keybytes/0` bytes and
+    a nonce must still never be reused with the same key.
+  example: |
+    Key = libsodium_crypto_aead_xchacha20poly1305:ietf_keygen(),
+    Nonce = libsodium_randombytes:buf(libsodium_crypto_aead_xchacha20poly1305:ietf_npubbytes()),
+    Ciphertext = libsodium_crypto_aead_xchacha20poly1305:ietf_encrypt(<<"message">>, <<"header">>, Nonce, Key),
+    <<"message">> = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt(Ciphertext, <<"header">>, Nonce, Key).
+  constants:
+    - name: ietf_keybytes
+      value: 32
+    - name: ietf_nsecbytes
+      value: 0
+    - name: ietf_npubbytes
+      value: 24
+    - name: ietf_abytes
+      value: 16
+    - name: ietf_messagebytes_max
+  functions:
+    - name: ietf_encrypt
+      doc: |
+        Encrypt and authenticate `M` together with the additional data `AD`
+        (default empty) using the `ietf_npubbytes/0` byte nonce `NPub` and
+        the `ietf_keybytes/0` byte key `K`.
+
+        Returns the ciphertext followed by an `ietf_abytes/0` byte
+        authentication tag, or `-1` on failure.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_xchacha20poly1305_ietf_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_xchacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_xchacha20poly1305_ietf_KEYBYTES}
+      outputs:
+        - {name: c, size: "mlen + crypto_aead_xchacha20poly1305_ietf_ABYTES", len: clen}
+      returns: c
+      erlang:
+        - params: [M, NPub, K]
+          args: [M, "<<>>", "<<>>", NPub, K]
+        - params: [M, AD, NPub, K]
+          args: [M, AD, "<<>>", NPub, K]
+    - name: ietf_decrypt
+      doc: |
+        Verify and decrypt the ciphertext `C` with the additional data `AD`
+        (default empty), nonce `NPub`, and key `K`.
+
+        Returns the plaintext, or `-1` when verification fails.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_xchacha20poly1305_ietf_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_xchacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_xchacha20poly1305_ietf_KEYBYTES}
+      outputs:
+        - name: m
+          size: "(clen < crypto_aead_xchacha20poly1305_ietf_ABYTES) ? 0 : clen - crypto_aead_xchacha20poly1305_ietf_ABYTES"
+          len: mlen
+      call: crypto_aead_xchacha20poly1305_ietf_decrypt(m, &mlen, (unsigned char *)nsec, c, clen, ad, adlen, npub, k)
+      returns: m
+      erlang:
+        - params: [C, NPub, K]
+          args: ["<<>>", C, "<<>>", NPub, K]
+        - params: [C, AD, NPub, K]
+          args: ["<<>>", C, AD, NPub, K]
+    - name: ietf_encrypt_detached
+      doc: |
+        Encrypt and authenticate `M` with the additional data `AD` (default
+        empty), returning the ciphertext and the `ietf_abytes/0` byte
+        authentication tag separately as `{C, MAC}`, or `-1` on failure.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_xchacha20poly1305_ietf_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_xchacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_xchacha20poly1305_ietf_KEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+        - {name: mac, size: crypto_aead_xchacha20poly1305_ietf_ABYTES, len: maclen}
+      returns: [c, mac]
+      erlang:
+        - params: [M, NPub, K]
+          args: [M, "<<>>", "<<>>", NPub, K]
+        - params: [M, AD, NPub, K]
+          args: [M, AD, "<<>>", NPub, K]
+    - name: ietf_decrypt_detached
+      doc: |
+        Verify the detached tag `MAC` and decrypt `C` with the additional data
+        `AD` (default empty). Returns the plaintext, or `-1` when
+        verification fails.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_xchacha20poly1305_ietf_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: fixed, name: mac, size: crypto_aead_xchacha20poly1305_ietf_ABYTES}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_xchacha20poly1305_ietf_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_xchacha20poly1305_ietf_KEYBYTES}
+      outputs:
+        - {name: m, size: clen}
+      call: crypto_aead_xchacha20poly1305_ietf_decrypt_detached(m, (unsigned char *)nsec, c, clen, mac, ad, adlen, npub, k)
+      returns: m
+      erlang:
+        - params: [C, MAC, NPub, K]
+          args: ["<<>>", C, MAC, "<<>>", NPub, K]
+        - params: [C, MAC, AD, NPub, K]
+          args: ["<<>>", C, MAC, AD, NPub, K]
+    - name: ietf_keygen
+      doc: Generate a random `ietf_keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_aead_xchacha20poly1305_ietf_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k
+  tests:
+    - name: known_answer
+      code: |
+        K = binary:decode_hex(<<"808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f">>),
+        N = binary:decode_hex(<<"404142434445464748494a4b4c4d4e4f5051525354555657">>),
+        AD = binary:decode_hex(<<"50515253c0c1c2c3c4c5c6c7">>),
+        M = <<"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it.">>,
+        C = binary:decode_hex(<<"bd6d179d3e83d43b9576579493c0e939572a1700252bfaccbed2902c21396cbb731c7f1b0b4aa6440bf3a82f4eda7e39ae64c6708c54c216cb96b72e1213b4522f8c9ba40db5d945b11b69b982c1bb9e3f3fac2bc369488f76b2383565d3fff921f9664c97637da9768812f615c68b13b52e">>),
+        MAC = binary:decode_hex(<<"c0875924c1c7987947deafd8780acf49">>),
+        {C, MAC} = libsodium_crypto_aead_xchacha20poly1305:ietf_encrypt_detached(M, AD, N, K),
+        CT = <<C/binary, MAC/binary>>,
+        CT = libsodium_crypto_aead_xchacha20poly1305:ietf_encrypt(M, AD, N, K),
+        M = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt(CT, AD, N, K),
+        M = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt_detached(C, MAC, AD, N, K).
+    - name: round_trip_without_ad
+      code: |
+        K = libsodium_crypto_aead_xchacha20poly1305:ietf_keygen(),
+        N = libsodium_randombytes:buf(24),
+        M = libsodium_randombytes:buf(1000),
+        CT = libsodium_crypto_aead_xchacha20poly1305:ietf_encrypt(M, N, K),
+        1016 = byte_size(CT),
+        CT = libsodium_crypto_aead_xchacha20poly1305:ietf_encrypt(M, <<>>, N, K),
+        {C, MAC} = libsodium_crypto_aead_xchacha20poly1305:ietf_encrypt_detached(M, N, K),
+        CT = <<C/binary, MAC/binary>>,
+        M = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt(CT, N, K),
+        M = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt_detached(C, MAC, N, K),
+        <<>> = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt(libsodium_crypto_aead_xchacha20poly1305:ietf_encrypt(<<>>, N, K), N, K).
+    - name: tamper_and_badarg
+      code: |
+        K = libsodium_crypto_aead_xchacha20poly1305:ietf_keygen(),
+        N = libsodium_randombytes:buf(24),
+        <<B, Rest/binary>> = libsodium_crypto_aead_xchacha20poly1305:ietf_encrypt(<<"message">>, <<"ad">>, N, K),
+        -1 = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt(<<(B bxor 1), Rest/binary>>, <<"ad">>, N, K),
+        -1 = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt(<<B, Rest/binary>>, <<"other">>, N, K),
+        -1 = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt(<<"short">>, N, K),
+        -1 = libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt_detached(<<"message">>, <<0:128>>, N, K),
+        badarg = try libsodium_crypto_aead_xchacha20poly1305:ietf_encrypt(<<"m">>, <<0:96>>, K) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt_detached(<<"m">>, <<0:120>>, N, K) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_aead_xchacha20poly1305:ietf_decrypt(not_a_binary, N, K) catch error:badarg -> badarg end.
