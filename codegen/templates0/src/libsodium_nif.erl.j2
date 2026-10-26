@@ -1,0 +1,90 @@
+%%% % @format
+-module(libsodium_nif).
+-moduledoc """
+Native libsodium bindings.
+
+Every function maps directly onto the libsodium function of the same name;
+the namespace modules such as `m:libsodium_crypto_box` document each operation
+and supply argument defaults. Lengths are in bytes. Invalid argument types or
+lengths raise `badarg`, and libsodium failures are returned as their integer
+status code (usually `-1`) to match the historical port driver.
+
+Calls that process more than ~J< ctx.dirty_threshold >. bytes move to a dirty CPU
+scheduler, password hashing always runs on one, and streaming updates yield
+to other processes whenever their timeslice is exhausted.
+""".
+-moduledoc #{author => ["Andrew Bennett <potatosaladx@gmail.com>"]}.
+-moduledoc #{created => "2015-12-28", modified => "2026-10-26"}.
+-moduledoc #{copyright => "Andrew Bennett"}.
+-compile(warn_missing_spec_all).
+
+-on_load(init/0).
+
+%% Error if the NIF library is not loaded.
+-define(nif_stub, nif_stub_error(?LINE)).
+
+%% NIF API
+-export([
+~J{ for function in ctx.nif_functions }.
+    ~J< function.nif_name >./~J< function.arity >.~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+]).
+
+-nifs([
+~J{ for function in ctx.nif_functions }.
+    ~J< function.nif_name >./~J< function.arity >.~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+]).
+
+%% Internal API
+-export([
+    init/0
+]).
+
+%%%=============================================================================
+%%% NIF API functions
+%%%=============================================================================
+
+~J{ for namespace in ctx.namespaces }.
+~J{ for function in namespace.nif_functions }.
+-doc """
+~J< function.doc.split('\n\n')[0] | wordwrap(100, break_long_words=false) >.
+
+See `m:~J< namespace.module >.`.
+""".
+-doc #{group => "~J< namespace.title >."}.
+-spec ~J< function.nif_spec >..
+~J< function.nif_name >.(~J< function.stub_params | join(', ') >.) ->
+    ?nif_stub.
+
+~J{ endfor }.
+~J{ endfor }.
+%%%-----------------------------------------------------------------------------
+%%% Internal functions
+%%%-----------------------------------------------------------------------------
+
+-doc false.
+-spec init() -> Result when Result :: ok | {error, {atom(), string()}}.
+init() ->
+    SoName = filename:join(priv_dir(), ?MODULE_STRING),
+    erlang:load_nif(SoName, 0).
+
+-doc false.
+-spec nif_stub_error(Line) -> Result when Line :: pos_integer(), Result :: dynamic().
+nif_stub_error(Line) ->
+    erlang:nif_error({nif_not_loaded, module, ?MODULE, line, Line}).
+
+-doc false.
+-spec priv_dir() -> Directory when Directory :: file:filename_all().
+priv_dir() ->
+    case code:priv_dir(libsodium) of
+        {error, bad_name} ->
+            case code:which(?MODULE) of
+                Filename when is_list(Filename) ->
+                    filename:join([filename:dirname(Filename), "../priv"]);
+                _ ->
+                    "../priv"
+            end;
+        Dir ->
+            Dir
+    end.

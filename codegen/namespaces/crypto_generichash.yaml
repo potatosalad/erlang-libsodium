@@ -1,0 +1,104 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_generichash:
+  title: Generic hashing
+  doc: |
+    Generic hashing with BLAKE2b, optionally keyed.
+
+    The one-shot `crypto_generichash/1,2,3` functions hash a complete input.
+    The streaming functions thread an opaque state binary of `statebytes/0`
+    bytes through `init/0,1,2`, `update/2`, and `final/1,2`; each call returns a
+    new state and leaves its argument unchanged. Updates over large inputs
+    yield to other processes between chunks.
+
+    Output lengths must be between `bytes_min/0` and `bytes_max/0`; keys may
+    be empty or between `keybytes_min/0` and `keybytes_max/0` bytes.
+  example: |
+    Digest = libsodium_crypto_generichash:crypto_generichash(<<"hello world">>),
+    State0 = libsodium_crypto_generichash:init(),
+    State1 = libsodium_crypto_generichash:update(State0, <<"hello ">>),
+    State2 = libsodium_crypto_generichash:update(State1, <<"world">>),
+    Digest = libsodium_crypto_generichash:final(State2).
+  constants:
+    - name: bytes_min
+      value: 16
+    - name: bytes_max
+      value: 64
+    - name: bytes
+      value: 32
+    - name: keybytes_min
+      value: 16
+    - name: keybytes_max
+      value: 64
+    - name: keybytes
+      value: 32
+    - name: primitive
+      type: atom
+      value: blake2b
+    - name: statebytes
+      value: 384
+  functions:
+    - name: crypto_generichash
+      c: crypto_generichash
+      doc: |
+        Hash `In` with the optional `Key`, producing `Outlen` bytes.
+
+        Defaults to `bytes/0` bytes of output and no key.
+      args:
+        - {type: uint, name: outlen, c_type: size_t, min: crypto_generichash_BYTES_MIN, max: crypto_generichash_BYTES_MAX}
+        - {type: binary, name: in}
+        - {type: binary, name: key, len_type: size_t, nullable: true, max: crypto_generichash_KEYBYTES_MAX}
+      outputs:
+        - {name: out, size: outlen}
+      call: crypto_generichash(out, outlen, in, inlen, key, keylen)
+      returns: out
+      erlang:
+        - params: [In]
+          args: ["bytes()", In, "<<>>"]
+        - params: [In, Key]
+          args: ["bytes()", In, Key]
+        - params: [Outlen, In, Key]
+    - name: init
+      doc: |
+        Start a streaming hash with the optional `Key` that will produce
+        `Outlen` bytes. Defaults to `bytes/0` bytes of output and no key.
+      args:
+        - {type: binary, name: key, len_type: size_t, nullable: true, max: crypto_generichash_KEYBYTES_MAX, work: false}
+        - {type: uint, name: outlen, c_type: size_t, min: crypto_generichash_BYTES_MIN, max: crypto_generichash_BYTES_MAX}
+      outputs:
+        - {type: state, name: state, c_type: crypto_generichash_state}
+      returns: state
+      erlang:
+        - params: []
+          args: ["<<>>", "bytes()"]
+        - params: [Key]
+          args: [Key, "bytes()"]
+        - params: [Key, Outlen]
+    - name: update
+      doc: Absorb `In` into `State` and return the updated state.
+      args:
+        - {type: state, name: state, c_type: crypto_generichash_state}
+        - {type: binary, name: in}
+      update: true
+      returns: state
+    - name: final
+      doc: |
+        Finish the streaming hash in `State`, producing `Outlen` bytes. The
+        length must match the one passed to `init/2` (default `bytes/0`).
+      args:
+        - {type: state, name: state, c_type: crypto_generichash_state}
+        - {type: uint, name: outlen, c_type: size_t, min: crypto_generichash_BYTES_MIN, max: crypto_generichash_BYTES_MAX}
+      outputs:
+        - {name: out, size: outlen}
+      call: crypto_generichash_final(&state, out, outlen)
+      returns: out
+      erlang:
+        - params: [State]
+          args: [State, "bytes()"]
+        - params: [State, Outlen]
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_generichash_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k

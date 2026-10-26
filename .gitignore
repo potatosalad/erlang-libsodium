@@ -3,6 +3,7 @@
 
 # The directory make downloads the C dependencies sources to.
 /c_deps/libsodium-build/
+/c_deps/libsodium-build-sanitizers/
 !/c_deps/libsodium/
 
 # If you run "mix test --cover", coverage assets end up here.
@@ -30,6 +31,7 @@ libsodium-*.tar
 /c_src/env.mk
 /c_src/Makefile.auto.win
 /c_src/*.obj
+/c_src/**/*.d
 /priv/*.dll
 /priv/*.lib
 /priv/*.exp
@@ -63,9 +65,17 @@ erl_crash.dump
 logs
 _build
 .idea
+.vscode
 *.iml
 rebar3.crashdump
 /rebar3
+/elp
+/erlfmt
 
 # Other test artifacts.
+/test/fips180_4_SUITE_data/shabytetestvectors
+/test/fips202_SUITE_data/keccaktestvectors
+/test/legacy_keccak_SUITE_data/keccaktestvectors
+/test/legacy_keccak_SUITE_data/temp
 /tmp
+

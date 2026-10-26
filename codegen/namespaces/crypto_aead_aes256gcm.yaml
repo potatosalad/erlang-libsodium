@@ -1,0 +1,202 @@
+# yaml-language-server: $schema=../namespace.schema.json
+crypto_aead_aes256gcm:
+  title: AES256-GCM
+  doc: |
+    AES256-GCM authenticated encryption with additional data.
+
+    This construction is only available on CPUs with hardware AES support;
+    check `is_available/0` before use and prefer
+    `m:libsodium_crypto_aead_xchacha20poly1305` for portable code. Nonces are
+    `npubbytes/0` bytes and must never be reused with the same key.
+
+    The precomputation functions (`beforenm/1` and the `_afternm` variants)
+    expand the key once into an opaque state binary of `statebytes/0` bytes.
+  example: |
+    case libsodium_crypto_aead_aes256gcm:is_available() of
+        1 ->
+            Key = libsodium_crypto_aead_aes256gcm:keygen(),
+            Nonce = libsodium_randombytes:buf(libsodium_crypto_aead_aes256gcm:npubbytes()),
+            Ciphertext = libsodium_crypto_aead_aes256gcm:encrypt(<<"message">>, <<"header">>, Nonce, Key),
+            <<"message">> = libsodium_crypto_aead_aes256gcm:decrypt(Ciphertext, <<"header">>, Nonce, Key);
+        0 ->
+            ok
+    end.
+  constants:
+    - name: is_available
+      type: int
+      doc: Return `1` when the CPU supports hardware-accelerated AES256-GCM, otherwise `0`.
+    - name: keybytes
+      value: 32
+    - name: nsecbytes
+      value: 0
+    - name: npubbytes
+      value: 12
+    - name: abytes
+      value: 16
+    - name: messagebytes_max
+    - name: statebytes
+      value: 512
+  functions:
+    - name: encrypt
+      doc: |
+        Encrypt and authenticate `M` together with the additional data `AD`
+        using the nonce `NPub` and key `K`.
+
+        Returns the ciphertext followed by an `abytes/0` byte authentication tag.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_aes256gcm_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aes256gcm_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_aes256gcm_KEYBYTES}
+      outputs:
+        - {name: c, size: "mlen + crypto_aead_aes256gcm_ABYTES", len: clen}
+      returns: c
+      erlang:
+        - params: [M, NPub, K]
+          args: [M, "<<>>", "<<>>", NPub, K]
+        - params: [M, AD, NPub, K]
+          args: [M, AD, "<<>>", NPub, K]
+    - name: decrypt
+      doc: |
+        Verify and decrypt the ciphertext `C` with the additional data `AD`,
+        nonce `NPub`, and key `K`.
+
+        Returns the plaintext, or `-1` when verification fails.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_aes256gcm_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aes256gcm_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_aes256gcm_KEYBYTES}
+      outputs:
+        - {name: m, size: "(clen < crypto_aead_aes256gcm_ABYTES) ? 0 : clen - crypto_aead_aes256gcm_ABYTES", len: mlen}
+      call: crypto_aead_aes256gcm_decrypt(m, &mlen, (unsigned char *)nsec, c, clen, ad, adlen, npub, k)
+      returns: m
+      erlang:
+        - params: [C, NPub, K]
+          args: ["<<>>", C, "<<>>", NPub, K]
+        - params: [C, AD, NPub, K]
+          args: ["<<>>", C, AD, NPub, K]
+    - name: encrypt_detached
+      doc: |
+        Encrypt and authenticate `M` with the additional data `AD`, returning
+        the ciphertext and the authentication tag separately as `{C, MAC}`.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_aes256gcm_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aes256gcm_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_aes256gcm_KEYBYTES}
+      outputs:
+        - {name: c, size: mlen}
+        - {name: mac, size: crypto_aead_aes256gcm_ABYTES, len: maclen}
+      returns: [c, mac]
+      erlang:
+        - params: [M, NPub, K]
+          args: [M, "<<>>", "<<>>", NPub, K]
+        - params: [M, AD, NPub, K]
+          args: [M, AD, "<<>>", NPub, K]
+    - name: decrypt_detached
+      doc: |
+        Verify the detached tag `MAC` and decrypt `C` with the additional data
+        `AD`. Returns the plaintext, or `-1` when verification fails.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_aes256gcm_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: fixed, name: mac, size: crypto_aead_aes256gcm_ABYTES}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aes256gcm_NPUBBYTES}
+        - {type: fixed, name: k, size: crypto_aead_aes256gcm_KEYBYTES}
+      outputs:
+        - {name: m, size: clen}
+      call: crypto_aead_aes256gcm_decrypt_detached(m, (unsigned char *)nsec, c, clen, mac, ad, adlen, npub, k)
+      returns: m
+      erlang:
+        - params: [C, MAC, NPub, K]
+          args: ["<<>>", C, MAC, "<<>>", NPub, K]
+        - params: [C, MAC, AD, NPub, K]
+          args: ["<<>>", C, MAC, AD, NPub, K]
+    - name: beforenm
+      doc: |
+        Expand the key `K` into a precomputed state for the `_afternm` functions.
+      args:
+        - {type: fixed, name: k, size: crypto_aead_aes256gcm_KEYBYTES}
+      outputs:
+        - {type: state, name: ctx, c_type: crypto_aead_aes256gcm_state}
+      returns: ctx
+    - name: encrypt_afternm
+      doc: Like `encrypt/4`, using a state precomputed by `beforenm/1`.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_aes256gcm_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aes256gcm_NPUBBYTES}
+        - {type: state, name: ctx, c_type: crypto_aead_aes256gcm_state}
+      outputs:
+        - {name: c, size: "mlen + crypto_aead_aes256gcm_ABYTES", len: clen}
+      returns: c
+      erlang:
+        - params: [M, NPub, Ctx]
+          args: [M, "<<>>", "<<>>", NPub, Ctx]
+        - params: [M, AD, NPub, Ctx]
+          args: [M, AD, "<<>>", NPub, Ctx]
+    - name: decrypt_afternm
+      doc: Like `decrypt/4`, using a state precomputed by `beforenm/1`.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_aes256gcm_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aes256gcm_NPUBBYTES}
+        - {type: state, name: ctx, c_type: crypto_aead_aes256gcm_state}
+      outputs:
+        - {name: m, size: "(clen < crypto_aead_aes256gcm_ABYTES) ? 0 : clen - crypto_aead_aes256gcm_ABYTES", len: mlen}
+      call: crypto_aead_aes256gcm_decrypt_afternm(m, &mlen, (unsigned char *)nsec, c, clen, ad, adlen, npub, &ctx)
+      returns: m
+      erlang:
+        - params: [C, NPub, Ctx]
+          args: ["<<>>", C, "<<>>", NPub, Ctx]
+        - params: [C, AD, NPub, Ctx]
+          args: ["<<>>", C, AD, NPub, Ctx]
+    - name: encrypt_detached_afternm
+      doc: Like `encrypt_detached/4`, using a state precomputed by `beforenm/1`.
+      args:
+        - {type: binary, name: m}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: nsec, size: crypto_aead_aes256gcm_NSECBYTES, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aes256gcm_NPUBBYTES}
+        - {type: state, name: ctx, c_type: crypto_aead_aes256gcm_state}
+      outputs:
+        - {name: c, size: mlen}
+        - {name: mac, size: crypto_aead_aes256gcm_ABYTES, len: maclen}
+      returns: [c, mac]
+      erlang:
+        - params: [M, NPub, Ctx]
+          args: [M, "<<>>", "<<>>", NPub, Ctx]
+        - params: [M, AD, NPub, Ctx]
+          args: [M, AD, "<<>>", NPub, Ctx]
+    - name: decrypt_detached_afternm
+      doc: Like `decrypt_detached/5`, using a state precomputed by `beforenm/1`.
+      args:
+        - {type: fixed, name: nsec, size: crypto_aead_aes256gcm_NSECBYTES, nullable: true}
+        - {type: binary, name: c}
+        - {type: fixed, name: mac, size: crypto_aead_aes256gcm_ABYTES}
+        - {type: binary, name: ad, nullable: true}
+        - {type: fixed, name: npub, size: crypto_aead_aes256gcm_NPUBBYTES}
+        - {type: state, name: ctx, c_type: crypto_aead_aes256gcm_state}
+      outputs:
+        - {name: m, size: clen}
+      call: crypto_aead_aes256gcm_decrypt_detached_afternm(m, (unsigned char *)nsec, c, clen, mac, ad, adlen, npub, &ctx)
+      returns: m
+      erlang:
+        - params: [C, MAC, NPub, Ctx]
+          args: ["<<>>", C, MAC, "<<>>", NPub, Ctx]
+        - params: [C, MAC, AD, NPub, Ctx]
+          args: ["<<>>", C, MAC, AD, NPub, Ctx]
+    - name: keygen
+      doc: Generate a random `keybytes/0` byte key.
+      outputs:
+        - {name: k, size: crypto_aead_aes256gcm_KEYBYTES}
+      rc_type: void
+      check: none
+      returns: k

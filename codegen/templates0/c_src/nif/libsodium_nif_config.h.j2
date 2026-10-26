@@ -1,0 +1,10 @@
+#ifndef LIBSODIUM_NIF_CONFIG_H
+#define LIBSODIUM_NIF_CONFIG_H
+
+/* Work in bytes above which `auto` scheduled functions move to a dirty CPU scheduler. */
+#define LIBSODIUM_NIF_DIRTY_THRESHOLD ({{ ctx.dirty_threshold }})
+
+/* Bytes absorbed by streaming updates between timeslice checks. */
+#define LIBSODIUM_NIF_UPDATE_CHUNK ({{ ctx.update_chunk }})
+
+#endif

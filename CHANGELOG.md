@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+* Enhancements
+  * Generate the native and Erlang sources from YAML definitions under `codegen/` with `just codegen`
+    (or `just docker-codegen`), mirroring `libdecaf`: generated files are formatted and carry a content signature.
+  * Replace the port driver with a NIF (`libsodium_nif`). Work over 64 KiB moves to a dirty CPU scheduler, and
+    streaming updates yield whenever their timeslice is exhausted.
+  * Modernize `c_src/Makefile`: build libsodium out of tree into `c_deps/libsodium-build`, track header
+    dependencies, and add `format`, `lint-format`, and sanitizer (`SANITIZE=1`) support.
+* Fixes
+  * `libsodium_crypto_aead_aes256gcm:beforenm/1` and the `_afternm` functions are available again: states are
+    now copied into properly aligned memory instead of crashing the VM.
+  * libsodium is no longer configured with `--enable-opt`, which tuned the build for the compiling machine's CPU.
+
 ## 2.0.0 (2022-08-31)
 
 * Fixes

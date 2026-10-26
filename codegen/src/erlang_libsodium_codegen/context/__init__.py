@@ -1,0 +1,46 @@
+"""Template context for libsodium code generation."""
+
+from dataclasses import dataclass, field
+from functools import cached_property
+
+from ..schema import Root
+from .api import ConstantCtx, FunctionCtx, NamespaceCtx, PublicFunction
+from .nif import NIF
+
+__all__ = ["ConstantCtx", "Context", "FunctionCtx", "NamespaceCtx", "PublicFunction"]
+
+
+@dataclass
+class Context:
+    _output_path: str = field(repr=False)
+    schema: Root = field(repr=False)
+    nif: NIF = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.reset_atoms()
+
+    def reset_atoms(self) -> None:
+        self.nif = NIF()
+        for name in self.schema.nif.atoms:
+            self.nif.make_atom(name)
+
+    @cached_property
+    def namespaces(self) -> list[NamespaceCtx]:
+        return [NamespaceCtx(self, name, namespace) for name, namespace in sorted(self.schema.namespaces.items())]
+
+    @property
+    def nif_functions(self) -> list[ConstantCtx | FunctionCtx]:
+        functions = [function for namespace in self.namespaces for function in namespace.nif_functions]
+        return sorted(functions, key=lambda f: (f.nif_name, f.arity))
+
+    @property
+    def update_functions(self) -> list[FunctionCtx]:
+        return [function for namespace in self.namespaces for function in namespace.update_functions]
+
+    @property
+    def dirty_threshold(self) -> int:
+        return self.schema.nif.dirty_threshold
+
+    @property
+    def update_chunk(self) -> int:
+        return self.schema.nif.update_chunk

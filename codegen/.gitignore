@@ -1,0 +1,5 @@
+/.pytest_cache/
+/.venv/
+!/src/**/__init__.py
+!/src/**/__main__.py
+/reference/

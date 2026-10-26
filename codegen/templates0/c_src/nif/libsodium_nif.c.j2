@@ -1,0 +1,65 @@
+#include "libsodium_nif.h"
+
+#include "core/libsodium_nif_update.h"
+{% for namespace in ctx.namespaces %}
+#include "api/{{ namespace.name }}.h"
+{% endfor %}
+
+/* NIF Callbacks */
+
+static ErlNifFunc libsodium_nif_funcs[] = {
+    /* clang-format off */ //-
+{% for function in ctx.nif_functions %}
+    {"{{ function.nif_name }}", {{ function.arity }}, {{ function.c_name }}, {{ function.dirty_flag }}},
+{% endfor %}
+    /* clang-format on */ //-
+};
+
+static int libsodium_nif_load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info);
+static int libsodium_nif_upgrade(ErlNifEnv *env, void **new_priv_data, void **old_priv_data, ERL_NIF_TERM load_info);
+static void libsodium_nif_unload(ErlNifEnv *env, void *priv_data);
+
+static int
+libsodium_nif_load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
+{
+    (void)priv_data;
+    (void)load_info;
+    if (sodium_init() < 0) {
+        return -1;
+    }
+    /* Load Resource Types */
+    if (libsodium_nif_update_load(env) != 0) {
+        return -1;
+    }
+    /* Initialize common atoms */
+    (void)libsodium_nif_make_atoms(env);
+    return 0;
+}
+
+static int
+libsodium_nif_upgrade(ErlNifEnv *env, void **new_priv_data, void **old_priv_data, ERL_NIF_TERM load_info)
+{
+    (void)new_priv_data;
+    (void)old_priv_data;
+    (void)load_info;
+    if (sodium_init() < 0) {
+        return -1;
+    }
+    /* Upgrade Resource Types */
+    if (libsodium_nif_update_load(env) != 0) {
+        return -1;
+    }
+    /* Initialize common atoms */
+    (void)libsodium_nif_make_atoms(env);
+    return 0;
+}
+
+static void
+libsodium_nif_unload(ErlNifEnv *env, void *priv_data)
+{
+    (void)env;
+    (void)priv_data;
+    return;
+}
+
+ERL_NIF_INIT(libsodium_nif, libsodium_nif_funcs, libsodium_nif_load, NULL, libsodium_nif_upgrade, libsodium_nif_unload);

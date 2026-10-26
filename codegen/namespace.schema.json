@@ -1,0 +1,898 @@
+{
+  "$defs": {
+    "BinaryArg": {
+      "additionalProperties": false,
+      "description": "A variable-length binary passed as a pointer and a length.",
+      "properties": {
+        "type": {
+          "const": "binary",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "len": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "C length variable; defaults to `<name>len`.",
+          "title": "Len"
+        },
+        "len_type": {
+          "default": "unsigned long long",
+          "enum": [
+            "size_t",
+            "unsigned long long"
+          ],
+          "title": "Len Type",
+          "type": "string"
+        },
+        "nullable": {
+          "default": false,
+          "description": "Pass NULL (and a zero length) for an empty binary.",
+          "title": "Nullable",
+          "type": "boolean"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "C expression for the minimum accepted length.",
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "C expression for the maximum accepted length.",
+          "title": "Max"
+        },
+        "work": {
+          "default": true,
+          "description": "Count the length towards the dirty scheduling threshold.",
+          "title": "Work",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "name"
+      ],
+      "title": "BinaryArg",
+      "type": "object"
+    },
+    "BufferOutput": {
+      "additionalProperties": false,
+      "description": "A binary allocated before the call and filled by libsodium.",
+      "properties": {
+        "type": {
+          "const": "buffer",
+          "default": "buffer",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "size": {
+          "description": "C expression for the allocated length; argument lengths are in scope.",
+          "title": "Size",
+          "type": "string"
+        },
+        "len": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "C variable receiving the produced length, if any.",
+          "title": "Len"
+        },
+        "len_type": {
+          "default": "unsigned long long",
+          "enum": [
+            "size_t",
+            "unsigned long long"
+          ],
+          "title": "Len Type",
+          "type": "string"
+        },
+        "copy_from": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Initialize the buffer with this argument's bytes.",
+          "title": "Copy From"
+        }
+      },
+      "required": [
+        "name",
+        "size"
+      ],
+      "title": "BufferOutput",
+      "type": "object"
+    },
+    "CStringArg": {
+      "additionalProperties": false,
+      "description": "A binary copied into a NUL-terminated C string.",
+      "properties": {
+        "type": {
+          "const": "cstring",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "C expression for the maximum length, excluding the NUL byte.",
+          "title": "Max"
+        }
+      },
+      "required": [
+        "type",
+        "name"
+      ],
+      "title": "CStringArg",
+      "type": "object"
+    },
+    "Constant": {
+      "additionalProperties": false,
+      "description": "A zero-arity libsodium query such as `crypto_box_seedbytes()`.",
+      "properties": {
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "default": "size",
+          "enum": [
+            "size",
+            "uint",
+            "int",
+            "atom",
+            "string"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "c": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "C expression; defaults to `<namespace>_<name>()`.",
+          "title": "C"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Expected value checked by the generated tests.",
+          "title": "Value"
+        },
+        "doc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doc"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Constant",
+      "type": "object"
+    },
+    "EnumArg": {
+      "additionalProperties": false,
+      "description": "An atom (or its integer value) mapped onto a C integer constant.",
+      "properties": {
+        "type": {
+          "const": "enum",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "c_type": {
+          "default": "int",
+          "enum": [
+            "int",
+            "long",
+            "long long",
+            "int64_t",
+            "int32_t"
+          ],
+          "title": "C Type",
+          "type": "string"
+        },
+        "values": {
+          "description": "Atoms mapped to C constant expressions.",
+          "minProperties": 1,
+          "patternProperties": {
+            "^[a-z][a-zA-Z0-9_]*$": {
+              "type": "string"
+            }
+          },
+          "title": "Values",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "values"
+      ],
+      "title": "EnumArg",
+      "type": "object"
+    },
+    "ErlangVariant": {
+      "additionalProperties": false,
+      "description": "A public Erlang function clause mapped onto the native function.",
+      "properties": {
+        "params": {
+          "items": {
+            "pattern": "^[A-Z][a-zA-Z0-9_]*$",
+            "type": "string"
+          },
+          "title": "Params",
+          "type": "array"
+        },
+        "args": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Erlang expressions for each native argument.",
+          "title": "Args"
+        },
+        "doc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doc"
+        }
+      },
+      "title": "ErlangVariant",
+      "type": "object"
+    },
+    "FixedArg": {
+      "additionalProperties": false,
+      "description": "A binary that must be exactly `size` bytes long.",
+      "properties": {
+        "type": {
+          "const": "fixed",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "size": {
+          "description": "C expression for the required length, such as `crypto_box_SEEDBYTES`.",
+          "title": "Size",
+          "type": "string"
+        },
+        "nullable": {
+          "default": false,
+          "description": "Pass NULL when the required length is zero.",
+          "title": "Nullable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "size"
+      ],
+      "title": "FixedArg",
+      "type": "object"
+    },
+    "Function": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "doc": {
+          "title": "Doc",
+          "type": "string"
+        },
+        "c": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The libsodium function; defaults to `<namespace>_<name>`.",
+          "title": "C"
+        },
+        "args": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "binary": "#/$defs/BinaryArg",
+                "cstring": "#/$defs/CStringArg",
+                "enum": "#/$defs/EnumArg",
+                "fixed": "#/$defs/FixedArg",
+                "int": "#/$defs/IntArg",
+                "state": "#/$defs/StateArg",
+                "uint": "#/$defs/UIntArg"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/BinaryArg"
+              },
+              {
+                "$ref": "#/$defs/FixedArg"
+              },
+              {
+                "$ref": "#/$defs/CStringArg"
+              },
+              {
+                "$ref": "#/$defs/StateArg"
+              },
+              {
+                "$ref": "#/$defs/UIntArg"
+              },
+              {
+                "$ref": "#/$defs/IntArg"
+              },
+              {
+                "$ref": "#/$defs/EnumArg"
+              }
+            ]
+          },
+          "title": "Args",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/BufferOutput"
+              },
+              {
+                "$ref": "#/$defs/StateOutput"
+              },
+              {
+                "$ref": "#/$defs/ScalarOutput"
+              }
+            ]
+          },
+          "title": "Outputs",
+          "type": "array"
+        },
+        "prelude": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "C statements run after decoding and before allocation.",
+          "title": "Prelude"
+        },
+        "call": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "C call expression; defaults to calling `c` with outputs and args.",
+          "title": "Call"
+        },
+        "rc_type": {
+          "default": "int",
+          "enum": [
+            "int",
+            "void",
+            "size_t",
+            "uint32_t",
+            "uint64_t",
+            "const char *"
+          ],
+          "title": "Rc Type",
+          "type": "string"
+        },
+        "check": {
+          "default": "zero",
+          "description": "`zero` returns a non-zero `rc` to Erlang as an integer instead of the result.",
+          "enum": [
+            "zero",
+            "none"
+          ],
+          "title": "Check",
+          "type": "string"
+        },
+        "returns": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                ]
+              },
+              "type": "array"
+            }
+          ],
+          "description": "Output names, `kind:expression`, or a list for a tuple.",
+          "title": "Returns"
+        },
+        "spec": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Erlang result type; derived from `returns` when omitted.",
+          "title": "Spec"
+        },
+        "schedule": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "normal",
+            "dirty_cpu",
+            "dirty_io"
+          ],
+          "title": "Schedule",
+          "type": "string"
+        },
+        "update": {
+          "default": false,
+          "description": "Streaming update over (state, binary) that yields on timeslice exhaustion.",
+          "title": "Update",
+          "type": "boolean"
+        },
+        "erlang": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ErlangVariant"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Erlang"
+        },
+        "deprecated": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deprecated"
+        }
+      },
+      "required": [
+        "name",
+        "doc",
+        "returns"
+      ],
+      "title": "Function",
+      "type": "object"
+    },
+    "IntArg": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "int",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "c_type": {
+          "default": "int",
+          "enum": [
+            "int",
+            "long",
+            "long long",
+            "int64_t",
+            "int32_t"
+          ],
+          "title": "C Type",
+          "type": "string"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        }
+      },
+      "required": [
+        "type",
+        "name"
+      ],
+      "title": "IntArg",
+      "type": "object"
+    },
+    "Namespace": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "doc": {
+          "title": "Doc",
+          "type": "string"
+        },
+        "module": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-zA-Z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Public module; defaults to `libsodium_<namespace>`.",
+          "title": "Module"
+        },
+        "constants": {
+          "items": {
+            "$ref": "#/$defs/Constant"
+          },
+          "title": "Constants",
+          "type": "array"
+        },
+        "functions": {
+          "items": {
+            "$ref": "#/$defs/Function"
+          },
+          "title": "Functions",
+          "type": "array"
+        },
+        "example": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Erlang example shown in docs and run by tests.",
+          "title": "Example"
+        },
+        "see_also": {
+          "items": {
+            "pattern": "^[a-z][a-zA-Z0-9_]*$",
+            "type": "string"
+          },
+          "title": "See Also",
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "doc"
+      ],
+      "title": "Namespace",
+      "type": "object"
+    },
+    "ScalarOutput": {
+      "additionalProperties": false,
+      "description": "A scalar local variable written by the call.",
+      "properties": {
+        "type": {
+          "const": "scalar",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "c_type": {
+          "title": "C Type",
+          "type": "string"
+        },
+        "init": {
+          "default": "0",
+          "title": "Init",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "c_type"
+      ],
+      "title": "ScalarOutput",
+      "type": "object"
+    },
+    "StateArg": {
+      "additionalProperties": false,
+      "description": "A serialized state binary copied into a properly aligned, mutable C state.",
+      "properties": {
+        "type": {
+          "const": "state",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "c_type": {
+          "title": "C Type",
+          "type": "string"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Expected binary length; defaults to `sizeof(c_type)`.",
+          "title": "Size"
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "c_type"
+      ],
+      "title": "StateArg",
+      "type": "object"
+    },
+    "StateOutput": {
+      "additionalProperties": false,
+      "description": "An aligned C state initialized by the call and returned as a serialized binary.",
+      "properties": {
+        "type": {
+          "const": "state",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "c_type": {
+          "title": "C Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "name",
+        "c_type"
+      ],
+      "title": "StateOutput",
+      "type": "object"
+    },
+    "UIntArg": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "uint",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "c_type": {
+          "default": "size_t",
+          "enum": [
+            "size_t",
+            "unsigned long long",
+            "unsigned long",
+            "unsigned int",
+            "uint64_t",
+            "uint32_t",
+            "uint16_t",
+            "uint8_t",
+            "unsigned char"
+          ],
+          "title": "C Type",
+          "type": "string"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        },
+        "work": {
+          "default": false,
+          "description": "Count the value towards the dirty scheduling threshold.",
+          "title": "Work",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "name"
+      ],
+      "title": "UIntArg",
+      "type": "object"
+    }
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/Namespace"
+  },
+  "type": "object"
+}

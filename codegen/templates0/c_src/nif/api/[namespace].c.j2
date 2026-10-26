@@ -1,0 +1,77 @@
+#include "{{ namespace.name }}.h"
+{% if namespace.update_functions %}
+
+#include "../core/libsodium_nif_update.h"
+{% endif %}
+{% for constant in namespace.constants %}
+
+/* {{ constant.nif_name }}/0 */
+
+ERL_NIF_TERM
+{{ constant.c_name }}(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    (void)argv;
+    if (argc != 0) {
+        return enif_make_badarg(env);
+    }
+    return {{ constant.c_term }};
+}
+{% endfor %}
+{% for function in namespace.functions %}
+
+/* {{ function.nif_name }}/{{ function.arity }} */
+{% if function.is_update %}
+
+static int
+{{ function.c_name }}_absorb(void *state, const unsigned char *{{ function.args[1].name }}, unsigned long long {{ function.args[1].name }}len)
+{
+    return {{ function.update_call }};
+}
+
+ERL_NIF_TERM
+{{ function.c_name }}(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    if (argc != 2) {
+        return enif_make_badarg(env);
+    }
+    return libsodium_nif_update(env, "{{ function.nif_name }}", argv[0], argv[1], (size_t)({{ function.update_size }}),
+                                alignof({{ function.update_state.c_type }}), {{ function.c_name }}_absorb);
+}
+{% else %}
+
+ERL_NIF_TERM
+{{ function.c_name }}(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+{{ function.declarations | indent_lines }}
+
+    if (argc != {{ function.arity }}) {
+        return enif_make_badarg(env);
+    }
+{% if function.decode %}
+
+{{ function.decode | indent_lines }}
+{% endif %}
+{% if function.schedule == "auto" %}
+
+    LIBSODIUM_NIF_MAYBE_DIRTY(env, "{{ function.nif_name }}", {{ function.c_name }}, argc, argv, {{ function.work_expr }});
+{% endif %}
+{% if function.prepare %}
+
+{{ function.prepare | indent_lines }}
+{% endif %}
+
+{{ function.call_stmt | indent_lines }}
+
+{{ function.build_result | indent_lines }}
+
+cleanup:
+{% if function.cleanup %}
+{{ function.cleanup | indent_lines }}
+{% endif %}
+{% if function.schema.rc_type != "void" %}
+    (void)rc;
+{% endif %}
+    return result;
+}
+{% endif %}
+{% endfor %}

@@ -1,0 +1,20 @@
+#ifndef LIBSODIUM_NIF_API_{{ namespace.name | upper }}_H
+#define LIBSODIUM_NIF_API_{{ namespace.name | upper }}_H
+
+#include "../libsodium_nif.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Function Declarations */
+
+{% for function in namespace.nif_functions %}
+extern ERL_NIF_TERM {{ function.c_name }}(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]);
+{% endfor %}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

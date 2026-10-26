@@ -1,0 +1,35 @@
+%%% % @format
+-module(~J< namespace.module >.).
+-moduledoc """
+~J< namespace.doc >.
+~J{ if namespace.example }.
+
+```erlang
+~J< namespace.example >.
+```
+~J{ endif }.
+""".
+-moduledoc #{author => ["Andrew Bennett <potatosaladx@gmail.com>"]}.
+-moduledoc #{created => "2015-12-28", modified => "2026-10-26"}.
+-moduledoc #{copyright => "Andrew Bennett"}.
+-compile(warn_missing_spec_all).
+
+%% ~J< namespace.title >. API
+-export([
+~J{ for function in namespace.public_functions }.
+    ~J< function.name >./~J< function.arity >.~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+]).
+
+%%%=============================================================================
+%%% ~J< namespace.title >. API functions
+%%%=============================================================================
+~J{ for function in namespace.public_functions }.
+
+-doc """
+~J< function.doc >.
+""".
+-spec ~J< function.spec >..
+~J< function.name >.(~J< function.params | join(', ') >.) ->
+    ~J< function.body >..
+~J{ endfor }.

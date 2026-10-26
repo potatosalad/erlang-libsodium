@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=./schema.json
+#
+# Global settings for the generated NIF. Each libsodium namespace is defined
+# in its own file under `namespaces/`; see README.md for the format.
+nif:
+  atoms:
+    - badarg
+    - error
+    - notsup
+  # Calls whose binary inputs (plus any `work` integers) exceed this many
+  # bytes are rescheduled onto a dirty CPU scheduler.
+  dirty_threshold: 65536
+  # Streaming updates absorb this many bytes between timeslice checks.
+  update_chunk: 65536

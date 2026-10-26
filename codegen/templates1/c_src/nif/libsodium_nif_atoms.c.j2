@@ -1,0 +1,18 @@
+#include "libsodium_nif_atoms.h"
+
+/* Global Variables */
+
+static libsodium_nif_atom_table_t libsodium_nif_atom_table_internal;
+libsodium_nif_atom_table_t *libsodium_nif_atom_table = &libsodium_nif_atom_table_internal;
+
+/* Function Definitions */
+
+void
+libsodium_nif_make_atoms(ErlNifEnv *env)
+{
+    /* clang-format off */ //-
+{% for atom in ctx.nif.atoms_list %}
+    libsodium_nif_atom_table->ATOM_{{ atom.name }} = enif_make_atom(env, "{{ atom.name }}");
+{% endfor %}
+    /* clang-format on */ //-
+}
