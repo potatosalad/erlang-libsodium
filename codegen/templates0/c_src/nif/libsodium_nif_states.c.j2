@@ -1,0 +1,25 @@
+#include "libsodium_nif_states.h"
+
+/* Resource Types */
+
+{% for c_type in ctx.state_types %}
+libsodium_nif_state_type_t libsodium_nif_state_type_{{ c_type }} = {
+    .name = "{{ c_type }}",
+    .size = sizeof({{ c_type }}),
+    .alignment = alignof({{ c_type }}),
+    .resource_type = NULL,
+};
+{% endfor %}
+
+/* Function Definitions */
+
+int
+libsodium_nif_states_load(ErlNifEnv *env)
+{
+{% for c_type in ctx.state_types %}
+    if (libsodium_nif_state_type_load(env, &libsodium_nif_state_type_{{ c_type }}) != 0) {
+        return -1;
+    }
+{% endfor %}
+    return 0;
+}

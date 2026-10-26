@@ -10,7 +10,7 @@ crypto_aead_aes256gcm:
     `npubbytes/0` bytes and must never be reused with the same key.
 
     The precomputation functions (`beforenm/1` and the `_afternm` variants)
-    expand the key once into an opaque state binary of `statebytes/0` bytes.
+    expand the key once into an opaque `t:state/0`.
   example: |
     case libsodium_crypto_aead_aes256gcm:is_available() of
         1 ->

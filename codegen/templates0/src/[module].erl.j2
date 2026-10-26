@@ -28,6 +28,23 @@
 ~J{ endfor }.
 ]).
 ~J{ endif }.
+~J{ if namespace.state_c_type }.
+
+%% Types
+
+-doc """
+An opaque native `~J< namespace.state_c_type >.`.
+
+Operations never modify a state: each returns a new one, so earlier states
+remain valid and can be reused or shared between processes. States cannot be
+serialized; they exist only within the running VM.
+""".
+-type state() :: libsodium_nif:~J< namespace.state_c_type >.().
+
+-export_type([
+    state/0
+]).
+~J{ endif }.
 
 %%%=============================================================================
 %%% ~J< namespace.title >. API functions

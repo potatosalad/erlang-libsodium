@@ -9,6 +9,11 @@ and return binaries and integers, raise `badarg` for invalid argument types or
 lengths, and return libsodium's integer status (usually `-1`) when an
 operation such as decryption or verification fails.
 
+Streaming and precomputed APIs use opaque native states (each module's
+`state()` type). Operations return new states and never modify their
+arguments, so a state can be reused or shared between processes, but it
+cannot be serialized or used with another module's functions.
+
 All modules call `m:libsodium_nif` directly; starting the application is not
 required. Long-running operations move to dirty schedulers and streaming
 updates yield, so calls never block a normal scheduler for long.

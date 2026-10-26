@@ -1,6 +1,6 @@
 #include "libsodium_nif.h"
 
-#include "core/libsodium_nif_update.h"
+#include "libsodium_nif_states.h"
 {% for namespace in ctx.namespaces %}
 #include "api/{{ namespace.name }}.h"
 {% endfor %}
@@ -28,7 +28,7 @@ libsodium_nif_load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
         return -1;
     }
     /* Load Resource Types */
-    if (libsodium_nif_update_load(env) != 0) {
+    if (libsodium_nif_states_load(env) != 0) {
         return -1;
     }
     /* Initialize common atoms */
@@ -46,7 +46,7 @@ libsodium_nif_upgrade(ErlNifEnv *env, void **new_priv_data, void **old_priv_data
         return -1;
     }
     /* Upgrade Resource Types */
-    if (libsodium_nif_update_load(env) != 0) {
+    if (libsodium_nif_states_load(env) != 0) {
         return -1;
     }
     /* Initialize common atoms */

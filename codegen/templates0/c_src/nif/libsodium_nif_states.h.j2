@@ -1,0 +1,24 @@
+#ifndef LIBSODIUM_NIF_STATES_H
+#define LIBSODIUM_NIF_STATES_H
+
+#include "core/libsodium_nif_state.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Resource Types */
+
+{% for c_type in ctx.state_types %}
+extern libsodium_nif_state_type_t libsodium_nif_state_type_{{ c_type }};
+{% endfor %}
+
+/* Function Declarations */
+
+extern int libsodium_nif_states_load(ErlNifEnv *env);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

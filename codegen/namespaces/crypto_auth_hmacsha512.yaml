@@ -5,8 +5,8 @@ crypto_auth_hmacsha512:
     Secret-key message authentication with HMAC-SHA-512.
 
     The one-shot functions take a `keybytes/0` byte key and produce
-    `bytes/0` byte tags. The streaming functions thread an opaque state
-    binary of `statebytes/0` bytes through `init/1`, `update/2`, and
+    `bytes/0` byte tags. The streaming functions thread an opaque
+    `t:state/0` through `init/1`, `update/2`, and
     `final/1`; each call returns a new state and leaves its argument
     unchanged. Updates over large inputs yield to other processes between
     chunks. Unlike the one-shot functions, `init/1` accepts a key of any

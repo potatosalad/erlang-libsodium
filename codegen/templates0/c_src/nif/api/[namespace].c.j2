@@ -1,6 +1,9 @@
 #include "{{ namespace.name }}.h"
-{% if namespace.update_functions %}
+{% if namespace.state_c_type %}
 
+#include "../libsodium_nif_states.h"
+{% endif %}
+{% if namespace.update_functions %}
 #include "../core/libsodium_nif_update.h"
 {% endif %}
 {% for constant in namespace.constants %}
@@ -28,14 +31,21 @@ static int
     return {{ function.update_call }};
 }
 
+static ERL_NIF_TERM
+{{ function.c_name }}_continue(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+    return libsodium_nif_update_continue(env, argc, argv, "{{ function.nif_name }}", &{{ function.update_state_type }},
+                                         {{ function.c_name }}_absorb, {{ function.c_name }}_continue);
+}
+
 ERL_NIF_TERM
 {{ function.c_name }}(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     if (argc != 2) {
         return enif_make_badarg(env);
     }
-    return libsodium_nif_update(env, "{{ function.nif_name }}", argv[0], argv[1], (size_t)({{ function.update_size }}),
-                                alignof({{ function.update_state.c_type }}), {{ function.c_name }}_absorb);
+    return libsodium_nif_update(env, "{{ function.nif_name }}", &{{ function.update_state_type }}, {{ function.c_name }}_absorb,
+                                {{ function.c_name }}_continue, argv[0], argv[1]);
 }
 {% else %}
 

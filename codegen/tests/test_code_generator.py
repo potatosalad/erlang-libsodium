@@ -66,7 +66,7 @@ def test_default_call_places_outputs_first():
     function = ctx.namespaces[0].functions[0]
     assert function.call_expr == "crypto_example_easy(c, &clen, m, mlen, k)"
     assert function.schedule == "auto"
-    assert function.result_type == "binary() | -1"
+    assert function.result_type() == "binary() | -1"
     assert function.nif_spec == "crypto_example_easy(M, K) -> Result when M :: binary(), K :: binary(), Result :: binary() | -1"
 
 
@@ -153,3 +153,48 @@ def test_reserved_words_are_quoted():
     assert public.atom == "'xor'"
     assert public.spec.startswith("'xor'(M) ->")
     assert ctx.namespaces[0].functions[0].nif_name == "crypto_stream_xor"
+
+
+def test_states_are_resources():
+    state = {"type": "state", "name": "state", "c_type": "crypto_example_state"}
+    ctx = context(
+        {
+            "crypto_example": namespace(
+                init={"name": "init", "doc": "Init.", "outputs": [state], "returns": "state"},
+                update={
+                    "name": "update",
+                    "doc": "Update.",
+                    "args": [state, {"type": "binary", "name": "in"}],
+                    "update": True,
+                    "returns": "state",
+                },
+            )
+        }
+    )
+    namespace_ctx = ctx.namespaces[0]
+    init, update = namespace_ctx.functions
+    assert ctx.state_types == ["crypto_example_state"]
+    assert init.result_type() == "crypto_example_state() | -1"
+    assert init.result_type(local=True) == "state() | -1"
+    assert update.nif_spec.startswith("crypto_example_update(State, In) -> Result when State :: crypto_example_state()")
+    assert "libsodium_nif_state_make" in "\n".join(init.build_result)
+    assert update.update_state_type == "libsodium_nif_state_type_crypto_example_state"
+
+
+def test_namespaces_use_one_state_type():
+    with pytest.raises(ValidationError, match="only one state type"):
+        Namespace.model_validate(
+            {
+                "title": "T",
+                "doc": "D.",
+                "functions": [
+                    {
+                        "name": f"init_{c_type}",
+                        "doc": "Init.",
+                        "outputs": [{"type": "state", "name": "state", "c_type": c_type}],
+                        "returns": "state",
+                    }
+                    for c_type in ("a_state", "b_state")
+                ],
+            }
+        )

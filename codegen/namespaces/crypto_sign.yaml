@@ -14,7 +14,7 @@ crypto_sign:
     streaming functions (`init/0`, `update/2`, `final_create/2`,
     `final_verify/3`) compute Ed25519ph (pre-hashed with SHA-512) signatures,
     which are not interchangeable with the one-shot signatures; the state is an
-    opaque binary of `statebytes/0` bytes.
+    opaque `t:state/0`.
   example: |
     {PK, SK} = libsodium_crypto_sign:keypair(),
     SM = libsodium_crypto_sign:crypto_sign(<<"message">>, SK),
@@ -174,7 +174,7 @@ crypto_sign:
       code: |
         {PK, SK} = libsodium_crypto_sign:keypair(),
         State0 = libsodium_crypto_sign:init(),
-        208 = byte_size(State0),
+        true = is_reference(State0),
         State1 = libsodium_crypto_sign:update(State0, <<"hello ">>),
         State2 = libsodium_crypto_sign:update(State1, <<"world">>),
         Sig = libsodium_crypto_sign:final_create(State2, SK),

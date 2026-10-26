@@ -5,8 +5,7 @@ crypto_hash_sha512:
     SHA-512, producing `bytes/0` byte digests, either in one shot or
     incrementally.
 
-    The streaming functions thread an opaque state binary of `statebytes/0`
-    bytes through `init/0`, `update/2`, and `final/1`; each call returns a
+    The streaming functions thread an opaque `t:state/0` through `init/0`, `update/2`, and `final/1`; each call returns a
     new state and leaves its argument unchanged. Updates over large inputs
     yield to other processes between chunks.
 

@@ -41,6 +41,22 @@ to other processes whenever their timeslice is exhausted.
     init/0
 ]).
 
+%%% Types
+~J{ for c_type in ctx.state_types }.
+
+-doc """
+A `~J< c_type >.` held by the NIF. Each operation returns a new resource and
+leaves its arguments unchanged.
+""".
+-opaque ~J< c_type >.() :: erlang:nif_resource().
+~J{ endfor }.
+
+-export_type([
+~J{ for c_type in ctx.state_types }.
+    ~J< c_type >./0~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+]).
+
 %%%=============================================================================
 %%% NIF API functions
 %%%=============================================================================

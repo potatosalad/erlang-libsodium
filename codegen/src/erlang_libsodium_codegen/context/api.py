@@ -85,6 +85,10 @@ def erlang_atom(name: str) -> str:
     return f"'{name}'" if name in ERLANG_RESERVED else name
 
 
+def state_type_var(c_type: str) -> str:
+    return f"libsodium_nif_state_type_{c_type}"
+
+
 def erlang_variable(name: str) -> str:
     return "".join(part[:1].upper() + part[1:] for part in name.split("_") if part)
 
@@ -223,8 +227,8 @@ class FunctionCtx:
         return state
 
     @property
-    def update_size(self) -> str:
-        return self.update_state.size or f"sizeof({self.update_state.c_type})"
+    def update_state_type(self) -> str:
+        return state_type_var(self.update_state.c_type)
 
     @property
     def update_call(self) -> str:
@@ -269,7 +273,7 @@ class FunctionCtx:
                 case schema.CStringArg():
                     lines += [f"ErlNifBinary {arg.name}_bin;", f"char *{arg.name}_str = NULL;", f"const char *{arg.name} = NULL;"]
                 case schema.StateArg():
-                    lines += [f"ErlNifBinary {arg.name}_bin;", f"{arg.c_type} {arg.name};"]
+                    lines += [f"libsodium_nif_state_t *{arg.name}_res = NULL;", f"{arg.c_type} {arg.name};"]
                 case schema.UIntArg():
                     lines += [f"ErlNifUInt64 {arg.name}_u64;", f"{arg.c_type} {arg.name} = 0;"]
                 case schema.IntArg():
@@ -331,11 +335,10 @@ class FunctionCtx:
                         lines += self._badarg_if(f"{arg.name}_bin.size > (size_t)({arg.max})")
                     lines += self._badarg_if(f"memchr({arg.name}_bin.data, 0, {arg.name}_bin.size) != NULL")
                 case schema.StateArg():
-                    size = arg.size or f"sizeof({arg.c_type})"
                     lines += self._badarg_if(
-                        f"!enif_inspect_binary(env, {term}, &{arg.name}_bin) || {arg.name}_bin.size != (size_t)({size})"
+                        f"!libsodium_nif_state_get(env, {term}, &{state_type_var(arg.c_type)}, &{arg.name}_res)"
                     )
-                    lines.append(f"(void)memcpy((void *)&{arg.name}, {arg.name}_bin.data, {arg.name}_bin.size);")
+                    lines.append(f"(void)memcpy((void *)&{arg.name}, {arg.name}_res->state, sizeof({arg.name}));")
                 case schema.UIntArg():
                     lines += self._badarg_if(
                         f"!enif_get_uint64(env, {term}, &{arg.name}_u64) || {arg.name}_u64 > (ErlNifUInt64)({UNSIGNED_LIMITS[arg.c_type]})"
@@ -510,9 +513,13 @@ class FunctionCtx:
                         f"{item.name}_alloc = 0;",
                     ]
                 case schema.StateArg() | schema.StateOutput():
-                    lines.append(
-                        f"ERL_NIF_TERM {term} = libsodium_nif_make_binary(env, (const void *)&{item.name}, sizeof({item.name}));"
-                    )
+                    lines += [
+                        f"ERL_NIF_TERM {term} = libsodium_nif_state_make(env, &{state_type_var(item.c_type)}, (const void *)&{item.name});",
+                        f"if (enif_is_exception(env, {term})) {{",
+                        f"    result = {term};",
+                        "    goto cleanup;",
+                        "}",
+                    ]
                 case schema.FixedArg() | schema.BinaryArg():
                     lines.append(f"ERL_NIF_TERM {term} = argv[{self.args.index(item)}];")
                 case _:
@@ -574,8 +581,10 @@ class FunctionCtx:
 
     # Erlang fragments.
 
-    def arg_type(self, arg: schema.Arg) -> str:
+    def arg_type(self, arg: schema.Arg, local: bool = False) -> str:
         match arg:
+            case schema.StateArg():
+                return "state()" if local else f"{arg.c_type}()"
             case schema.UIntArg():
                 return "non_neg_integer()"
             case schema.IntArg():
@@ -585,12 +594,16 @@ class FunctionCtx:
             case _:
                 return "binary()"
 
-    def _result_type(self, value: schema.Return) -> str:
+    def _result_type(self, value: schema.Return, local: bool) -> str:
         if isinstance(value, list):
-            return "{" + ", ".join(self._result_type(item) for item in value) + "}"
+            return "{" + ", ".join(self._result_type(item, local) for item in value) + "}"
         match = schema.RETURN_PATTERN.match(value)
         assert match is not None
         kind, expr = match.group("kind") or "binary", match.group("value")
+        if kind == "binary":
+            item = self._named(expr)
+            if isinstance(item, (schema.StateArg, schema.StateOutput)):
+                return "state()" if local else f"{item.c_type}()"
         return {
             "binary": "binary()",
             "uint": "non_neg_integer()",
@@ -600,11 +613,11 @@ class FunctionCtx:
             "string": "binary()",
         }[kind]
 
-    @property
-    def result_type(self) -> str:
+    def result_type(self, local: bool = False) -> str:
         if self.schema.spec:
-            return self.schema.spec
-        result = self._result_type(self.schema.returns)
+            state = self.namespace.state_c_type
+            return self.schema.spec if local or state is None else self.schema.spec.replace("state()", f"{state}()")
+        result = self._result_type(self.schema.returns, local)
         if self.schema.check == "zero":
             result += " | -1"
         return result
@@ -620,7 +633,7 @@ class FunctionCtx:
     @property
     def nif_spec(self) -> str:
         types = [f"{param} :: {self.arg_type(arg)}" for param, arg in zip(self.params, self.args)]
-        types.append(f"Result :: {self.result_type}")
+        types.append(f"Result :: {self.result_type()}")
         return f"{self.nif_name}({', '.join(self.params)}) -> Result when {', '.join(types)}"
 
     @property
@@ -636,7 +649,7 @@ class FunctionCtx:
             types = {}
             for param in variant.params:
                 if param in args:
-                    types[param] = self.arg_type(self.args[args.index(param)])
+                    types[param] = self.arg_type(self.args[args.index(param)], local=True)
                 else:
                     types[param] = "dynamic()"
             functions.append(
@@ -645,7 +658,7 @@ class FunctionCtx:
                     params=list(variant.params),
                     args=args,
                     types=types,
-                    result_type=self.result_type,
+                    result_type=self.result_type(local=True),
                     doc=(variant.doc or self.doc).strip(),
                     target=self,
                     deprecated=self.schema.deprecated,
@@ -700,6 +713,14 @@ class NamespaceCtx:
     @property
     def group(self) -> str:
         return namespace_group(self.name)
+
+    @property
+    def state_c_type(self) -> str | None:
+        for function in self.schema.functions:
+            for item in [*function.args, *function.outputs]:
+                if isinstance(item, (schema.StateArg, schema.StateOutput)):
+                    return item.c_type
+        return None
 
     @property
     def c_prefix(self) -> str:

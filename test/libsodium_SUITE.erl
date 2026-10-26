@@ -39,6 +39,7 @@ signatures, including truncated inputs and invalid parameters.
     box_check/1,
     box_seal/1,
     legacy_call/1,
+    state_resources/1,
     pwhash_argon2i_key_derivation/1,
     pwhash_argon2i_password_storage/1,
     pwhash_argon2id_key_derivation/1,
@@ -55,6 +56,7 @@ all() ->
         {group, aead_chacha20poly1305},
         {group, box},
         legacy_call,
+        state_resources,
         {group, pwhash_argon2i},
         {group, pwhash_argon2id},
         {group, pwhash_scrypt},
@@ -208,6 +210,33 @@ legacy_call(_Config) ->
         Result -> ct:fail({expected_undef, Result})
     catch
         error:undef -> ok
+    end.
+
+-spec state_resources(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
+state_resources(_Config) ->
+    Sha256 = libsodium_crypto_hash_sha256,
+    Init = Sha256:init(),
+    true = is_reference(Init),
+    %% States are immutable: updating twice from the same state gives the same result.
+    State1 = Sha256:update(Init, <<"abc">>),
+    State2 = Sha256:update(Init, <<"abc">>),
+    Digest = crypto:hash(sha256, <<"abc">>),
+    Digest = Sha256:final(State1),
+    Digest = Sha256:final(State2),
+    Digest = Sha256:final(State1),
+    %% Finishing one state leaves the others usable.
+    Digest = Sha256:crypto_hash_sha256(<<"abc">>),
+    <<_:256>> = Sha256:final(Init),
+    %% States are only accepted by the API that created them.
+    ok = libsodium_ct:assert_badarg(libsodium_crypto_hash_sha512, update, [Init, <<"abc">>]),
+    ok = libsodium_ct:assert_badarg(libsodium_crypto_hash_sha512, final, [Init]),
+    ok = libsodium_ct:assert_badarg(Sha256, update, [binary:copy(<<0>>, Sha256:statebytes()), <<"abc">>]),
+    %% States can be shared between processes.
+    Parent = self(),
+    _ = spawn_link(fun() -> Parent ! {state, Sha256:final(State1)} end),
+    receive
+        {state, Digest} -> ok
+    after 5000 -> ct:fail(state_not_shared)
     end.
 
 -spec pwhash_argon2i_key_derivation(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.

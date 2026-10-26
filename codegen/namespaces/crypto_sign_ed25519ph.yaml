@@ -5,7 +5,7 @@ crypto_sign_ed25519ph:
     Streaming Ed25519ph signatures (RFC 8032), where the message is
     pre-hashed with SHA-512 so it can be signed or verified in chunks.
 
-    `init/0` returns an opaque state binary of `statebytes/0` bytes, which
+    `init/0` returns an opaque `t:state/0`, which
     `update/2` threads through the message; each call returns a new state and
     leaves its argument unchanged. Keys are the same as for
     `m:libsodium_crypto_sign_ed25519`, but Ed25519ph signatures are not
@@ -88,7 +88,7 @@ crypto_sign_ed25519ph:
       code: |
         {PK, SK} = libsodium_crypto_sign_ed25519:keypair(),
         State = libsodium_crypto_sign_ed25519ph:init(),
-        badarg = try libsodium_crypto_sign_ed25519ph:update(<<State/binary, 0>>, <<"m">>) catch error:badarg -> badarg end,
+        badarg = try libsodium_crypto_sign_ed25519ph:update(binary:copy(<<0>>, libsodium_crypto_sign_ed25519ph:statebytes()), <<"m">>) catch error:badarg -> badarg end,
         badarg = try libsodium_crypto_sign_ed25519ph:update(State, not_a_binary) catch error:badarg -> badarg end,
         badarg = try libsodium_crypto_sign_ed25519ph:final_create(State, PK) catch error:badarg -> badarg end,
         badarg = try libsodium_crypto_sign_ed25519ph:final_verify(State, <<0:512>>, SK) catch error:badarg -> badarg end.

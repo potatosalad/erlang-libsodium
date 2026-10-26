@@ -5,8 +5,7 @@ crypto_generichash:
     Generic hashing with BLAKE2b, optionally keyed.
 
     The one-shot `crypto_generichash/1,2,3` functions hash a complete input.
-    The streaming functions thread an opaque state binary of `statebytes/0`
-    bytes through `init/0,1,2`, `update/2`, and `final/1,2`; each call returns a
+    The streaming functions thread an opaque `t:state/0` through `init/0,1,2`, `update/2`, and `final/1,2`; each call returns a
     new state and leaves its argument unchanged. Updates over large inputs
     yield to other processes between chunks.
 

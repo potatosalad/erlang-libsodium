@@ -7,7 +7,7 @@
 - Run `gmake format`, `gmake tests`, `gmake lint`, and `gmake docs`; generator checks: `cd codegen && poetry run pytest`.
 - Erlang: multiline exports, named specs, module docs and metadata. Keep generated functions sorted.
 - Preserve the public API: function names, arities, argument order, defaults, and integer failure results (`-1`).
-- Use `sodium_memzero` for sensitive memory; states are copied into aligned locals. Validate with published vectors.
+- Use `sodium_memzero` for sensitive memory. States are NIF resources, one resource type per C struct; never modify a resource Erlang can see (copy, then return a new one). Validate with published vectors.
 - Vendored libsodium is pinned in `c_src/Makefile` (`LIBSODIUM_VSN`); include native sources in package checks.
 - Release version: `Makefile` and `src/libsodium.app.src`; update README and changelog together. Check `rebar3 hex build` contents.
 - Make incremental signed commits (`git commit -S`).

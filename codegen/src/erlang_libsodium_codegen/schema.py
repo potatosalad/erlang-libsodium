@@ -83,12 +83,11 @@ class CStringArg(Model):
 
 
 class StateArg(Model):
-    """A serialized state binary copied into a properly aligned, mutable C state."""
+    """A state resource whose C state is copied into an aligned local for the call."""
 
     type: Literal["state"]
     name: CIdentifier
-    c_type: str
-    size: str | None = Field(default=None, description="Expected binary length; defaults to `sizeof(c_type)`.")
+    c_type: CIdentifier
 
 
 class UIntArg(Model):
@@ -138,11 +137,11 @@ class BufferOutput(Model):
 
 
 class StateOutput(Model):
-    """An aligned C state initialized by the call and returned as a serialized binary."""
+    """An aligned C state initialized by the call and returned as a new resource."""
 
     type: Literal["state"]
     name: CIdentifier
-    c_type: str
+    c_type: CIdentifier
 
 
 class ScalarOutput(Model):
@@ -189,7 +188,10 @@ class Function(Model):
         default="zero", description="`zero` returns a non-zero `rc` to Erlang as an integer instead of the result."
     )
     returns: Return = Field(description="Output names, `kind:expression`, or a list for a tuple.")
-    spec: str | None = Field(default=None, description="Erlang result type; derived from `returns` when omitted.")
+    spec: str | None = Field(
+        default=None,
+        description="Erlang result type; derived from `returns` when omitted. `state()` names the namespace's state type.",
+    )
     schedule: Literal["auto", "normal", "dirty_cpu", "dirty_io"] = "auto"
     update: bool = Field(default=False, description="Streaming update over (state, binary) that yields on timeslice exhaustion.")
     erlang: list[ErlangVariant] | None = None
@@ -241,6 +243,13 @@ class Namespace(Model):
     example: str | None = Field(default=None, description="Erlang example shown in docs and run by tests.")
     tests: list[TestCase] = Field(default_factory=list)
     see_also: list[ErlangAtom] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def one_state_type(self) -> Self:
+        c_types = {item.c_type for f in self.functions for item in [*f.args, *f.outputs] if item.type == "state"}
+        if len(c_types) > 1:
+            raise ValueError(f"A namespace can use only one state type, found {sorted(c_types)}")
+        return self
 
     @model_validator(mode="after")
     def unique_names(self) -> Self:

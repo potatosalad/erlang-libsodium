@@ -588,7 +588,7 @@
             }
           ],
           "default": null,
-          "description": "Erlang result type; derived from `returns` when omitted.",
+          "description": "Erlang result type; derived from `returns` when omitted. `state()` names the namespace's state type.",
           "title": "Spec"
         },
         "schedule": {
@@ -839,7 +839,7 @@
     },
     "StateArg": {
       "additionalProperties": false,
-      "description": "A serialized state binary copied into a properly aligned, mutable C state.",
+      "description": "A state resource whose C state is copied into an aligned local for the call.",
       "properties": {
         "type": {
           "const": "state",
@@ -852,21 +852,9 @@
           "type": "string"
         },
         "c_type": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
           "title": "C Type",
           "type": "string"
-        },
-        "size": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Expected binary length; defaults to `sizeof(c_type)`.",
-          "title": "Size"
         }
       },
       "required": [
@@ -879,7 +867,7 @@
     },
     "StateOutput": {
       "additionalProperties": false,
-      "description": "An aligned C state initialized by the call and returned as a serialized binary.",
+      "description": "An aligned C state initialized by the call and returned as a new resource.",
       "properties": {
         "type": {
           "const": "state",
@@ -892,6 +880,7 @@
           "type": "string"
         },
         "c_type": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
           "title": "C Type",
           "type": "string"
         }

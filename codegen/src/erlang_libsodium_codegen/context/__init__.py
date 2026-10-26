@@ -43,6 +43,10 @@ class Context:
         return sorted(functions, key=lambda f: (f.nif_name, f.arity))
 
     @property
+    def state_types(self) -> list[str]:
+        return sorted({namespace.state_c_type for namespace in self.namespaces if namespace.state_c_type})
+
+    @property
     def update_functions(self) -> list[FunctionCtx]:
         return [function for namespace in self.namespaces for function in namespace.update_functions]
 

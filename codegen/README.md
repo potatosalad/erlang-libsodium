@@ -96,15 +96,22 @@ Arguments decode Erlang terms into C locals:
 | `binary` | any binary (optionally `min`/`max`, `nullable`) | `x`, `xlen` |
 | `fixed` | binary of exactly `size` bytes | `x` |
 | `cstring` | binary without NUL bytes | `const char *x` |
-| `state` | serialized state of `sizeof(c_type)` bytes | aligned `c_type x` |
+| `state` | state resource of `c_type` | aligned copy `c_type x` |
 | `uint` / `int` | integer within the C type's range | `x` |
 | `enum` | atom (or its integer value) | `x` |
 
-Outputs are allocated binaries (`buffer`), aligned states, or scalars. The call
+Outputs are allocated binaries (`buffer`), states, or scalars. The call
 defaults to the libsodium function with outputs first and binaries as pointer
 and length; set `call` when the signature differs. `returns` names outputs, uses
 `uint:`, `int:`, `atom:`, `atom_cstr:`, or `string:` expressions, or lists items
 for a tuple.
+
+States are NIF resources, one resource type per C type
+(`c_src/nif/core/libsodium_nif_state.c`), exposed as opaque
+`libsodium_nif:<c_type>()` types and aliased as `state()` in each namespace
+module; a namespace may use only one state type. A call copies an argument
+state into an aligned local and returns any resulting state as a new resource,
+so states are never modified once Erlang can see them.
 
 Invalid arguments raise `badarg`. With the default `check: zero`, a non-zero
 libsodium result is returned to Erlang as that integer, as the port driver did.
@@ -117,7 +124,7 @@ With the default `schedule: auto`, a call whose binary inputs (plus integer
 arguments marked `work: true`) exceed `nif.dirty_threshold` bytes reschedules
 itself onto a dirty CPU scheduler. `dirty_cpu` and `dirty_io` always run dirty;
 `normal` never does. Functions marked `update: true` absorb a binary into a
-state in `nif.update_chunk` byte chunks and yield whenever the timeslice is
+copy of a state in `nif.update_chunk` byte chunks and yield whenever the timeslice is
 exhausted (`c_src/nif/core/libsodium_nif_update.c`).
 
 ## Tests

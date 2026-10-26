@@ -9,8 +9,7 @@ crypto_onetimeauth_poly1305:
     message (for example from a stream cipher), or use
     `m:libsodium_crypto_auth` for a reusable key.
 
-    The streaming functions thread an opaque state binary of `statebytes/0`
-    bytes through `init/1`, `update/2`, and `final/1`; each call returns a new
+    The streaming functions thread an opaque `t:state/0` through `init/1`, `update/2`, and `final/1`; each call returns a new
     state and leaves its argument unchanged. Updates over large inputs yield to
     other processes between chunks.
   example: |

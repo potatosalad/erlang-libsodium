@@ -11,8 +11,7 @@ crypto_generichash_blake2b:
     `personalbytes/0` byte personalization string, which separate otherwise
     identical uses of the same key.
 
-    The streaming functions thread an opaque state binary of `statebytes/0`
-    bytes through `init/0,1,2` (or `init_salt_personal/2,3,4`), `update/2`,
+    The streaming functions thread an opaque `t:state/0` through `init/0,1,2` (or `init_salt_personal/2,3,4`), `update/2`,
     and `final/1,2`; each call returns a new state and leaves its argument
     unchanged. Updates over large inputs yield to other processes between
     chunks.

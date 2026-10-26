@@ -8,6 +8,11 @@
     deprecated shim over `libsodium_nif`; the port-specific `call/4`, `open/0`, and `close/1` are removed, as are the
     internal `call/1,2` exports of each namespace module.
   * Arguments that are not binaries or integers now raise `badarg` instead of `function_clause`.
+  * Streaming and precomputed states (hash, MAC, and signature `init/update` states, secretstream states, and
+    `libsodium_crypto_aead_aes256gcm:beforenm/1` contexts) are opaque NIF resources (`erlang:nif_resource()`,
+    exported as each module's `state()` type) instead of binaries holding the raw C struct. Each operation returns a
+    new state and leaves its argument unchanged. States cannot be serialized, and passing one to another module's
+    functions, or passing a binary, raises `badarg`.
   * The `libsodium` application no longer depends on `crypto`, `asn1`, or `public_key`.
 * Enhancements
   * Generate the native and Erlang sources, the test suite, `ex_doc.config`, and `README.md` from YAML definitions
