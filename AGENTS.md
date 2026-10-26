@@ -5,6 +5,7 @@
 - Hand-written sources: `c_src/nif/libsodium_nif.h`, `c_src/nif/core/`, `src/libsodium_app.erl`, `src/libsodium_sup.erl`, `test/libsodium_SUITE.erl`, `test/libsodium_ct.erl`.
 - Python dependencies: edit `codegen/pyproject.toml`, run `just lock`, include `poetry.lock` and `requirements.txt`.
 - Run `gmake format`, `gmake tests`, `gmake lint`, and `gmake docs`; generator checks: `cd codegen && poetry run pytest`.
+- Benchmarks: `just bench [script]` runs `bench/*.exs` (Benchee via `Mix.install`); each script cross-checks outputs before timing. Update `bench/README.md` when results change materially.
 - Erlang: multiline exports, named specs, module docs and metadata. Keep generated functions sorted.
 - Preserve the public API: function names, arities, argument order, defaults, and integer failure results (`-1`).
 - Use `sodium_memzero` for sensitive memory. States are NIF resources, one resource type per C struct; never modify a resource Erlang can see (copy, then return a new one). Validate with published vectors.

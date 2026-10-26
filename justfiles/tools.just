@@ -37,3 +37,15 @@ lock:
 [working-directory: 'codegen']
 sign: poetry-install
     poetry run erlang_libsodium_codegen sign config.yaml .. templates0 templates1 templates2
+
+# Run one benchmark script from bench/ (such as `just bench aead`), or all of them.
+[group('bench')]
+bench script="all":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    gmake
+    if [ "{{script}}" = "all" ]; then
+        for file in bench/*.exs; do elixir "$file"; done
+    else
+        elixir "bench/{{script}}.exs"
+    fi

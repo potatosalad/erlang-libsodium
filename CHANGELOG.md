@@ -22,6 +22,8 @@
     scheduler, password hashing always runs on one, and streaming `update/2` functions yield whenever their
     timeslice is exhausted.
   * Every module has module and function documentation, specs, and multiline exports.
+  * Benchee benchmarks under `bench/` (`just bench`) compare libsodium's implementations with each other and with
+    OTP `crypto` where it has an equivalent, after checking that both produce identical results.
   * Modernize `c_src/Makefile`: build libsodium out of tree into `c_deps/libsodium-build`, track header
     dependencies, and add `format`, `lint-format`, and sanitizer (`SANITIZE=1`) support.
   * New namespaces for algorithms added to libsodium since 1.0.18:
