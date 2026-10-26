@@ -5,7 +5,7 @@
 * Breaking changes
   * Requires Erlang/OTP 27 or later (module documentation uses `-moduledoc`/`-doc`); CI covers OTP 28 and 29.
   * The port driver, `libsodium_server`, and `include/libsodium.hrl` are gone. `libsodium:call/2,3` remains as a
-    deprecated shim over `libsodium_nif`; `libsodium:call/4`, `open/0`, and `close/1` are removed, as are the
+    deprecated shim over `libsodium_nif`; the port-specific `call/4`, `open/0`, and `close/1` are removed, as are the
     internal `call/1,2` exports of each namespace module.
   * Arguments that are not binaries or integers now raise `badarg` instead of `function_clause`.
   * The `libsodium` application no longer depends on `crypto`, `asn1`, or `public_key`.
@@ -22,6 +22,7 @@
   * New functions:
     * `libsodium_crypto_box_curve25519xchacha20poly1305:seal/2`, `seal_open/3`, and `sealbytes/0`
     * `libsodium_crypto_onetimeauth_poly1305:statebytes/0`
+    * `libsodium_crypto_pwhash:str_alg/4`
     * `libsodium_randombytes:buf_deterministic/2`
     * `libsodium_runtime:has_armcrypto/0`
     * `libsodium_utils:sub/2` (implemented by the port driver but never exported), `memcmp/2`, `ip2bin/1`, and
@@ -40,6 +41,12 @@
     instead of overflowing the stack.
   * Outputs are allocated as binaries instead of stack arrays sized by the input, so large messages can no longer
     overflow the stack, and every output buffer is wiped before release. Several port driver memory leaks are gone.
+  * `libsodium_crypto_stream_chacha20:ietf_xor_ic/4` raises `badarg` when the block counter would overflow, instead
+    of aborting the VM through `sodium_misuse()`.
+  * Password hash strings are passed to libsodium NUL-terminated; strings of exactly `strbytes/0` bytes were read past
+    their end.
+  * Out-of-range output lengths for password hashing and key derivation return `-1` before allocating, instead of
+    allocating caller-sized stack arrays.
   * libsodium is no longer configured with `--enable-opt`, which tuned the build for the compiling machine's CPU.
 
 ## 2.0.0 (2022-08-31)

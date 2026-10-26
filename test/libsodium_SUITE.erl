@@ -16,6 +16,9 @@ signatures, including truncated inputs and invalid parameters.
 %% The legacy dispatch shim is tested on purpose.
 -compile({nowarn_deprecated_function, [{libsodium, call, 2}, {libsodium, call, 3}]}).
 
+%% Vector files mix strings, binaries, and integers.
+-eqwalizer({nowarn_function, hex_value/1}).
+
 %% ct.
 -export([
     all/0,
@@ -188,7 +191,7 @@ box_seal(_Config) ->
     {PK, SK} = libsodium_crypto_box:keypair(),
     MLen = libsodium_randombytes:uniform(1000),
     M = libsodium_randombytes:buf(MLen),
-    C = tv_not(libsodium_crypto_box, seal, [M, PK], -1),
+    C = binary_value(tv_not(libsodium_crypto_box, seal, [M, PK], -1)),
     CLen = libsodium_crypto_box:sealbytes() + MLen,
     CLen = byte_size(C),
     ok = tv_ok(libsodium_crypto_box, seal_open, [C, PK, SK], M),
@@ -263,7 +266,9 @@ sign(Config) ->
 aead_aes256gcm_vectors(Vectors) ->
     M = libsodium_crypto_aead_aes256gcm,
     lists:foreach(
-        fun({Key, Nonce, Message, Ad, Ciphertext, Mac}) ->
+        fun({Key, Nonce, Message, Ad, Ciphertext0, Mac0}) ->
+            Ciphertext = binary_value(Ciphertext0),
+            Mac = binary_value(Mac0),
             Expected = <<Ciphertext/binary, Mac/binary>>,
             TruncatedCiphertext = truncate(Expected),
             TruncatedTag = binary:part(Expected, 0, libsodium_randombytes:uniform(M:abytes())),
@@ -285,7 +290,9 @@ aead_chacha20poly1305_vectors(Vectors, Prefix) ->
     M = libsodium_crypto_aead_chacha20poly1305,
     F = fun(Name) -> list_to_atom(Prefix ++ Name) end,
     lists:foreach(
-        fun({K, Message, NPub, AD, C, CNoAD}) ->
+        fun({K, Message0, NPub, AD, C0, CNoAD}) ->
+            Message = binary_value(Message0),
+            C = binary_value(C0),
             MLen = byte_size(Message),
             <<CD:MLen/binary, MAC/binary>> = C,
             ok = tv_ok(M, F("encrypt"), [Message, AD, NPub, K], C),
@@ -359,6 +366,12 @@ tv_not(Module, Function, Arguments, Unexpected) ->
 -spec check(Module, Checks) -> Result when Module :: module(), Checks :: [{atom(), term()}], Result :: ok.
 check(Module, Checks) ->
     lists:foreach(fun({Function, Value}) -> ok = tv_ok(Module, Function, [], Value) end, Checks).
+
+-spec binary_value(Term) -> Binary when Term :: term(), Binary :: binary().
+binary_value(Binary) when is_binary(Binary) ->
+    Binary;
+binary_value(Term) ->
+    ct:fail({expected_binary, Term}).
 
 -spec truncate(Binary) -> Truncated when Binary :: binary(), Truncated :: binary().
 truncate(Binary) ->

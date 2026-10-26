@@ -28,6 +28,16 @@ example, and runs the additional cases listed in its definition.
 ~J{ endfor }.
 ]).
 
+%% Cases come from the namespace definitions. They deliberately pass invalid
+%% arguments and match the historical integer failure results, which static
+%% analysis would otherwise reject: Dialyzer skips them here, and eqWAlizer
+%% skips this module (see `.elp.toml`).
+-dialyzer({nowarn_function, [
+~J{ for name in ctx.test_cases }.
+    ~J< name >./1~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+]}).
+
 -spec all() -> Result when Result :: [ct_suite:ct_test_def()].
 all() ->
     [

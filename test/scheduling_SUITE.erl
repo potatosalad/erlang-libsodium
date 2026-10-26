@@ -88,9 +88,8 @@ dirty_password_hash(_Config) ->
 -spec yielding_update(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
 yielding_update(_Config) ->
     Input = binary:copy(<<1>>, ?LARGE),
-    State = assert_responsive(fun() ->
-        libsodium_crypto_generichash:update(libsodium_crypto_generichash:init(), Input)
-    end),
+    Init = binary_value(libsodium_crypto_generichash:init()),
+    State = binary_value(assert_responsive(fun() -> libsodium_crypto_generichash:update(Init, Input) end)),
     Digest = libsodium_crypto_generichash:final(State),
     Digest = libsodium_crypto_generichash:crypto_generichash(Input),
     ok.
@@ -98,6 +97,12 @@ yielding_update(_Config) ->
 %%%-----------------------------------------------------------------------------
 %%% Internal functions
 %%%-----------------------------------------------------------------------------
+
+-spec binary_value(Term) -> Binary when Term :: term(), Binary :: binary().
+binary_value(Binary) when is_binary(Binary) ->
+    Binary;
+binary_value(Term) ->
+    ct:fail({expected_binary, Term}).
 
 %% Run Fun in a separate process and fail if a 1 ms timer in this process is
 %% delayed by more than a quarter of Fun's run time (and at least 50 ms).

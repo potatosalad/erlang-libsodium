@@ -1,5 +1,7 @@
 [eqwalizer]
 enable_all = true
+# Generated from codegen/namespaces: the cases deliberately pass invalid arguments.
+ignore_modules = ["libsodium_api_SUITE"]
 
 [rebar]
 profile = "test"
