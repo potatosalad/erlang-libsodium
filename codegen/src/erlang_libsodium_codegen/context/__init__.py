@@ -38,6 +38,14 @@ class Context:
         return [function for namespace in self.namespaces for function in namespace.update_functions]
 
     @property
+    def test_groups(self) -> list[tuple[str, list[tuple[str, str]]]]:
+        return [(namespace.name, namespace.tests) for namespace in self.namespaces if namespace.tests]
+
+    @property
+    def test_cases(self) -> list[str]:
+        return sorted(name for _, cases in self.test_groups for name, _ in cases)
+
+    @property
     def dirty_threshold(self) -> int:
         return self.schema.nif.dirty_threshold
 

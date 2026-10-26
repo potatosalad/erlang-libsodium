@@ -126,6 +126,19 @@
           "title": "Len Type",
           "type": "string"
         },
+        "length": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "C expression for the returned length after the call; defaults to `len` or `size`.",
+          "title": "Length"
+        },
         "copy_from": {
           "anyOf": [
             {
@@ -137,7 +150,7 @@
             }
           ],
           "default": null,
-          "description": "Initialize the buffer with this argument's bytes.",
+          "description": "Copy this argument's bytes to the start of the buffer, which must be large enough.",
           "title": "Copy From"
         }
       },
@@ -174,6 +187,12 @@
           "default": null,
           "description": "C expression for the maximum length, excluding the NUL byte.",
           "title": "Max"
+        },
+        "nullable": {
+          "default": false,
+          "description": "Pass NULL for an empty binary.",
+          "title": "Nullable",
+          "type": "boolean"
         }
       },
       "required": [
@@ -199,7 +218,8 @@
             "uint",
             "int",
             "atom",
-            "string"
+            "string",
+            "erlang"
           ],
           "title": "Type",
           "type": "string"
@@ -216,6 +236,32 @@
           "default": null,
           "description": "C expression; defaults to `<namespace>_<name>()`.",
           "title": "C"
+        },
+        "erlang": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "For `type: erlang`, the Erlang expression returned (no NIF).",
+          "title": "Erlang"
+        },
+        "spec": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Erlang result type; required for `type: erlang`.",
+          "title": "Spec"
         },
         "value": {
           "anyOf": [
@@ -268,13 +314,6 @@
         },
         "c_type": {
           "default": "int",
-          "enum": [
-            "int",
-            "long",
-            "long long",
-            "int64_t",
-            "int32_t"
-          ],
           "title": "C Type",
           "type": "string"
         },
@@ -288,6 +327,12 @@
           },
           "title": "Values",
           "type": "object"
+        },
+        "integers": {
+          "default": true,
+          "description": "Also accept the integer value of each constant.",
+          "title": "Integers",
+          "type": "boolean"
         }
       },
       "required": [
@@ -737,6 +782,13 @@
           "description": "Erlang example shown in docs and run by tests.",
           "title": "Example"
         },
+        "tests": {
+          "items": {
+            "$ref": "#/$defs/TestCase"
+          },
+          "title": "Tests",
+          "type": "array"
+        },
         "see_also": {
           "items": {
             "pattern": "^[a-z][a-zA-Z0-9_]*$",
@@ -850,6 +902,28 @@
         "c_type"
       ],
       "title": "StateOutput",
+      "type": "object"
+    },
+    "TestCase": {
+      "additionalProperties": false,
+      "description": "Erlang expressions run by the generated Common Test suite.",
+      "properties": {
+        "name": {
+          "pattern": "^[a-z_][a-zA-Z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "code": {
+          "description": "Erlang expressions separated by commas; a crash or `badmatch` fails the test.",
+          "title": "Code",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "code"
+      ],
+      "title": "TestCase",
       "type": "object"
     },
     "UIntArg": {

@@ -1,0 +1,74 @@
+%%% % @format
+-module(libsodium_api_SUITE).
+-compile(warn_missing_spec_all).
+-moduledoc """
+Common Test coverage generated from the namespace definitions in `codegen/`.
+
+Each group checks the namespace's recorded constants, runs its documented
+example, and runs the additional cases listed in its definition.
+""".
+-moduledoc #{author => ["Andrew Bennett <potatosaladx@gmail.com>"]}.
+-moduledoc #{created => "2026-10-26", modified => "2026-10-26"}.
+-moduledoc #{copyright => "Andrew Bennett"}.
+
+-include_lib("common_test/include/ct.hrl").
+
+%% ct.
+-export([
+    all/0,
+    groups/0,
+    init_per_suite/1,
+    end_per_suite/1
+]).
+
+%% Tests.
+-export([
+~J{ for name in ctx.test_cases }.
+    ~J< name >./1~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+]).
+
+-spec all() -> Result when Result :: [ct_suite:ct_test_def()].
+all() ->
+    [
+~J{ for group, _ in ctx.test_groups }.
+        {group, ~J< group >.}~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+    ].
+
+-spec groups() -> Result when Result :: [ct_suite:ct_group_def()].
+groups() ->
+    [
+~J{ for group, cases in ctx.test_groups }.
+        {~J< group >., [parallel], [
+~J{ for name, _ in cases }.
+            ~J< name >.~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+        ]}~J< ',' if not loop.last else '' >.
+~J{ endfor }.
+    ].
+
+-spec init_per_suite(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ct_suite:ct_config().
+init_per_suite(Config) ->
+    {ok, _} = application:ensure_all_started(libsodium),
+    Config.
+
+-spec end_per_suite(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
+end_per_suite(_Config) ->
+    _ = application:stop(libsodium),
+    ok.
+
+%%%=============================================================================
+%%% Tests
+%%%=============================================================================
+~J{ for _, cases in ctx.test_groups }.
+~J{ for name, code in cases }.
+
+-spec ~J< name >.(Config) -> Result when Config :: ct_suite:ct_config(), Result :: ok.
+~J< name >.(_Config) ->
+    _ = begin
+~J< code | indent(8, first=true) >.
+    end,
+    ok.
+~J{ endfor }.
+~J{ endfor }.

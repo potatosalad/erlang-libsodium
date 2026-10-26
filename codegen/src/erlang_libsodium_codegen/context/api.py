@@ -108,7 +108,11 @@ class ConstantCtx:
 
     @property
     def result_type(self) -> str:
-        return CONSTANT_SPECS[self.schema.type]
+        return self.schema.spec or CONSTANT_SPECS[self.schema.type]
+
+    @property
+    def is_native(self) -> bool:
+        return self.schema.type != "erlang"
 
     @property
     def doc(self) -> str:
@@ -130,6 +134,7 @@ class ConstantCtx:
             result_type=self.result_type,
             doc=self.doc,
             target=self,
+            expression=self.schema.erlang,
         )
 
 
@@ -233,7 +238,7 @@ class FunctionCtx:
                 case schema.FixedArg():
                     lines += [f"ErlNifBinary {arg.name}_bin;", f"const unsigned char *{arg.name} = NULL;"]
                 case schema.CStringArg():
-                    lines += [f"ErlNifBinary {arg.name}_bin;", f"char *{arg.name} = NULL;"]
+                    lines += [f"ErlNifBinary {arg.name}_bin;", f"char *{arg.name}_str = NULL;", f"const char *{arg.name} = NULL;"]
                 case schema.StateArg():
                     lines += [f"ErlNifBinary {arg.name}_bin;", f"{arg.c_type} {arg.name};"]
                 case schema.UIntArg():
@@ -241,7 +246,7 @@ class FunctionCtx:
                 case schema.IntArg():
                     lines += [f"ErlNifSInt64 {arg.name}_s64;", f"{arg.c_type} {arg.name} = 0;"]
                 case schema.EnumArg():
-                    lines += [f"{arg.c_type} {arg.name} = 0;"]
+                    lines += [f"{arg.c_type} {arg.name} = ({arg.c_type})0;"]
         for output in self.outputs:
             match output:
                 case schema.BufferOutput():
@@ -332,6 +337,9 @@ class FunctionCtx:
             keyword = "if" if position == 0 else "} else if"
             lines += [f"    {keyword} (enif_is_identical({term}, ATOM({atom}))) {{", f"        {arg.name} = ({arg.c_type})({value});"]
         lines += ["    } else {", "        result = enif_make_badarg(env);", "        goto cleanup;", "    }"]
+        if not arg.integers:
+            lines += ["} else {", "    result = enif_make_badarg(env);", "    goto cleanup;", "}"]
+            return lines
         lines += [
             "} else {",
             f"    ErlNifSInt64 {arg.name}_s64;",
@@ -357,15 +365,19 @@ class FunctionCtx:
         lines: list[str] = []
         for arg in self.args:
             if isinstance(arg, schema.CStringArg):
-                lines += [
-                    f"{arg.name} = (char *)enif_alloc({arg.name}_bin.size + 1);",
-                    f"if ({arg.name} == NULL) {{",
+                block = [
+                    f"{arg.name}_str = (char *)enif_alloc({arg.name}_bin.size + 1);",
+                    f"if ({arg.name}_str == NULL) {{",
                     '    result = EXCP_ERROR(env, "Can\'t allocate memory");',
                     "    goto cleanup;",
                     "}",
-                    f"(void)memcpy({arg.name}, {arg.name}_bin.data, {arg.name}_bin.size);",
-                    f"{arg.name}[{arg.name}_bin.size] = '\\0';",
+                    f"(void)memcpy({arg.name}_str, {arg.name}_bin.data, {arg.name}_bin.size);",
+                    f"{arg.name}_str[{arg.name}_bin.size] = '\\0';",
+                    f"{arg.name} = (const char *){arg.name}_str;",
                 ]
+                if arg.nullable:
+                    block = [f"if ({arg.name}_bin.size > 0) {{", *("    " + line for line in block), "}"]
+                lines += block
         if self.schema.prelude:
             lines += self.schema.prelude.strip().splitlines()
         for output in self.outputs:
@@ -381,8 +393,8 @@ class FunctionCtx:
                 ]
                 if output.copy_from:
                     source = output.copy_from
-                    lines += self._badarg_if(f"{source}_bin.size != {output.name}_size")
-                    lines.append(f"(void)memcpy({output.name}, {source}_bin.data, {output.name}_size);")
+                    lines += self._badarg_if(f"{source}_bin.size > {output.name}_size")
+                    lines.append(f"(void)memcpy({output.name}, {source}_bin.data, {source}_bin.size);")
                 if output.len:
                     lines.append(f"{output.len} = ({output.len_type})({output.name}_size);")
         return lines
@@ -439,7 +451,7 @@ class FunctionCtx:
             counter[0] += 1
             match item:
                 case schema.BufferOutput():
-                    length = item.len or f"{item.name}_size"
+                    length = item.length or item.len or f"{item.name}_size"
                     lines += [
                         f"if ((size_t)({length}) < {item.name}_size) {{",
                         f"    sodium_memzero({item.name} + (size_t)({length}), {item.name}_size - (size_t)({length}));",
@@ -501,9 +513,9 @@ class FunctionCtx:
             match arg:
                 case schema.CStringArg():
                     lines += [
-                        f"if ({arg.name} != NULL) {{",
-                        f"    sodium_memzero({arg.name}, {arg.name}_bin.size + 1);",
-                        f"    enif_free({arg.name});",
+                        f"if ({arg.name}_str != NULL) {{",
+                        f"    sodium_memzero({arg.name}_str, {arg.name}_bin.size + 1);",
+                        f"    enif_free({arg.name}_str);",
                         "}",
                     ]
                 case schema.StateArg():
@@ -523,7 +535,7 @@ class FunctionCtx:
             case schema.IntArg():
                 return "integer()"
             case schema.EnumArg():
-                return " | ".join([*arg.values, "integer()"])
+                return " | ".join([*arg.values, *(["integer()"] if arg.integers else [])])
             case _:
                 return "binary()"
 
@@ -604,6 +616,7 @@ class PublicFunction:
     result_type: str
     doc: str
     target: ConstantCtx | FunctionCtx = field(repr=False)
+    expression: str | None = None
 
     @property
     def arity(self) -> int:
@@ -617,6 +630,8 @@ class PublicFunction:
 
     @property
     def body(self) -> str:
+        if self.expression is not None:
+            return " ".join(self.expression.split())
         return f"libsodium_nif:{self.target.nif_name}({', '.join(self.args)})"
 
 
@@ -632,7 +647,7 @@ class NamespaceCtx:
 
     @property
     def c_prefix(self) -> str:
-        return {"utils": "sodium", "runtime": "sodium_runtime", "version": "sodium_version"}.get(self.name, self.name)
+        return {"utils": "sodium", "runtime": "sodium_runtime"}.get(self.name, self.name)
 
     @property
     def title(self) -> str:
@@ -646,9 +661,38 @@ class NamespaceCtx:
     def example(self) -> str | None:
         return self.schema.example.strip() if self.schema.example else None
 
+    @property
+    def tests(self) -> list[tuple[str, str]]:
+        cases = []
+        if any(constant.schema.value is not None for constant in self.constants):
+            cases.append((f"{self.name}_constants", self.constants_test))
+        if self.example:
+            cases.append((f"{self.name}_example", self.example.rstrip().removesuffix(".")))
+        for test in self.schema.tests:
+            cases.append((f"{self.name}_{test.name}", test.code.strip().rstrip().removesuffix(".")))
+        return cases
+
+    @property
+    def constants_test(self) -> str:
+        checks = []
+        for constant in self.constants:
+            value = constant.schema.value
+            if value is None:
+                continue
+            if constant.schema.type == "string":
+                expected = f'<<"{value}">>'
+            else:
+                expected = str(value)
+            checks.append(f"{expected} = {self.module}:{constant.name}()")
+        return ",\n".join(checks)
+
     @cached_property
     def constants(self) -> list[ConstantCtx]:
-        return [ConstantCtx(self, constant) for constant in self.schema.constants]
+        return [ConstantCtx(self, constant) for constant in self.schema.constants if constant.type != "erlang"]
+
+    @cached_property
+    def erlang_constants(self) -> list[ConstantCtx]:
+        return [ConstantCtx(self, constant) for constant in self.schema.constants if constant.type == "erlang"]
 
     @cached_property
     def functions(self) -> list[FunctionCtx]:
@@ -660,7 +704,7 @@ class NamespaceCtx:
 
     @property
     def public_functions(self) -> list[PublicFunction]:
-        functions = [constant.public for constant in self.constants]
+        functions = [constant.public for constant in [*self.constants, *self.erlang_constants]]
         for function in self.functions:
             functions += function.public
         return sorted(functions, key=lambda f: (f.name, f.arity))

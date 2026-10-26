@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=../namespace.schema.json
+randombytes:
+  title: Random data
+  doc: |
+    Unpredictable random data from libsodium's cryptographically secure
+    generator, which uses the operating system's random source.
+
+    `buf/1` and `randombytes/1` return binaries of the requested length;
+    `random/0` and `uniform/1` return 32-bit integers. Requests for more than
+    64 KiB run on a dirty CPU scheduler.
+
+    `set_implementation/1` changes the generator for the whole VM and should
+    only be called during startup, before any other libsodium function.
+  example: |
+    Bytes = libsodium_randombytes:buf(32),
+    32 = byte_size(Bytes),
+    Roll = libsodium_randombytes:uniform(6),
+    true = Roll >= 0 andalso Roll < 6.
+  constants:
+    - name: seedbytes
+      value: 32
+    - name: implementation_name
+      type: atom
+      doc: Return the name of the active random number generator implementation, such as `sysrandom`.
+  functions:
+    - name: buf
+      doc: Return `Size` random bytes.
+      args:
+        - {type: uint, name: size, c_type: size_t, work: true}
+      outputs:
+        - {name: buf, size: size}
+      call: randombytes_buf(buf, size)
+      rc_type: void
+      check: none
+      returns: buf
+    - name: buf_deterministic
+      doc: |
+        Return `Size` bytes deterministically derived from the `seedbytes/0` byte
+        `Seed`. The same seed always produces the same output.
+      args:
+        - {type: uint, name: size, c_type: size_t, work: true}
+        - {type: fixed, name: seed, size: randombytes_SEEDBYTES}
+      outputs:
+        - {name: buf, size: size}
+      call: randombytes_buf_deterministic(buf, size, seed)
+      rc_type: void
+      check: none
+      returns: buf
+    - name: random
+      doc: Return a random integer between `0` and `16#ffffffff` (inclusive).
+      call: randombytes_random()
+      rc_type: uint32_t
+      check: none
+      returns: "uint:rc"
+      spec: "0..4294967295"
+    - name: uniform
+      doc: |
+        Return a uniformly distributed random integer between `0` and
+        `UpperBound - 1` (inclusive), avoiding modulo bias. Returns `0` when
+        `UpperBound` is less than `2`.
+      args:
+        - {type: uint, name: upper_bound, c_type: uint32_t}
+      call: randombytes_uniform(upper_bound)
+      rc_type: uint32_t
+      check: none
+      returns: "uint:rc"
+      spec: "0..4294967294"
+    - name: stir
+      doc: Reseed the generator. Rarely needed; libsodium reseeds automatically after a fork.
+      call: randombytes_stir()
+      rc_type: void
+      check: none
+      returns: "atom:ok"
+    - name: close
+      doc: |
+        Release resources held by the generator (such as an open
+        `/dev/urandom` descriptor). Returns `0` on success or `-1` on failure.
+      call: randombytes_close()
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+    - name: set_implementation
+      doc: |
+        Select the generator implementation for the whole VM: `sysrandom` uses the
+        operating system directly, while `internal` (also called `salsa20`) uses
+        a ChaCha20-based generator seeded from it. Returns `0` on success.
+      args:
+        - type: enum
+          name: impl
+          c_type: "randombytes_implementation *"
+          integers: false
+          values:
+            internal: "&randombytes_internal_implementation"
+            salsa20: "&randombytes_internal_implementation"
+            sysrandom: "&randombytes_sysrandom_implementation"
+      call: randombytes_set_implementation(impl)
+      check: none
+      returns: "int:rc"
+      spec: "0 | -1"
+    - name: randombytes
+      doc: Return `Size` random bytes; equivalent to `buf/1`.
+      args:
+        - {type: uint, name: size, c_type: "unsigned long long", work: true, max: SIZE_MAX}
+      outputs:
+        - {name: buf, size: size}
+      call: randombytes(buf, size)
+      rc_type: void
+      check: none
+      returns: buf

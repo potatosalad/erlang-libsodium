@@ -35,10 +35,20 @@ class Constant(Model):
     """A zero-arity libsodium query such as `crypto_box_seedbytes()`."""
 
     name: CIdentifier
-    type: Literal["size", "uint", "int", "atom", "string"] = "size"
+    type: Literal["size", "uint", "int", "atom", "string", "erlang"] = "size"
     c: str | None = Field(default=None, description="C expression; defaults to `<namespace>_<name>()`.")
+    erlang: str | None = Field(default=None, description="For `type: erlang`, the Erlang expression returned (no NIF).")
+    spec: str | None = Field(default=None, description="Erlang result type; required for `type: erlang`.")
     value: int | str | None = Field(default=None, description="Expected value checked by the generated tests.")
     doc: str | None = None
+
+    @model_validator(mode="after")
+    def valid_erlang(self) -> Self:
+        if (self.type == "erlang") != (self.erlang is not None):
+            raise ValueError(f"{self.name}: `erlang` is required by, and only allowed for, `type: erlang`")
+        if self.type == "erlang" and (self.spec is None or self.doc is None):
+            raise ValueError(f"{self.name}: `type: erlang` constants need a `spec` and a `doc`")
+        return self
 
 
 class BinaryArg(Model):
@@ -69,6 +79,7 @@ class CStringArg(Model):
     type: Literal["cstring"]
     name: CIdentifier
     max: str | None = Field(default=None, description="C expression for the maximum length, excluding the NUL byte.")
+    nullable: bool = Field(default=False, description="Pass NULL for an empty binary.")
 
 
 class StateArg(Model):
@@ -102,8 +113,9 @@ class EnumArg(Model):
 
     type: Literal["enum"]
     name: CIdentifier
-    c_type: Literal[SIGNED_C_TYPES] = "int"  # type: ignore[valid-type]
+    c_type: str = "int"
     values: dict[ErlangAtom, str] = Field(min_length=1, description="Atoms mapped to C constant expressions.")
+    integers: bool = Field(default=True, description="Also accept the integer value of each constant.")
 
 
 Arg = Annotated[BinaryArg | FixedArg | CStringArg | StateArg | UIntArg | IntArg | EnumArg, Field(discriminator="type")]
@@ -117,7 +129,12 @@ class BufferOutput(Model):
     size: str = Field(description="C expression for the allocated length; argument lengths are in scope.")
     len: CIdentifier | None = Field(default=None, description="C variable receiving the produced length, if any.")
     len_type: Literal["size_t", "unsigned long long"] = "unsigned long long"
-    copy_from: CIdentifier | None = Field(default=None, description="Initialize the buffer with this argument's bytes.")
+    length: str | None = Field(
+        default=None, description="C expression for the returned length after the call; defaults to `len` or `size`."
+    )
+    copy_from: CIdentifier | None = Field(
+        default=None, description="Copy this argument's bytes to the start of the buffer, which must be large enough."
+    )
 
 
 class StateOutput(Model):
@@ -210,6 +227,13 @@ def _validate_return(name: str, value: Return) -> None:
         raise ValueError(f"{name}: invalid result {value!r}")
 
 
+class TestCase(Model):
+    """Erlang expressions run by the generated Common Test suite."""
+
+    name: CIdentifier
+    code: str = Field(description="Erlang expressions separated by commas; a crash or `badmatch` fails the test.")
+
+
 class Namespace(Model):
     title: str
     doc: str
@@ -217,6 +241,7 @@ class Namespace(Model):
     constants: list[Constant] = Field(default_factory=list)
     functions: list[Function] = Field(default_factory=list)
     example: str | None = Field(default=None, description="Erlang example shown in docs and run by tests.")
+    tests: list[TestCase] = Field(default_factory=list)
     see_also: list[ErlangAtom] = Field(default_factory=list)
 
     @model_validator(mode="after")
