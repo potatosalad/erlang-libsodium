@@ -1,7 +1,7 @@
 %%% % @format
 {application, libsodium, [
     {description, "libsodium NIF for Erlang and Elixir"},
-    {vsn, "3.0.0"},
+    {vsn, "3.0.1"},
     {id, "git"},
     {registered, [libsodium_sup]},
     {mod, {libsodium_app, []}},

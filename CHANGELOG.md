@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 3.0.1 (2026-10-26)
 
 * Fixes
   * Building from a git checkout no longer downloads `config.guess` and `config.sub` from GNU Savannah while

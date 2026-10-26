@@ -56,7 +56,7 @@ cd codegen
 poetry run pytest
 ```
 
-See the [codegen workflow](https://github.com/potatosalad/erlang-libsodium/blob/3.0.0/codegen/README.md)
+See the [codegen workflow](https://github.com/potatosalad/erlang-libsodium/blob/3.0.1/codegen/README.md)
 for the definition format, Erlang types, scheduling, and dependency locking.
 
 ## Sanitizers
@@ -82,7 +82,7 @@ just bench aead
 ```
 
 The scripts under `bench/` compare libsodium's implementations with each other
-and with Erlang/OTP `crypto`. See [bench/README.md](https://github.com/potatosalad/erlang-libsodium/blob/3.0.0/bench/README.md).
+and with Erlang/OTP `crypto`. See [bench/README.md](https://github.com/potatosalad/erlang-libsodium/blob/3.0.1/bench/README.md).
 
 ## Documentation and packages
 
@@ -92,16 +92,19 @@ rebar3 hex build
 ```
 
 Open `doc/index.html`. The README, this guide, the migration guide, the
-changelog, and the license are included, and source links target the `3.0.0`
+changelog, and the license are included, and source links target the release
 tag. The package includes the native sources, the vendored libsodium, and the
 guides; build it locally to check its contents before publishing.
 
 ## Releasing
 
 Set the version in `Makefile` (`PROJECT_VERSION`) and `src/libsodium.app.src`,
-date the changelog entry, and run `just codegen` to update `README.md` and
-`ex_doc.config`. After CI passes on `main`, tag the release and publish:
+date the changelog entry, update the versioned links in this guide, and run
+`just codegen` to update `README.md` and `ex_doc.config`. After CI passes on
+`main`, create a signed tag and publish:
 
 ```sh
+git tag -s 3.0.1 -m "Version 3.0.1"
+git push origin 3.0.1
 rebar3 hex publish
 ```
