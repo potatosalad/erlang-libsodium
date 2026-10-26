@@ -12,7 +12,8 @@ ENV PATH="/opt/poetry/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=false \
-    POETRY_VIRTUALENVS_PATH=/opt/virtualenvs
+    POETRY_VIRTUALENVS_PATH=/opt/virtualenvs \
+    LIBSODIUM_BUILD_DIR=/opt/libsodium-build
 
 WORKDIR /project/codegen
 COPY codegen/pyproject.toml codegen/poetry.lock ./

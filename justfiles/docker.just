@@ -12,7 +12,11 @@ docker-build:
 
 [group('docker')]
 docker-codegen:
-    @just _docker-exec just codegen
+    @just _docker-exec just _codegen-in-docker
+
+# The container shares the work tree: remove its Linux build outputs afterwards.
+_codegen-in-docker: codegen
+    gmake clean
 
 [group('docker')]
 docker-format:

@@ -17,9 +17,11 @@ just format     # Format C, Erlang, templates, and Python sources
 ```
 
 `just docker-codegen` runs generation in a Linux image built by
-`just docker-build`. The image caches the locked Python dependencies separately
-from the host's `.venv`. Docker helpers also cover formatting, locking, signing,
-and an interactive shell.
+`just docker-build` and produces the same files as a native run. The image
+caches the locked Python dependencies separately from the host's `.venv`,
+builds libsodium inside the container, and removes its Linux build outputs from
+the shared work tree afterwards. Docker helpers also cover formatting, locking,
+signing, and an interactive shell.
 
 ## Stages
 
